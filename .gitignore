@@ -13,3 +13,4 @@ __pycache__/
 *.db-*
 .coverage
 artifacts/
+output/stats/cache/

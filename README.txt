@@ -88,6 +88,36 @@ Screenshots are written to artifacts/, which is excluded from Git.
 
 STATISTICS AND PROJECTIONS
 
+Free data to Excel (no subscriptions or API keys):
+  python -m survivor.stats_workbook
+
+This fills output/stats/survivor-player-stats.xlsx with regular-season totals and
+per-game stats for 2014-15 through 2025-26, public 2026-27 FantasyPros projections,
+historical auction prices, confirmed keepers, team budgets and source provenance.
+2014-15 supplies the prior-year context for the first auction in 2015-16.
+Filters and frozen columns make every data tab searchable in Excel.
+
+Historical data comes from Basketball Reference's public season totals pages.
+Only the combined row is used for traded players. Postseason rows are excluded.
+Source HTML is cached in output/stats/cache/ (excluded from Git). Use --refresh
+to fetch again. A source failure appears in Issues/manifest.json and exits nonzero.
+
+FantasyPros' public table supplies projected totals, games, minutes, FG% and FT%.
+The script converts totals to per-game stats, but leaves missing shooting makes
+and attempts EMPTY. Projections are labeled INCOMPLETE and cannot pass the current
+statistics importer until shooting volume is supplied from a verified source or
+an explicitly labeled model. No paid projection source or fabricated stats are used.
+
+The script also produces validated actuals CSVs and a manifest. To run the same
+job in Railway and load historical stats into Postgres:
+  python -m survivor.stats_workbook --import-history
+
+Run it as a separate Railway job with the existing DATABASE_URL reference; keep
+the dashboard service start command unchanged. --history-only skips projections.
+All imports use the existing importer and are idempotent for the same data and
+snapshot date. The Excel file is an export, not a second database. Files generated
+inside Railway containers are ephemeral; imported Postgres records persist.
+
 Start with output/stats_import_template.csv. Supply one row per NBA player;
 combine traded-player team splits before import. All *_pg columns are per game.
 games is projected/actual games for the specified coverage window. Preserve both
