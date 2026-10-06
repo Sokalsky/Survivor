@@ -34,15 +34,19 @@ class Cursor:
 class Postgres:
     dialect = 'postgres'
 
-    def __init__(self, url):
+    def __init__(self, url, *, initialize=True, readonly=False):
         import psycopg
         from psycopg.rows import dict_row
-        self.connection = psycopg.connect(url, row_factory=dict_row, connect_timeout=15)
-        with self.connection.transaction():
-            self.connection.execute("SELECT pg_advisory_xact_lock(hashtext('survivor-schema'))")
-            self.connection.execute('CREATE SCHEMA IF NOT EXISTS survivor')
-            self.connection.execute('SET search_path TO survivor')
-            self.connection.execute(SCHEMA.read_text(encoding='utf-8'))
+        options = '-c search_path=survivor -c statement_timeout=15000'
+        if readonly:
+            options += ' -c default_transaction_read_only=on'
+        self.connection = psycopg.connect(url, row_factory=dict_row, connect_timeout=15, options=options)
+        if initialize:
+            with self.connection.transaction():
+                self.connection.execute("SELECT pg_advisory_xact_lock(hashtext('survivor-schema'))")
+                self.connection.execute('CREATE SCHEMA IF NOT EXISTS survivor')
+                self.connection.execute('SET search_path TO survivor')
+                self.connection.execute(SCHEMA.read_text(encoding='utf-8'))
 
     def execute(self, sql, parameters=None):
         if sql.startswith('INSERT OR IGNORE INTO '):
@@ -66,8 +70,8 @@ class Postgres:
         self.connection.close()
 
 
-def preview_database():
-    connection = sqlite3.connect(':memory:')
+def preview_database(*, threaded=False):
+    connection = sqlite3.connect(':memory:', check_same_thread=not threaded)
     connection.row_factory = sqlite3.Row
     connection.execute('PRAGMA foreign_keys=ON')
     schema = SCHEMA.read_text(encoding='utf-8')

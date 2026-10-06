@@ -2,6 +2,10 @@
 *.py text eol=lf
 *.sql text eol=lf
 *.json text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.svg text eol=lf
 *.txt text eol=lf
 # Keep original cell text, including trailing spaces, in data exports.
 *.csv text eol=lf -whitespace

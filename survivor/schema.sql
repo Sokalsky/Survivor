@@ -124,3 +124,7 @@ SELECT t.source_id, t.season, t.franchise_sheet, t.finish,
        SUM(CASE WHEN r.acquisition_class='auction' THEN r.recorded_cost ELSE 0 END) AS auction_cost
 FROM team_seasons t JOIN roster_entries r USING(team_season_id)
 GROUP BY t.team_season_id;
+
+CREATE INDEX IF NOT EXISTS roster_player_stage_idx ON roster_entries(player_id,stage);
+CREATE INDEX IF NOT EXISTS team_season_idx ON team_seasons(season);
+CREATE INDEX IF NOT EXISTS stats_player_idx ON player_stats(player_id);
