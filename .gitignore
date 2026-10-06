@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.tmp
+.venv/
+.env
+.env.*
+!.env.example
+.railway/
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+.coverage

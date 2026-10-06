@@ -1,0 +1,134 @@
+VALUING PLAYERS FOR THIS SURVIVOR LEAGUE
+
+Recommendation: use external projections for the first version, build the league
+valuation layer ourselves, and measure the benefit of custom projections later.
+The history is valuable because it describes this specific auction room.
+
+THREE OUTPUTS THAT SHOULD REMAIN DISTINCT
+
+1. Fair statistical value: the contribution to an eight-category roster, converted
+   to auction dollars using the league's available budget and roster constraints.
+2. Expected auction price: what this league is likely to pay, learned from genuine
+   opening auction purchases and comparable player profiles.
+3. Recommended bid ceiling: a decision for a particular team, accounting for its
+   keepers, category balance, open slots, remaining dollars and survival risk.
+
+Keeper surplus is fair market value minus the actual next-season keeper charge.
+Do not assume that next year's keeper charge equals the latest recorded salary.
+Keeper escalation, eligibility and maximum tenure still need confirmation.
+
+EIGHT-CATEGORY CONTRIBUTIONS
+
+Assumed categories: PTS, REB, AST, STL, BLK, 3PM, FG%, FT%; no turnovers.
+First convert each player's projections to the appropriate time horizon and
+expected usable starts. A full-season games estimate is not automatically right
+for a survivor league, particularly when cuts begin early or statistics reset.
+
+For a first baseline, standardize contributions within the relevant rosterable
+player pool. Compare against replacement at the actual league depth and positions.
+Rare blocks or steals can become valuable through their standardized contribution
+and replacement scarcity. Do not arbitrarily double them and then count that same
+scarcity again. Both percentages and stocks can also have empirical premiums in
+your league's auction prices; estimate those separately from their roto value.
+
+Use shooting volume, not raw percentages:
+  FG impact = FGM - (pool FG% * FGA)
+  FT impact = FTM - (pool FT% * FTA)
+Pool percentages must be weighted by attempts. Standardize these impacts alongside
+the six counting categories. A low-volume accurate shooter can have less impact
+than a slightly less accurate player taking many shots. Large negative shooting
+contributions must count too. Do not substitute eFG% or TS% for the actual categories.
+
+Once a team roster is known, compute its exact combined makes/attempts and category
+changes. The linear impact formula is a useful baseline, not an exact universal
+dollar value for every roster. If historical category standings become available,
+estimate how much change buys a standings point and test that against the baseline.
+
+All-around stars should retain credit across all eight categories. Do not force
+every player into one archetype. Multi-category strength and positional flexibility
+can matter when assembling a roster that can survive, beyond a single raw stat.
+
+HISTORICAL COMPARABLES AND PRICE MODEL
+
+Join historical auction_sales to what was known before each auction: archived
+preseason projections where available, otherwise lagged prior-season production,
+age, role/minutes changes and known availability. Store the source and as-of date.
+Current-year projections should be matched to comparable eight-category profiles,
+including volume-weighted percentages, projected minutes and availability.
+
+Use same-season realized actuals to evaluate outcomes and projection accuracy.
+Do not train or backtest an auction-price forecast with end-of-season information
+that bidders could not have known at the auction. A retrospective chart of what
+production bought is useful descriptive analysis, but not proof of predictive power.
+
+Show several comparable player-seasons with their actual auction price, statistical
+profile and differences from the target player. Normalize category environments
+within each year, account for league budget changes and keeper inventory, and give
+recent seasons more relevance. Handle shortened seasons and unusual schedules
+explicitly rather than comparing their raw totals to ordinary 82-game seasons.
+
+Start with a simple regularized price model plus a weighted-comps estimate. Fit
+nonlinear price behavior carefully: the top tier and the $1 floor differ. Benchmark
+against a plain category-score-to-dollar curve before adding complexity. With
+2,173 genuine auction observations, overly elaborate models can easily overfit.
+Players with no close comparables, especially exceptional stars and rookies, need
+wider uncertainty and explicit flags rather than forced misleading comparisons.
+
+KEEPER INFLATION AND BUDGET RECONCILIATION
+
+Remove next season's actual keepers from the auction pool. Subtract their charges
+from league dollars and remove their occupied slots. Reserve the minimum legal
+bid for every remaining slot before distributing discretionary dollars across
+positive value above replacement. Check that implied auction allocations fit the
+available money and roster slots. Record undrafted/zero-value outcomes explicitly.
+
+An approximate inflation factor can compare remaining discretionary dollars to
+remaining base value, but it should not assume keeper bargains always create the
+same inflation for every player type. Scarcity depends on which categories and
+positions have been kept. Do not count salary discounts as current auction sales.
+
+SURVIVOR RULES CHANGE THE OBJECTIVE
+
+Need: elimination dates and cadence, whether category statistics reset, active
+lineup/bench/IL slots, games or start limits, and how eliminated rosters are acquired.
+Those rules determine whether early usable production, stability, category balance,
+or later schedule strength should carry the most value. A player returning from
+injury in January may have appealing full-season stats and still be a poor purchase
+for a team at risk of an earlier elimination.
+
+Final rosters are useful for studying how teams evolved, but are selected by survival
+and acquisitions. A champion's finishing roster is not an unbiased measure of its
+auction quality. Do not use final finish as a causal label for an individual bid.
+Eventually simulate league rounds and acquisitions after the rules and dated data
+are available; do not claim a survivor-specific model before that is implemented.
+
+VALIDATION AND DELIVERABLE
+
+Hold out whole future seasons in chronological order. Tune only on older seasons;
+never randomly split repeated player-season records across training and test data.
+Compare dollar error, errors by price tier, ranking quality, interval coverage and
+budget calibration. Evaluate actual fantasy contribution separately from predicted
+auction price. Report outlier and unmatched-player coverage alongside average error.
+
+The eventual draft board should show player, eight category contributions, usable
+games/starts, fair value, expected auction price, bid ceiling, uncertainty range,
+keeper eligibility/cost, closest historical comps, source date and risk notes.
+
+CURRENT STATUS AND NEXT INPUTS
+
+Completed: workbook catalog, audit exports, Postgres schema, import job and dated
+statistics CSV importer. Not yet completed: external NBA identity reconciliation,
+historical statistics ingestion, preseason projections ingestion, next-season keeper
+decisions, trained valuation model or current player price forecasts.
+
+An initial projection provider can be evaluated against archived actuals and any
+available past projections. Basketball Monster currently lists 2026-27 projections
+and configurable league settings; access/export rights should be checked before
+selecting it. No subscription or data access has been assumed or purchased.
+https://basketballmonster.com/default.aspx
+https://www.basketballmonster.com/help.aspx
+
+For custom projections later: separate expected minutes, per-minute statistical
+rates and availability; backtest each component before replacing the external
+baseline. The first edge to establish is how this league prices an eight-category
+profile, and how those prices differ from what helps a team survive.

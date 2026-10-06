@@ -1,0 +1,9 @@
+*
+!Dockerfile
+!requirements.txt
+!survivor/
+!survivor/**
+!config/
+!config/**
+!Survivor keeper log 2025.xlsx
+**/__pycache__

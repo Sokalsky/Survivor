@@ -1,0 +1,28 @@
+﻿severity,code,season,sheet,source_cell,detail
+review,final_cost_differs_from_opening,2025-26,Joe,D17,"Ayo Dosunmu: final recorded cost 19, opening cost 1. Both preserved; final cost is not auction training data."
+review,final_cost_differs_from_opening,2024-25,Ian,D25,"Aaron Gordon: final recorded cost 17, opening cost 7. Both preserved; final cost is not auction training data."
+review,final_cost_differs_from_opening,2024-25,Max,D24,"Karl-Anthony Towns: final recorded cost 84, opening cost 45. Both preserved; final cost is not auction training data."
+review,final_cost_differs_from_opening,2023-24,Isaac,D43,"Bradley Beal: final recorded cost 30, opening cost 24. Both preserved; final cost is not auction training data."
+review,final_cost_differs_from_opening,2023-24,Jason,D49,"Joel Embiid: final recorded cost 60, opening cost 69. Both preserved; final cost is not auction training data."
+review,ambiguous_player_name,2022-23,Alvin,A69,Possibly Jaren Jackson Jr.; retained as a separate identity pending review.
+review,ambiguous_player_name,2022-23,Alvin,D69,Possibly Jaren Jackson Jr.; retained as a separate identity pending review.
+review,opening_roster_size,2022-23,Benji,,Recorded 14 players; expected 15 from workbook pattern. Do not invent a missing purchase.
+review,final_cost_differs_from_opening,2021-22,Arthur,D93,"Domantas Sabonis: final recorded cost 44, opening cost 41. Both preserved; final cost is not auction training data."
+review,final_cost_differs_from_opening,2021-22,Graham,D84,"Dorian Finney-Smith: final recorded cost 6, opening cost 1. Both preserved; final cost is not auction training data."
+review,final_cost_differs_from_opening,2021-22,Kerry,D85,"Cameron Johnson: final recorded cost 2, opening cost 1. Both preserved; final cost is not auction training data."
+review,final_cost_differs_from_opening,2020-21,Arthur,D100,"Devin Booker: final recorded cost 24, opening cost 34. Both preserved; final cost is not auction training data."
+review,final_cost_differs_from_opening,2020-21,Kerry,D107,"Jonas Valanciunas: final recorded cost 27, opening cost 26. Both preserved; final cost is not auction training data."
+review,final_cost_differs_from_opening,2020-21,Ron,D108,"Willie Cauley-Stein: final recorded cost 0, opening cost 1. Both preserved; final cost is not auction training data."
+review,duplicate_on_same_roster,2018-19,Darren,,dwightpowell occurs 2 times on the final roster.
+review,final_cost_differs_from_opening,2018-19,Arthur,D144,"Kevin Durant: final recorded cost 66, opening cost 65. Both preserved; final cost is not auction training data."
+review,final_cost_differs_from_opening,2018-19,Ian,D147,"Bogdan Bogdanovic: final recorded cost 13, opening cost 4. Both preserved; final cost is not auction training data."
+review,final_cost_differs_from_opening,2018-19,Mark,D145,"Bojan Bogdanovic: final recorded cost 4, opening cost 13. Both preserved; final cost is not auction training data."
+review,final_cost_differs_from_opening,2017-18,Alvin,D165,"Harrison Barnes: final recorded cost 26, opening cost 20. Both preserved; final cost is not auction training data."
+review,final_cost_differs_from_opening,2017-18,Arthur,D173,"Bojan Bogdanovic: final recorded cost 2, opening cost 7. Both preserved; final cost is not auction training data."
+review,opening_roster_size,2017-18,Joe,,Recorded 14 players; expected 15 from workbook pattern. Do not invent a missing purchase.
+info,explicit_vacancy,2016-17,Isaac,D193,Workbook records a vacant final roster slot.
+review,final_cost_differs_from_opening,2016-17,Brent,D188,"Derrick Rose: final recorded cost 10, opening cost 11. Both preserved; final cost is not auction training data."
+review,final_cost_differs_from_opening,2016-17,Max,D182,"Derrick Rose: final recorded cost 10, opening cost 11. Both preserved; final cost is not auction training data."
+review,finish_order_inconsistent,2016-17,,,"Recorded finishes: [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 11, 12, 13, 14, 15]; expected 1 through 15."
+review,final_cost_differs_from_opening,2015-16,Peter,D206,"Ricky Rubio: final recorded cost 19, opening cost 9. Both preserved; final cost is not auction training data."
+review,final_cost_differs_from_opening,2015-16,Peter,D207,"PJ Tucker: final recorded cost 7, opening cost 6. Both preserved; final cost is not auction training data."

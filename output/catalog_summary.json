@@ -1,0 +1,168 @@
+{
+  "generated_at": "2026-10-06T22:36:54.229783+00:00",
+  "metrics": {
+    "source_sheets": 26,
+    "seasons": 11,
+    "team_seasons": 165,
+    "players": 641,
+    "raw_name_variants": 729,
+    "opening_entries": 2473,
+    "clean_auction_sales": 2173,
+    "keeper_entries": 300,
+    "final_entries": 2621,
+    "tracking_entries": 2400,
+    "raw_cells": 21354,
+    "review_issues": 26,
+    "statistical_datasets_loaded": 0,
+    "valuation_runs": 0
+  },
+  "seasons": [
+    {
+      "season": "2015-16",
+      "league_year": 1,
+      "team_seasons": 15,
+      "opening_entries": 225,
+      "clean_auction_sales": 225,
+      "keeper_entries": 0,
+      "final_entries": 225,
+      "recorded_opening_spend": 2844,
+      "highest_clean_auction_price": 86
+    },
+    {
+      "season": "2016-17",
+      "league_year": 2,
+      "team_seasons": 15,
+      "opening_entries": 225,
+      "clean_auction_sales": 195,
+      "keeper_entries": 30,
+      "final_entries": 224,
+      "recorded_opening_spend": 2848,
+      "highest_clean_auction_price": 67
+    },
+    {
+      "season": "2017-18",
+      "league_year": 3,
+      "team_seasons": 15,
+      "opening_entries": 224,
+      "clean_auction_sales": 194,
+      "keeper_entries": 30,
+      "final_entries": 224,
+      "recorded_opening_spend": 2927,
+      "highest_clean_auction_price": 73
+    },
+    {
+      "season": "2018-19",
+      "league_year": 4,
+      "team_seasons": 15,
+      "opening_entries": 225,
+      "clean_auction_sales": 195,
+      "keeper_entries": 30,
+      "final_entries": 226,
+      "recorded_opening_spend": 2944,
+      "highest_clean_auction_price": 67
+    },
+    {
+      "season": "2019-20",
+      "league_year": 5,
+      "team_seasons": 15,
+      "opening_entries": 225,
+      "clean_auction_sales": 195,
+      "keeper_entries": 30,
+      "final_entries": 233,
+      "recorded_opening_spend": 2909,
+      "highest_clean_auction_price": 73
+    },
+    {
+      "season": "2020-21",
+      "league_year": 6,
+      "team_seasons": 15,
+      "opening_entries": 225,
+      "clean_auction_sales": 195,
+      "keeper_entries": 30,
+      "final_entries": 242,
+      "recorded_opening_spend": 2970,
+      "highest_clean_auction_price": 71
+    },
+    {
+      "season": "2021-22",
+      "league_year": 7,
+      "team_seasons": 15,
+      "opening_entries": 225,
+      "clean_auction_sales": 195,
+      "keeper_entries": 30,
+      "final_entries": 251,
+      "recorded_opening_spend": 2973,
+      "highest_clean_auction_price": 71
+    },
+    {
+      "season": "2022-23",
+      "league_year": 8,
+      "team_seasons": 15,
+      "opening_entries": 224,
+      "clean_auction_sales": 194,
+      "keeper_entries": 30,
+      "final_entries": 250,
+      "recorded_opening_spend": 2950,
+      "highest_clean_auction_price": 80
+    },
+    {
+      "season": "2023-24",
+      "league_year": 9,
+      "team_seasons": 15,
+      "opening_entries": 225,
+      "clean_auction_sales": 195,
+      "keeper_entries": 30,
+      "final_entries": 248,
+      "recorded_opening_spend": 2954,
+      "highest_clean_auction_price": 72
+    },
+    {
+      "season": "2024-25",
+      "league_year": 10,
+      "team_seasons": 15,
+      "opening_entries": 225,
+      "clean_auction_sales": 195,
+      "keeper_entries": 30,
+      "final_entries": 248,
+      "recorded_opening_spend": 2982,
+      "highest_clean_auction_price": 84
+    },
+    {
+      "season": "2025-26",
+      "league_year": 11,
+      "team_seasons": 15,
+      "opening_entries": 225,
+      "clean_auction_sales": 195,
+      "keeper_entries": 30,
+      "final_entries": 250,
+      "recorded_opening_spend": 2961,
+      "highest_clean_auction_price": 53
+    }
+  ],
+  "issues_by_code": [
+    {
+      "code": "final_cost_differs_from_opening",
+      "count": 20
+    },
+    {
+      "code": "opening_roster_size",
+      "count": 2
+    },
+    {
+      "code": "ambiguous_player_name",
+      "count": 2
+    },
+    {
+      "code": "finish_order_inconsistent",
+      "count": 1
+    },
+    {
+      "code": "explicit_vacancy",
+      "count": 1
+    },
+    {
+      "code": "duplicate_on_same_roster",
+      "count": 1
+    }
+  ]
+}

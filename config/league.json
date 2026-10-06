@@ -1,0 +1,21 @@
+{
+  "teams": 15,
+  "keepers_per_team": 2,
+  "categories": ["PTS", "REB", "AST", "STL", "BLK", "3PM", "FG%", "FT%"],
+  "category_status": "Standard eight categories inferred from eight-category roto without turnovers; confirm exact categories.",
+  "first_season_start": 2015,
+  "season_mapping_status": "Inferred from 11 consecutive league years and matching 2015-16 through 2025-26 tracking tabs.",
+  "expected_opening_roster_size": 15,
+  "roster_size_status": "Observed in 163 of 165 team-seasons; lineup and bench rules unconfirmed.",
+  "candidate_auction_budget": 200,
+  "budget_status": "Inferred ceiling from workbook; requires confirmation before valuing players.",
+  "target_season": "2026-27",
+  "target_season_status": "Assumed from current date and latest historical season; requires confirmation.",
+  "minimum_bid": null,
+  "keeper_escalation_rule": null,
+  "elimination_schedule": null,
+  "statistics_reset_rule": null,
+  "eliminated_player_acquisition_rule": null,
+  "games_or_start_limits": null,
+  "historical_manager_identity": "Sheet names identify franchise histories, not necessarily the manager in older seasons. Tracking headers are preserved separately."
+}

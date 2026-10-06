@@ -1,0 +1,9 @@
+* text=auto
+*.py text eol=lf
+*.sql text eol=lf
+*.json text eol=lf
+*.txt text eol=lf
+# Keep original cell text, including trailing spaces, in data exports.
+*.csv text eol=lf -whitespace
+Dockerfile text eol=lf
+*.xlsx binary

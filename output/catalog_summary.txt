@@ -1,0 +1,49 @@
+SURVIVOR HISTORY CATALOG
+
+source_sheets: 26
+seasons: 11
+team_seasons: 165
+players: 641
+raw_name_variants: 729
+opening_entries: 2473
+clean_auction_sales: 2173
+keeper_entries: 300
+final_entries: 2621
+tracking_entries: 2400
+raw_cells: 21354
+review_issues: 26
+statistical_datasets_loaded: 0
+valuation_runs: 0
+
+Season       Opening  Auctions  Keepers  Final  Recorded spend
+2015-16          225      225        0    225           2844
+2016-17          225      195       30    224           2848
+2017-18          224      194       30    224           2927
+2018-19          225      195       30    226           2944
+2019-20          225      195       30    233           2909
+2020-21          225      195       30    242           2970
+2021-22          225      195       30    251           2973
+2022-23          224      194       30    250           2950
+2023-24          225      195       30    248           2954
+2024-25          225      195       30    248           2982
+2025-26          225      195       30    250           2961
+
+Data issues (full details in Review tab and csv/review.csv):
+final_cost_differs_from_opening: 20
+opening_roster_size: 2
+ambiguous_player_name: 2
+finish_order_inconsistent: 1
+explicit_vacancy: 1
+duplicate_on_same_roster: 1
+
+Purpose: League-history catalog; statistics and projected prices have not yet been loaded or calculated.
+Database destination: Railway Postgres, schema survivor. Preview mode uses memory only; no local database is maintained.
+Season mapping: Year 1 = 2015-16 through Year 11 = 2025-26, inferred from tracking tabs.
+Keepers: First two players on left in Years 2-11; founding year has no keepers. Contract-year column cross-checked.
+Auction purchases: Opening nonkeepers with positive cost, recorded contract year 1, and unique opening player-season.
+Final rosters: Right-hand snapshots at elimination/win, not new auction transactions.
+Manager history: Franchise sheet labels are current labels; do not attribute older spending to a current manager without reconciliation.
+Tracking markers: Preserved exactly; these are not prices or assumed keeper ages.
+Name matching: Conservative text normalization and explicit editable spelling aliases; original names retained; no NBA IDs yet.
+Unconfirmed league settings: Apparent $200 budget and 15-player opening rosters; survivor timing, resets, lineup rules, keeper escalation unknown.
+Source preservation: Original workbook untouched; populated cells and comments archived in raw_cells with source hash.
