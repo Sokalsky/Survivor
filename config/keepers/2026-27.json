@@ -1,0 +1,22 @@
+{
+  "season": "2026-27",
+  "source_name": "2026 Keeper Pick Summary supplied by league member",
+  "budget_per_team": 200,
+  "teams": [
+    {"franchise": "Benji", "keepers": [{"player": "Jalen Johnson", "cost": 39}, {"player": "Jeremiah Fears", "cost": 2}]},
+    {"franchise": "Jason", "keepers": [{"player": "Cooper Flagg", "cost": 38}, {"player": "De'Aaron Fox", "cost": 30}]},
+    {"franchise": "Mark", "keepers": [{"player": "Trey Murphy III", "cost": 11}, {"player": "Deni Avdija", "cost": 24}]},
+    {"franchise": "Ian", "keepers": [{"player": "Jayson Tatum", "cost": 24}, {"player": "Keyonte George", "cost": 6}]},
+    {"franchise": "Joe", "keepers": [{"player": "Kon Knueppel", "cost": 5}, {"player": "Tyler Herro", "cost": 16}]},
+    {"franchise": "Isaac", "keepers": [{"player": "Jalen Brunson", "cost": 46}, {"player": "Darius Garland", "cost": 18}]},
+    {"franchise": "Max", "keepers": [{"player": "Dejounte Murray", "cost": 3}, {"player": "Nikola Jokic", "cost": 88}]},
+    {"franchise": "Brent", "keepers": [{"player": "Walker Kessler", "cost": 25}, {"player": "Scottie Barnes", "cost": 24}]},
+    {"franchise": "Ron", "keepers": [{"player": "Cade Cunningham", "cost": 39}, {"player": "Dylan Harper", "cost": 4}]},
+    {"franchise": "Arthur", "keepers": [{"player": "Victor Wembanyama", "cost": 49}, {"player": "Tyrese Haliburton", "cost": 16}]},
+    {"franchise": "Darren", "keepers": [{"player": "Tyrese Maxey", "cost": 42}, {"player": "Desmond Bane", "cost": 15}]},
+    {"franchise": "Kerry", "keepers": [{"player": "Luka Doncic", "cost": 69}, {"player": "Chet Holmgren", "cost": 19}]},
+    {"franchise": "Peter", "keepers": [{"player": "Austin Reaves", "cost": 19}, {"player": "Jamal Murray", "cost": 30}]},
+    {"franchise": "Alvin", "keepers": [{"player": "Damian Lillard", "cost": 2}, {"player": "Donovan Clingan", "cost": 16}]},
+    {"franchise": "Graham", "keepers": [{"player": "Shai Gilgeous-Alexander", "cost": 50}, {"player": "Jalen Duren", "cost": 21}]}
+  ]
+}

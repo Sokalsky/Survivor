@@ -116,10 +116,15 @@ keeper eligibility/cost, closest historical comps, source date and risk notes.
 
 CURRENT STATUS AND NEXT INPUTS
 
-Completed: workbook catalog, audit exports, Postgres schema, import job and dated
-statistics CSV importer. Not yet completed: external NBA identity reconciliation,
-historical statistics ingestion, preseason projections ingestion, next-season keeper
-decisions, trained valuation model or current player price forecasts.
+Completed: workbook catalog, audit exports, Postgres schema, import job, dated
+statistics CSV importer, dashboard and confirmed 2026-27 keeper decisions.
+The 30 keepers cost $790, leaving $2,210 across 15 teams with $200 starting budgets.
+draft_team_budgets and keeper_selections supply actual remaining budgets and
+excluded players for the future model. A keeper inflation factor has not yet
+been calculated: that requires projections and the remaining player pool.
+Not yet completed: external NBA identity reconciliation, historical statistics
+ingestion, preseason projections ingestion, trained valuation model or current
+player price forecasts.
 
 An initial projection provider can be evaluated against archived actuals and any
 available past projections. Basketball Monster currently lists 2026-27 projections

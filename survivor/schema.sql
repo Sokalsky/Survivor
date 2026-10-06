@@ -95,6 +95,26 @@ CREATE TABLE IF NOT EXISTS projected_values (
     category_values_json TEXT NOT NULL, comps_json TEXT NOT NULL, risk_notes TEXT,
     PRIMARY KEY(run_id, player_id)
 );
+-- Confirmed upcoming keepers are not historical auction sales or complete rosters.
+CREATE TABLE IF NOT EXISTS draft_seasons (
+    season TEXT PRIMARY KEY, budget_per_team INTEGER NOT NULL CHECK(budget_per_team > 0),
+    team_count INTEGER NOT NULL CHECK(team_count > 0),
+    keepers_per_team INTEGER NOT NULL CHECK(keepers_per_team > 0),
+    source_name TEXT NOT NULL, source_sha256 TEXT NOT NULL, imported_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS keeper_selections (
+    season TEXT NOT NULL REFERENCES draft_seasons, franchise TEXT NOT NULL,
+    keeper_slot INTEGER NOT NULL CHECK(keeper_slot > 0),
+    player_id TEXT NOT NULL REFERENCES players, raw_name TEXT NOT NULL,
+    keeper_cost INTEGER NOT NULL CHECK(keeper_cost >= 0),
+    PRIMARY KEY(season, player_id), UNIQUE(season, franchise, keeper_slot)
+);
+CREATE OR REPLACE VIEW draft_team_budgets AS
+SELECT k.season,k.franchise,d.budget_per_team,COUNT(*) AS keeper_count,
+       SUM(k.keeper_cost) AS keeper_spend,
+       d.budget_per_team-SUM(k.keeper_cost) AS remaining_budget
+FROM keeper_selections k JOIN draft_seasons d USING(season)
+GROUP BY k.season,k.franchise,d.budget_per_team;
 CREATE OR REPLACE VIEW roster_history AS
 SELECT t.source_id, t.season, s.league_year, t.franchise_sheet, t.finish,
        p.display_name AS player, r.player_id, r.stage, r.roster_order,

@@ -14,6 +14,7 @@ READY NOW
 - Searchable dashboard: price history, player detail charts, projections,
   valuations, opening/final rosters, data notes and filtered CSV downloads.
 - Dockerfile and Railway configuration for the persistent dashboard web service.
+- Confirmed 2026-27 keepers, team budgets and draft availability filters.
 
 RAILWAY SETUP
 
@@ -35,6 +36,10 @@ The initial historical import succeeded on Railway on 2026-10-06, as confirmed
 by the deployment logs: 2,173 auction purchases, 300 keepers and 2,621 final entries.
 The dashboard reads those records directly from Postgres. Startup does not rerun
 the workbook import. Each web request uses a read-only database connection.
+Startup syncs config/keepers/*.json into draft_seasons and keeper_selections.
+Identical lists are no-ops; corrected complete lists replace only that season's
+keeper selections in one transaction. Historical prices and saved model runs
+remain untouched. No separate import command is needed after deploying updates.
 Projection and valuation pages display stored datasets and model runs; when none
 are loaded they show explicit empty states. No forecast or price is invented.
 The public website provides browsing and CSV downloads, with no write/import API.
@@ -100,6 +105,29 @@ An identical file/source/date combination does not create duplicates.
 --validate-only checks CSV rows without a database connection.
 Stat files must be supplied to the worker separately; no projection source has
 been purchased, scraped, invented or bundled with this project.
+
+CONFIRMED 2026-27 KEEPERS
+
+config/keepers/2026-27.json records only the 30 successful selections and their
+costs from the supplied 2026 summary. Unsuccessful preferences are excluded.
+Keeper spend totals $790, leaving $2,210 of the $3,000 league budget for auction.
+Max keeps Dejounte Murray for $3 and Nikola Jokic for $88, leaving $109.
+Every team's remaining budget reconciles to the supplied summary.
+
+The Keepers & budgets page lists all 15 teams, searchable by team or player and
+sortable by budget. Player files show current ownership/cost alongside history.
+Projection and valuation boards default to available players when that season's
+complete keeper list is known. All players and Keepers only remain selectable.
+An older dataset never uses a newer season's keepers; missing lists are labeled
+unknown. API filtering is available via ?availability=available or kept on
+/api/projections and /api/valuations; the API default is all players.
+
+survivor.draft_team_budgets exposes starting, committed and remaining budget.
+The valuation board computes keeper surplus from saved fair value minus the
+confirmed cost, and hides bid ceilings for kept players. It does not rewrite
+saved model inputs or apply an invented keeper inflation factor. The future
+valuation model should allocate the remaining $2,210 across available players
+using their projected category contributions and remaining roster spots.
 
 NOTES ABOUT THE DATA
 

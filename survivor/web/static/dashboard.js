@@ -14,6 +14,7 @@ const views = {
   history:{title:"Price history",eyebrow:"THE LEAGUE ARCHIVE",description:"Know what the room pays. Find where the value lives."},
   projections:{title:"Player projections",eyebrow:"THE SEASON AHEAD",description:"Eight categories. A clearer picture of what comes next."},
   valuations:{title:"Draft valuations",eyebrow:"FIND YOUR EDGE",description:"What a player is worth. What the room will pay. Where you stand."},
+  keepers:{title:"Keepers & budgets",eyebrow:"THE DRAFT STARTS HERE",description:"Who’s off the board. What every team has left to spend."},
   rosters:{title:"Team rosters",eyebrow:"THE LEAGUE, TEAM BY TEAM",description:"Explore the players each franchise started and finished with."},
   notes:{title:"Data notes",eyebrow:"BEHIND THE NUMBERS",description:"A transparent record of the details that need a second look."}
 };
@@ -40,7 +41,9 @@ function connected() {
 
 function playerButton(row) {
   const type=row.acquisition_class;
-  return `<button class="player-button" data-player="${esc(row.player_id)}"><span class="player-initials">${esc(initials(row.player))}</span><span>${esc(row.player)}${type?`<small class="mobile-entry-type ${type==='keeper'?'keeper-text':''}">${type==='keeper'?'Keeper':type==='auction'?'Auction':'Final roster'}</small>`:''}</span></button>`;
+  const status=row.draft_status;
+  const availability=status ? `<small class="draft-status ${status==='kept'?'keeper-text':''}">${status==='kept'?`Kept · ${esc(row.keeper_franchise)} · ${money(row.confirmed_keeper_cost)}`:status==='available'?'Available to draft':'Keeper list not supplied'}</small>` : '';
+  return `<button class="player-button" data-player="${esc(row.player_id)}"><span class="player-initials">${esc(initials(row.player))}</span><span>${esc(row.player)}${availability}${type?`<small class="mobile-entry-type ${type==='keeper'?'keeper-text':''}">${type==='keeper'?'Keeper':type==='auction'?'Auction':'Final roster'}</small>`:''}</span></button>`;
 }
 
 function setNavigation() {
@@ -133,16 +136,51 @@ async function loadHistoryTable() {
   finally { if (token===state.tableSequence) $('#history-table')?.classList.remove('is-loading'); }
 }
 
+function keeperCards() {
+  const data = state.keepers;
+  const q = ($('#keeper-search')?.value || '').toLowerCase();
+  const sort = $('#keeper-sort')?.value || 'budget';
+  const teams = data.teams.filter(team => [team.franchise,...data.rows.filter(row=>row.franchise===team.franchise).map(row=>row.player)].some(text=>text.toLowerCase().includes(q)));
+  teams.sort((a,b)=>sort==='team'?a.franchise.localeCompare(b.franchise):sort==='spend'?b.keeper_spend-a.keeper_spend || a.franchise.localeCompare(b.franchise):b.remaining_budget-a.remaining_budget || a.franchise.localeCompare(b.franchise));
+  $('#keeper-team-count').textContent = `${teams.length} teams`;
+  $('#keeper-grid').innerHTML = teams.map(team=>`<article class="panel keeper-card" data-franchise="${esc(team.franchise)}">
+    <div class="keeper-card-heading"><h2>${esc(team.franchise)}</h2><span class="tag keeper">${team.keeper_count} keepers</span></div>
+    <div class="keeper-budget"><strong>${money(team.remaining_budget)}</strong><span>left to draft</span></div>
+    <div class="budget-track" role="img" aria-label="${money(team.remaining_budget)} of ${money(team.budget_per_team)} remaining"><span style="width:${team.remaining_budget/team.budget_per_team*100}%"></span></div>
+    <div class="budget-caption"><span>${money(team.keeper_spend)} committed</span><span>${money(team.budget_per_team)} budget</span></div>
+    <div class="keeper-players">${data.rows.filter(row=>row.franchise===team.franchise).map(row=>`<div class="keeper-player">${playerButton(row)}<strong>${money(row.keeper_cost)}</strong></div>`).join('')}</div>
+  </article>`).join('') || '<div class="no-results">No matching teams or keepers.</div>';
+}
+
+function keepersHTML(data) {
+  if (!data) return '<div class="no-results">No confirmed keeper list has been added for this season.</div>';
+  return `<section class="stats-strip" aria-label="Draft budgets">
+    <div class="stat"><div class="stat-label">Confirmed keepers ${icon('check')}</div><div class="stat-value">${data.keeper_count}</div><div class="stat-note">${esc(seasonLabel(data.season))} · unavailable to draft</div></div>
+    <div class="stat"><div class="stat-label">Keeper spend ${icon('target')}</div><div class="stat-value">${money(data.keeper_spend)}</div><div class="stat-note">Already committed across the league</div></div>
+    <div class="stat"><div class="stat-label">Auction money ${icon('chart')}</div><div class="stat-value">${money(data.remaining_budget)}</div><div class="stat-note">Remaining across ${data.team_count} teams</div></div>
+    <div class="stat"><div class="stat-label">Starting budget ${icon('users')}</div><div class="stat-value">${money(data.budget_per_team)}</div><div class="stat-note">Per team, including keeper costs</div></div>
+  </section>
+  <div class="status-banner">${icon('check')}<span>All ${data.team_count} teams have their ${data.keepers_per_team} keepers. These ${data.keeper_count} players are excluded when viewing available players on the ${esc(seasonLabel(data.season))} projection and valuation boards.</span></div>
+  <section class="panel keeper-toolbar"><div class="filter-row"><label class="search-box">${icon('search')}<input id="keeper-search" type="search" placeholder="Find a team or player…" aria-label="Search keepers"></label><span class="subtle-count" id="keeper-team-count"></span><select id="keeper-sort" class="select-filter" aria-label="Sort keeper teams"><option value="budget">Most money remaining</option><option value="spend">Highest keeper spend</option><option value="team">Team: A–Z</option></select></div></section>
+  <div class="keeper-grid" id="keeper-grid"></div>`;
+}
+
 function emptyHTML(kind) {
   const valuation = kind === 'valuations';
   const season = seasonLabel(state.bootstrap.target_season);
-  return `<section class="empty-state"><div class="empty-icon">${icon(valuation?'target':'chart')}</div><div class="eyebrow">${season} · ${valuation?'VALUATIONS':'PROJECTIONS'}</div><h2>${valuation?'The next edge is still taking shape.':'A new season needs a fresh forecast.'}</h2><p>${valuation?'No calculated valuations have been loaded yet. Once the model has results, compare fair value, expected auction price, and a recommended bid ceiling here.':'No projection set has been loaded for this season yet. Once added, you’ll see each player’s expected games, minutes, and all eight categories here.'}</p><a class="solid-button" href="#history">Explore the price history ${icon('arrow')}</a></section>
+  return `${state.bootstrap.draft?`<a class="status-banner" href="#keepers">${icon('check')}<span>${state.bootstrap.draft.keeper_count} keepers confirmed · ${money(state.bootstrap.draft.remaining_budget)} left for the auction. View keepers & budgets ${icon('arrow')}</span></a>`:''}<section class="empty-state"><div class="empty-icon">${icon(valuation?'target':'chart')}</div><div class="eyebrow">${season} · ${valuation?'VALUATIONS':'PROJECTIONS'}</div><h2>${valuation?'The next edge is still taking shape.':'A new season needs a fresh forecast.'}</h2><p>${valuation?'No calculated valuations have been loaded yet. Once the model has results, compare fair value, expected auction price, and a recommended bid ceiling here.':'No projection set has been loaded for this season yet. Once added, you’ll see each player’s expected games, minutes, and all eight categories here.'}</p><a class="solid-button" href="#history">Explore the price history ${icon('arrow')}</a></section>
     <div class="info-grid">${(valuation ? [['01','Fair statistical value','What a player’s projected contribution is worth across your eight categories.'],['02','Expected auction price','What similar player profiles have cost in your league’s auction room.'],['03','Recommended bid ceiling','A price that accounts for roster needs, keeper costs, and available budget.']] : [['01','All eight categories','Points, rebounds, assists, steals, blocks, threes, field goals and free throws.'],['02','Shooting volume matters','Makes and attempts give shooting percentages the context they need.'],['03','Always know the source','Compare dated projection sets and keep track of whose forecast you’re using.']]).map(([n,title,description]) => `<section class="info-tile"><span>${n} /</span><h3>${title}</h3><p>${description}</p></section>`).join('')}</div>`;
 }
 
 function statsToolbar(kind) {
   const valuations = kind === 'valuations';
-  return `<div class="table-title-row"><h2 class="table-heading">${valuations?'The value board':'The projection board'} <span class="count-badge" id="data-count">${number(state.dataRows.length)}</span></h2><span class="subtle-count">${valuations?'Auction dollars':'Per game · except GP'}</span></div><div class="filter-row"><label class="search-box">${icon('search')}<input id="data-search" type="search" placeholder="Search players…" aria-label="Search ${kind}"></label><select id="data-sort" class="select-filter" aria-label="Sort ${kind}">${(valuations ? [['fair_value','Fair value'],['expected_auction_price','Expected price'],['recommended_bid_ceiling','Bid ceiling'],['keeper_surplus','Keeper surplus']] : [['pts_pg','Points'],['reb_pg','Rebounds'],['ast_pg','Assists'],['stl_pg','Steals'],['blk_pg','Blocks'],['fg3m_pg','Threes'],['games','Games played']]).map(([key,label]) => `<option value="${key}">${label}: high to low</option>`).join('')}</select></div>`;
+  const sorts = valuations ? [['fair_value','Fair value'],['expected_auction_price','Expected price'],['recommended_bid_ceiling','Bid ceiling'],['confirmed_keeper_surplus','Keeper surplus']] : [['pts_pg','Points'],['reb_pg','Rebounds'],['ast_pg','Assists'],['stl_pg','Steals'],['blk_pg','Blocks'],['fg3m_pg','Threes'],['games','Games played']];
+  const known = state.dataRows.length ? state.dataRows.every(row=>row.draft_status && row.draft_status!=='unknown') : state.bootstrap.draft?.season===state.dataSeason;
+  return `<div class="table-title-row"><h2 class="table-heading">${valuations?'The value board':'The projection board'} <span class="count-badge" id="data-count">${number(state.dataRows.length)}</span></h2><span class="subtle-count">${valuations?'Auction dollars':'Per game · except GP'}</span></div>
+    <div class="filter-row"><label class="search-box">${icon('search')}<input id="data-search" type="search" placeholder="Search players…" aria-label="Search ${kind}"></label>
+    <select id="draft-filter" class="select-filter" aria-label="Draft availability"><option value="available" ${known?'selected':''}>Available to draft</option><option value="all" ${known?'':'selected'}>All players</option><option value="kept">Keepers only</option></select>
+    <select id="data-sort" class="select-filter" aria-label="Sort ${kind}">${sorts.map(([key,label])=>`<option value="${key}">${label}: high to low</option>`).join('')}</select></div>
+    ${known?'':`<p class="availability-note">No confirmed keeper list is available for ${esc(seasonLabel(state.dataSeason))}. Draft availability is unknown.</p>`}`;
 }
 
 function datasetHeading(metadata,kind) {
@@ -157,10 +195,11 @@ function renderStatsTable() {
   const valuations = state.view==='valuations';
   const q = ($('#data-search')?.value || '').toLowerCase();
   const sort = $('#data-sort')?.value || (valuations?'fair_value':'pts_pg');
-  const data = state.dataRows.filter(row => row.player.toLowerCase().includes(q)).sort((a,b)=>(b[sort]??-Infinity)-(a[sort]??-Infinity) || a.player.localeCompare(b.player));
+  const availability = $('#draft-filter')?.value || 'all';
+  const data = state.dataRows.filter(row => row.player.toLowerCase().includes(q) && (availability==='all' || row.draft_status===availability)).sort((a,b)=>(b[sort]??-Infinity)-(a[sort]??-Infinity) || a.player.localeCompare(b.player));
   $('#data-count').textContent = number(data.length);
-  const headings = valuations ? ['PLAYER','FAIR VALUE','EXPECTED PRICE','BID CEILING','VALUE RANGE','KEEPER COST','KEEPER SURPLUS'] : ['PLAYER','TEAM','POS','GP','MIN','PTS','REB','AST','STL','BLK','3PM','FG%','FT%'];
-  $('#data-table').innerHTML = `<div class="table-scroll"><table><thead><tr>${headings.map((h,i)=>`<th ${i>0?'class="right"':''}>${h}</th>`).join('')}</tr></thead><tbody>${data.map(row=>`<tr><td class="player-cell">${playerButton(row)}</td>${valuations ? `<td class="money-cell">${money(row.fair_value)}</td><td class="money-cell">${money(row.expected_auction_price)}</td><td class="money-cell">${money(row.recommended_bid_ceiling)}</td><td class="right">${money(row.lower_estimate)} – ${money(row.upper_estimate)}</td><td class="right">${money(row.keeper_cost)}</td><td class="right">${money(row.keeper_surplus)}</td>` : `<td class="right">${esc(row.nba_team || '—')}</td><td class="right">${esc(row.positions || '—')}</td>${['games','minutes_pg','pts_pg','reb_pg','ast_pg','stl_pg','blk_pg','fg3m_pg'].map(k=>`<td class="right">${number(row[k],k==='games'?0:1)}</td>`).join('')}<td class="right" title="${number(row.fgm_pg,1)} makes / ${number(row.fga_pg,1)} attempts">${row.fga_pg ? number(row.fgm_pg/row.fga_pg*100,1)+'%' : '—'}</td><td class="right" title="${number(row.ftm_pg,1)} makes / ${number(row.fta_pg,1)} attempts">${row.fta_pg ? number(row.ftm_pg/row.fta_pg*100,1)+'%' : '—'}</td>`}</tr>`).join('') || `<tr><td colspan="${headings.length}"><div class="no-results">No matching players.</div></td></tr>`}</tbody></table></div>`;
+  const headings = valuations ? ['PLAYER','FAIR VALUE','EXPECTED PRICE','BID CEILING','VALUE RANGE','CONFIRMED COST','KEEPER SURPLUS'] : ['PLAYER','TEAM','POS','GP','MIN','PTS','REB','AST','STL','BLK','3PM','FG%','FT%'];
+  $('#data-table').innerHTML = `<div class="table-scroll"><table><thead><tr>${headings.map((h,i)=>`<th ${i>0?'class="right"':''}>${h}</th>`).join('')}</tr></thead><tbody>${data.map(row=>`<tr><td class="player-cell">${playerButton(row)}</td>${valuations ? `<td class="money-cell">${money(row.fair_value)}</td><td class="money-cell">${money(row.expected_auction_price)}</td><td class="money-cell">${row.draft_status==='kept'?'—':money(row.recommended_bid_ceiling)}</td><td class="right">${money(row.lower_estimate)} – ${money(row.upper_estimate)}</td><td class="right">${money(row.confirmed_keeper_cost)}</td><td class="right">${money(row.confirmed_keeper_surplus)}</td>` : `<td class="right">${esc(row.nba_team || '—')}</td><td class="right">${esc(row.positions || '—')}</td>${['games','minutes_pg','pts_pg','reb_pg','ast_pg','stl_pg','blk_pg','fg3m_pg'].map(k=>`<td class="right">${number(row[k],k==='games'?0:1)}</td>`).join('')}<td class="right" title="${number(row.fgm_pg,1)} makes / ${number(row.fga_pg,1)} attempts">${row.fga_pg ? number(row.fgm_pg/row.fga_pg*100,1)+'%' : '—'}</td><td class="right" title="${number(row.ftm_pg,1)} makes / ${number(row.fta_pg,1)} attempts">${row.fta_pg ? number(row.ftm_pg/row.fta_pg*100,1)+'%' : '—'}</td>`}</tr>`).join('') || `<tr><td colspan="${headings.length}"><div class="no-results">No matching players.</div></td></tr>`}</tbody></table></div>`;
 }
 
 async function loadView() {
@@ -179,6 +218,12 @@ async function loadView() {
       } else heading = `<div class="status-banner roster-note">${icon('users')}<span>Opening rosters show draft-day purchases and keepers. Final rosters show who each franchise held when its season ended.</span></div>`;
       $('#view-content').innerHTML = heading + historyPanelHTML();
       await loadHistoryTable();
+    } else if (state.view==='keepers') {
+      const data = await api('/api/keepers');
+      if (token!==state.sequence) return;
+      state.keepers = data.draft;
+      $('#view-content').innerHTML = keepersHTML(data.draft);
+      if (data.draft) keeperCards();
     } else if (state.view==='projections' || state.view==='valuations') {
       const valuations = state.view==='valuations';
       const key = valuations ? 'run' : 'dataset';
@@ -192,8 +237,9 @@ async function loadView() {
         const picker = available.length ? `<div class="dataset-header"><span>Browse an earlier ${valuations?'valuation run':'projection set'}</span><select class="select-filter" id="dataset-select" aria-label="Earlier data"><option value="">Choose a saved set</option>${available.map(d=>`<option value="${esc(d[valuations?'run_id':'dataset_id'])}">${esc(seasonLabel(d.season))} · ${esc(d.source_name)} · ${dateLabel(valuations?d.created_at:d.as_of_date)}</option>`).join('')}</select></div>` : '';
         $('#view-content').innerHTML = picker + emptyHTML(state.view);
       } else {
-        state.dataRows = data.rows;
-        $('#view-content').innerHTML = datasetHeading(metadata,state.view)+`<section class="panel history-panel">${statsToolbar(state.view)}<div id="data-table"></div></section>`+`<p class="table-note">${icon('note')}${valuations?'Values are the saved model results for this run. Click a player to compare with their historical costs.':'FG% and FT% are calculated from projected makes and attempts. Hover a percentage to see its shooting volume.'}</p>`;
+        state.dataRows = data.rows.map(row=>({...row,confirmed_keeper_surplus:row.confirmed_keeper_cost!=null && row.fair_value!=null ? row.fair_value-row.confirmed_keeper_cost : null}));
+        state.dataSeason = metadata.season;
+        $('#view-content').innerHTML = datasetHeading(metadata,state.view)+`<section class="panel history-panel">${statsToolbar(state.view)}<div id="data-table"></div></section>`+`<p class="table-note">${icon('note')}${valuations?'Values are the saved model results for this run. Keeper surplus is fair value minus the confirmed cost for this season. Kept players have no draft bid ceiling.':'FG% and FT% are calculated from projected makes and attempts. Hover a percentage to see its shooting volume.'}</p>`;
         renderStatsTable();
       }
     } else {
@@ -230,13 +276,16 @@ async function openPlayer(id) {
     const peak=auctions.length ? Math.max(...auctions.map(row=>row.recorded_cost)) : null;
     const projection=data.projections[0];
     const valuation=data.valuations[0];
+    const keeper=data.confirmed_keeper;
+    const bidCeiling=keeper && keeper.season===valuation?.season ? null : valuation?.recommended_bid_ceiling;
     $('#player-content').innerHTML=`<div class="player-title"><span class="player-initials">${esc(initials(data.display_name))}</span><div><h2 id="player-name">${esc(data.display_name)}</h2><p>${number(data.history.length)} recorded opening seasons · ${number(auctions.length)} auction purchases</p></div></div>
+      ${keeper?`<div class="status-banner confirmed-keeper">${icon('check')}<span><strong>${esc(seasonLabel(keeper.season))} keeper · ${esc(keeper.franchise)} · ${money(keeper.keeper_cost)}</strong><br>Unavailable to draft this season.</span></div>`:''}
       <div class="drawer-metrics"><div><small>LAST RECORDED COST</small><strong>${money(last?.recorded_cost)}</strong></div><div><small>HIGHEST AUCTION BID</small><strong>${money(peak)}</strong></div><div><small>LATEST ENTRY</small><strong style="font-size:18px;margin-top:10px">${last ? esc(seasonLabel(last.season)) : '—'}</strong></div></div>
       <section class="panel drawer-chart"><div class="panel-heading"><h3 class="panel-title">A history in dollars</h3><div class="legend"><span><i></i> Auction</span><span><i class="keeper"></i> Keeper</span></div></div>${playerChart(data.history)}</section>
       <h3 class="drawer-section-title">Opening price history</h3><div class="panel table-scroll"><table class="drawer-table"><thead><tr><th>SEASON</th><th>FRANCHISE</th><th>TYPE</th><th class="right">COST</th></tr></thead><tbody>${[...data.history].reverse().map(row=>`<tr><td>${esc(seasonLabel(row.season))}</td><td>${esc(row.franchise_sheet)}</td><td>${badge(row.acquisition_class)}</td><td class="money-cell">${money(row.recorded_cost)}</td></tr>`).join('') || '<tr><td colspan="4">No opening history recorded.</td></tr>'}</tbody></table></div>
       <h3 class="drawer-section-title">${projection ? esc(seasonLabel(projection.season)) : esc(seasonLabel(state.bootstrap.target_season))} projections</h3>
       ${projection ? `<div class="projection-grid">${[['PTS',projection.pts_pg],['REB',projection.reb_pg],['AST',projection.ast_pg],['STL',projection.stl_pg],['BLK',projection.blk_pg],['3PM',projection.fg3m_pg],['FG%',projection.fga_pg ? projection.fgm_pg/projection.fga_pg*100 : null],['FT%',projection.fta_pg ? projection.ftm_pg/projection.fta_pg*100 : null]].map(([label,value])=>`<div class="projection-stat"><small>${label}</small><strong>${number(value,1)}${label.includes('%')&&value!=null?'%':''}</strong></div>`).join('')}</div><p class="note-title">${esc(projection.source_name)} · ${dateLabel(projection.as_of_date)} · Per game</p>` : '<div class="drawer-muted">No projections have been loaded for this player yet.</div>'}
-      <h3 class="drawer-section-title">${valuation?esc(seasonLabel(valuation.season))+' ':''}Valuation</h3>${valuation ? `<div class="drawer-metrics"><div><small>FAIR VALUE</small><strong>${money(valuation.fair_value)}</strong></div><div><small>EXPECTED PRICE</small><strong>${money(valuation.expected_auction_price)}</strong></div><div><small>BID CEILING</small><strong>${money(valuation.recommended_bid_ceiling)}</strong></div></div>${valuation.risk_notes?`<div class="drawer-muted">${esc(valuation.risk_notes)}</div>`:''}` : '<div class="drawer-muted">No calculated valuation is available yet. Historical costs above are recorded prices, not forecasts.</div>'}
+      <h3 class="drawer-section-title">${valuation?esc(seasonLabel(valuation.season))+' ':''}Valuation</h3>${valuation ? `<div class="drawer-metrics"><div><small>FAIR VALUE</small><strong>${money(valuation.fair_value)}</strong></div><div><small>EXPECTED PRICE</small><strong>${money(valuation.expected_auction_price)}</strong></div><div><small>BID CEILING</small><strong>${money(bidCeiling)}</strong></div></div>${valuation.risk_notes?`<div class="drawer-muted">${esc(valuation.risk_notes)}</div>`:''}` : '<div class="drawer-muted">No calculated valuation is available yet. Historical costs above are recorded prices, not forecasts.</div>'}
       ${data.finals.length?`<details><summary class="drawer-section-title">Final roster appearances (${data.finals.length})</summary><div class="panel table-scroll"><table class="drawer-table"><thead><tr><th>SEASON</th><th>FRANCHISE</th><th class="right">FINISH</th><th class="right">RECORDED COST</th></tr></thead><tbody>${data.finals.map(row=>`<tr><td>${esc(seasonLabel(row.season))}</td><td>${esc(row.franchise_sheet)}</td><td class="right">${row.finish}</td><td class="money-cell">${money(row.recorded_cost)}</td></tr>`).join('')}</tbody></table></div></details>`:''}`;
     const url=new URL(location.href);url.searchParams.set('player',id);window.history.replaceState(null,'',url);
   } catch(error) { if(token===state.playerSequence) $('#player-content').innerHTML=`<h2 id="player-name">Player unavailable</h2><p>${esc(error.message)}</p>`; }
@@ -256,13 +305,15 @@ let searchTimer;
 document.addEventListener('input',event=>{
   if(event.target.id==='player-search'){state.q=event.target.value;state.page=1;clearTimeout(searchTimer);searchTimer=setTimeout(loadHistoryTable,180);}
   if(event.target.id==='data-search')renderStatsTable();
+  if(event.target.id==='keeper-search')keeperCards();
 });
 document.addEventListener('change',event=>{
   const value=event.target.value;
   if(event.target.id==='season-select'){state.season=value;state.page=1;loadView();}
   if(event.target.id==='team-filter'){state.team=value;state.page=1;loadHistoryTable();}
   if(event.target.id==='sort-filter'){state.sort=value;state.page=1;loadHistoryTable();}
-  if(event.target.id==='data-sort')renderStatsTable();
+  if(event.target.id==='data-sort' || event.target.id==='draft-filter')renderStatsTable();
+  if(event.target.id==='keeper-sort')keeperCards();
   if(event.target.id==='dataset-select'){if(state.view==='valuations')state.run=value;else state.dataset=value;loadView();}
 });
 window.addEventListener('hashchange',()=>{

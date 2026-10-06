@@ -13,10 +13,11 @@ from pathlib import Path
 import threading
 
 from flask import Flask, Response, jsonify, render_template, request
-from werkzeug.exceptions import HTTPException
+from werkzeug.exceptions import BadRequest, HTTPException
 
 from survivor.catalog import build_catalog, name_key, rows
 from survivor.database import Postgres, preview_database, railway_database
+from survivor.keepers import annotate_availability, keeper_summary, sync_bundled_keepers
 
 ROOT = Path(__file__).resolve().parents[1]
 RULES = json.loads((ROOT / 'config/league.json').read_text(encoding='utf-8'))
@@ -78,10 +79,24 @@ def create_app(preview_db=None):
             imported = db.execute('SELECT MAX(imported_at) FROM source_workbooks').fetchone()[0]
             player_count = db.execute('SELECT COUNT(*) FROM players').fetchone()[0]
             issue_count = db.execute("SELECT COUNT(*) FROM data_issues WHERE severity='review'").fetchone()[0]
+            draft = keeper_summary(db, RULES['target_season'])
         return jsonify(seasons=seasons, teams=teams, datasets=datasets, runs=runs,
                        imported_at=imported, player_count=player_count, issue_count=issue_count,
                        target_season=RULES['target_season'], categories=RULES['categories'],
-                       team_count=RULES['teams'], preview=preview_db is not None)
+                       team_count=RULES['teams'], draft=draft, preview=preview_db is not None)
+
+    @app.get('/api/keepers')
+    def keepers():
+        with database() as db:
+            summary = keeper_summary(db, request.args.get('season', RULES['target_season']))
+        return jsonify(draft=summary)
+
+    def available_entries(db, entries, season):
+        availability = request.args.get('availability', 'all')
+        if availability not in ('all', 'available', 'kept'):
+            raise BadRequest('Unknown draft availability filter.')
+        annotate_availability(db, entries, season)
+        return entries if availability == 'all' else [row for row in entries if row['draft_status'] == availability]
 
     def selected_season(db):
         season = request.args.get('season')
@@ -174,7 +189,9 @@ def create_app(preview_db=None):
             finals = rows(db, "SELECT season,franchise_sheet,recorded_cost,finish FROM roster_history WHERE player_id=? AND stage='final' ORDER BY season DESC,finish", (player_id,))
             projections = rows(db, "SELECT s.*,d.season,d.source_name,d.as_of_date FROM player_stats s JOIN stat_datasets d USING(dataset_id) WHERE s.player_id=? AND d.kind='projection' ORDER BY d.as_of_date DESC,d.imported_at DESC", (player_id,))
             values = rows(db, 'SELECT v.*,r.model_version,r.created_at,d.season FROM projected_values v JOIN valuation_runs r USING(run_id) JOIN stat_datasets d ON r.projection_dataset_id=d.dataset_id WHERE v.player_id=? ORDER BY r.created_at DESC', (player_id,))
-        return jsonify(**player[0], history=history, finals=finals, projections=projections, valuations=values)
+            current = rows(db, 'SELECT season,franchise,keeper_cost FROM keeper_selections WHERE player_id=? AND season=?', (player_id, RULES['target_season']))
+        return jsonify(**player[0], history=history, finals=finals, projections=projections, valuations=values,
+                       confirmed_keeper=current[0] if current else None)
 
     @app.get('/api/projections')
     def projections():
@@ -185,6 +202,7 @@ def create_app(preview_db=None):
                 dataset_id = latest[0] if latest else ''
             metadata = rows(db, "SELECT dataset_id,season,source_name,source_url,as_of_date,coverage FROM stat_datasets WHERE kind='projection' AND dataset_id=?", (dataset_id,))
             entries = rows(db, "SELECT s.*,p.display_name AS player FROM player_stats s JOIN players p USING(player_id) JOIN stat_datasets d USING(dataset_id) WHERE s.dataset_id=? AND d.kind='projection' ORDER BY s.pts_pg DESC,p.display_name", (dataset_id,))
+            entries = available_entries(db, entries, metadata[0]['season'] if metadata else '')
         return jsonify(dataset=metadata[0] if metadata else None, rows=entries)
 
     @app.get('/api/valuations')
@@ -196,6 +214,7 @@ def create_app(preview_db=None):
                 run_id = latest[0] if latest else ''
             metadata = rows(db, 'SELECT r.run_id,r.created_at,r.model_version,r.training_cutoff,r.validation_json,d.season,d.source_name,d.as_of_date FROM valuation_runs r JOIN stat_datasets d ON d.dataset_id=r.projection_dataset_id WHERE run_id=?', (run_id,))
             entries = rows(db, 'SELECT v.*,p.display_name AS player FROM projected_values v JOIN players p USING(player_id) WHERE v.run_id=? ORDER BY v.fair_value DESC NULLS LAST,p.display_name', (run_id,))
+            entries = available_entries(db, entries, metadata[0]['season'] if metadata else '')
         return jsonify(run=metadata[0] if metadata else None, rows=entries)
 
     @app.get('/api/notes')
@@ -215,11 +234,15 @@ def main():
     if args.preview:
         db = preview_database(threaded=True)
         build_catalog(ROOT / 'Survivor keeper log 2025.xlsx', db)
+        sync_bundled_keepers(db)
         app = create_app(db)
     else:
         # Apply only additive schema/index changes once at startup. History is untouched.
         db = railway_database()
-        db.close()
+        try:
+            sync_bundled_keepers(db)
+        finally:
+            db.close()
         app = create_app()
     from waitress import serve
     logging.basicConfig(level=logging.INFO)
