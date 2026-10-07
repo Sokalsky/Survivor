@@ -90,7 +90,7 @@ class ComparableTests(unittest.TestCase):
     def model(self, age=False):
         observations = [{'season':'2025-26','profile':self.profile(v,a),'target':price,'player_id':str(i)}
                         for i,(v,a,price) in enumerate([(0,25,1),(.2,25,2),(.8,25,4),(.05,38,2)])]
-        return PriceModel(observations,settings(),2026,age=age)
+        return PriceModel(observations,{**settings(),'comp_rules':None},2026,age=age)
 
     def test_closer_matches_receive_more_weight_and_power_strengthens_it(self):
         model = self.model()
@@ -110,7 +110,7 @@ class ComparableTests(unittest.TestCase):
         self.assertGreater(indexed[1]['weight'],indexed[3]['weight'])  # More similar age wins here.
         self.assertTrue(all(0<w['weight']<=1 for w in weights))
         duplicate = [dict(model.observations[0],season=s) for s in ['2024-25','2025-26']]
-        recent = PriceModel(duplicate,settings(),2026).weighted_neighbors(profile)
+        recent = PriceModel(duplicate,{**settings(),'comp_rules':None},2026).weighted_neighbors(profile)
         shares = {w['index']:w['weight'] for w in recent}
         self.assertAlmostEqual(shares[0]/shares[1],.9)
         with self.assertRaisesRegex(ValueError,'precede'):
@@ -127,6 +127,57 @@ class ComparableTests(unittest.TestCase):
         self.assertAlmostEqual(model.predictions(profile)['local'],max(0,components['base']+expected))
         self.assertGreaterEqual(components['effective_comps'],1)
         self.assertLessEqual(components['effective_comps'],len(model.observations))
+
+    def test_one_to_three_qualified_matches_dominate_without_promoting_distant_ones(self):
+        for count in (1,2,3):
+            observations = [{'season':'2017-18','profile':self.profile(i*.1),'target':i+1}
+                            for i in range(count)]
+            observations += [{'season':'2025-26','profile':self.profile(.45),'target':10} for _ in range(17)]
+            model = PriceModel(observations,settings(),2026,age=True)
+            weighted = model.weighted_neighbors(self.profile(0))
+            strong = [w for w in weighted if w['match_quality']=='strong']
+            self.assertEqual(len(strong),count)
+            self.assertGreaterEqual(sum(w['weight'] for w in strong),.8-1e-12)
+            self.assertAlmostEqual(sum(w['weight'] for w in weighted),1)
+            self.assertTrue(all(w['weight']<strong[-1]['weight'] for w in weighted if w['match_quality']=='supporting'))
+            # Prices are never an input to similarity or qualifying rules.
+            altered = [dict(o,target=200-o['target']) for o in observations]
+            self.assertEqual(weighted,PriceModel(altered,settings(),2026,age=True).weighted_neighbors(self.profile(0)))
+
+    def test_production_shape_age_and_known_games_each_can_disqualify_a_match(self):
+        target = {**self.profile(0),'projected_games':75}
+        shape = {**target,'z':{**target['z'],'PTS':2.1,'REB':-2.1}}
+        samples = [self.profile(.6),shape,{**target,'age':36},{**target,'projected_games':40}]
+        model = PriceModel([{'season':'2025-26','profile':p,'target':1} for p in samples],settings(),2026,age=True)
+        self.assertEqual(model.nearest(target),[])
+        components = model.local_components(target)
+        self.assertEqual(components['correction'],0)
+        self.assertEqual(components['effective_comps'],0)
+        for key,value in model.predictions(target).items():
+            if key!='mean':
+                self.assertAlmostEqual(value,max(0,model.raw_prediction(target)))
+
+    def test_cross_era_similarity_uses_actual_stat_gaps_and_shared_shooting_baseline(self):
+        from survivor.valuation import COMPARISON_FIELDS
+        stats = dict.fromkeys(COMPARISON_FIELDS,1.)
+        reference = {'fg_baseline':.5,'ft_baseline':.8,'standard_deviations':dict.fromkeys(CATEGORIES,1.)}
+        target = {**self.profile(0),'stats':stats,'comparison_reference':reference}
+        # Equal era-relative z scores cannot hide a much smaller scoring projection.
+        other = {**target,'stats':{**stats,'pts_pg':5}}
+        model = PriceModel([{'season':'2025-26','profile':other,'target':2}],settings(),2026)
+        self.assertEqual(model.nearest(target),[])
+        impact = model.match(target,{**target,'stats':{**stats,'fgm_pg':3,'fga_pg':5}})
+        self.assertEqual(impact['distance'],0)  # Same makes above baseline despite more attempts.
+        harmful = model.match(target,{**target,'stats':{**stats,'fga_pg':6}})
+        self.assertEqual(harmful['match_quality'],'excluded')
+
+    def test_supporting_only_reduces_correction_and_prior_actuals_cannot_be_strong(self):
+        profile = {**self.profile(0),'outlook_basis':'prior_actuals_proxy'}
+        model = PriceModel([{'season':'2025-26','profile':profile,'target':2}],settings(),2026)
+        components = model.local_components(self.profile(0))
+        self.assertEqual(components['strong_count'],0)
+        self.assertEqual(components['neighbors'][0]['match_quality'],'supporting')
+        self.assertEqual(components['correction_share'],settings()['comp_rules']['supporting_correction_share'])
 
     def test_age_context_cannot_use_future_rows_or_guess_missing_players(self):
         sources = {s:{'url':'https://example.test/'+s,'sha256':'test','retrieved_at':'2026-10-01'}
@@ -214,8 +265,12 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         missing_age = 0
         for row in self.result['values']:
             market = row['category_values']['market']
-            self.assertEqual(len(row['comps']),20)
-            self.assertAlmostEqual(sum(c['weight'] for c in row['comps']),1)
+            self.assertLessEqual(len(row['comps']),20)
+            self.assertAlmostEqual(sum(c['weight'] for c in row['comps']),1 if row['comps'] else 0)
+            strong = [c for c in row['comps'] if c['match_quality']=='strong']
+            self.assertEqual(market['strong_comp_count'],len(strong))
+            if strong:
+                self.assertGreaterEqual(sum(c['weight'] for c in strong),.8-1e-12)
             self.assertAlmostEqual(sum(c['price_adjustment'] for c in row['comps']),market['comp_adjustment'])
             expected = min(200,max(1,market['base_price']+market['comp_adjustment']))
             self.assertAlmostEqual(row['expected_auction_price'],round(expected,2))
@@ -229,7 +284,15 @@ class PublishedValueIntegrationTests(unittest.TestCase):
                 else:
                     self.assertLess(comp['stats_season'],comp['season'])
                 self.assertLess(comp['season'],self.result['season'])
-                self.assertAlmostEqual(comp['price_adjustment'],.5*comp['weight']*(comp['budget_adjusted_price']-comp['model_price']))
+                self.assertAlmostEqual(comp['price_adjustment'],market['correction_share']*comp['weight']*(comp['budget_adjusted_price']-comp['model_price']))
+                self.assertAlmostEqual(comp['implied_price'],comp['budget_adjusted_price']+market['base_price']-comp['model_price'])
+                limits = settings()['comp_rules'][comp['match_quality']]
+                for key in ('category_rms','production_gap','largest_category_gap','age_gap','games_gap'):
+                    gap = comp['match_details'][key]
+                    if gap is not None:
+                        self.assertLessEqual(gap,limits[key])
+                if comp['match_quality']=='strong':
+                    self.assertIsNotNone(comp['forecast_dataset_id'])
             if market['age_source'] is None:
                 missing_age += 1
                 self.assertFalse(market['age_in_model'])
@@ -245,6 +308,17 @@ class PublishedValueIntegrationTests(unittest.TestCase):
             self.assertEqual(len(market['teams']),15)
             if market['stats_season']:
                 self.assertLess(market['stats_season'],market['season'])
+
+    def test_ant_close_match_has_comparable_forecast_not_recent_lesser_production(self):
+        ant = next(v for v in self.result['values'] if v['player_id']=='anthonyedwards')
+        strong = [c for c in ant['comps'] if c['match_quality']=='strong']
+        self.assertEqual([(c['player_id'],c['season']) for c in strong],[('bradleybeal','2020-21')])
+        self.assertGreaterEqual(strong[0]['weight'],.8-1e-12)
+        self.assertGreater(strong[0]['stats']['pts_pg'],27)
+        self.assertIsNone(strong[0]['projected_games'])
+        miller = next(c for c in ant['comps'] if c['player_id']=='brandonmiller')
+        self.assertEqual(miller['match_quality'],'supporting')
+        self.assertLess(miller['weight'],.05)
 
     def test_injury_exceptions_removed_from_fit_and_every_comp_but_history_preserved(self):
         from survivor.preseason import load_preseason_evidence

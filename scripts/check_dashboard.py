@@ -105,24 +105,29 @@ def main():
         expect(page.locator('#player-comps')).to_be_focused()
         expect(page.locator('.comps-table').first).to_contain_text('Avg budget')
         expect(page.locator('.category-row')).to_have_count(8)
-        expect(page.locator('.comps-table tbody tr')).to_have_count(20)
+        # Qualified comp counts vary by player; no forced list of twenty.
         # Published archives must not be labelled as prior-season actuals.
         import json
         detail=page.request.get(args.url+'/api/players/nikolajokic').json()
         comps=json.loads(detail['valuations'][0]['comps_json'])
+        expect(page.locator('.comps-table tbody tr')).to_have_count(len(comps))
         labels=page.locator('.comps-table tbody tr td:first-child small').all_text_contents()
         assert sum('projection' in label for label in labels)==sum(bool(c['forecast_dataset_id']) for c in comps)
         assert any(c['outlook_basis']=='published_projection' for c in comps)
-        expect(page.locator('.comps-table tbody tr:visible')).to_have_count(5)
-        expect(page.locator('.comp-weight')).to_have_count(20)
+        expect(page.locator('.comps-table tbody tr:visible')).to_have_count(min(5,len(comps)))
+        expect(page.locator('.comp-weight')).to_have_count(len(comps))
+        expect(page.locator('.comp-stats-table tbody tr')).to_have_count(1+min(3,len(comps)))
+        expect(page.locator('.comp-target')).to_contain_text('Nikola Jokic')
+        assert page.locator('.comp-stats-table').evaluate('(el) => el.scrollWidth <= el.parentElement.clientWidth'), 'Desktop comparison prices are clipped'
         expect(page.locator('.comp-price-breakdown')).to_contain_text('Weighted comp adjustment')
         page.locator('.comps-table [data-sort-key="distance"]').first.click()
         distances=[float(t) for t in page.locator('.comps-table tbody tr td:nth-child(4)').all_text_contents()]
         assert distances==sorted(distances), 'Comp sorting must include the collapsed rows'
         page.locator('.comps-table [data-sort-key="weight"]').first.click()
-        page.locator('.remaining-comps summary').click()
-        expect(page.locator('.comps-table tbody tr:visible')).to_have_count(20)
-        page.locator('.remaining-comps summary').click()
+        if len(comps)>5:
+            page.locator('.remaining-comps summary').click()
+            expect(page.locator('.comps-table tbody tr:visible')).to_have_count(len(comps))
+            page.locator('.remaining-comps summary').click()
         page.locator('.comp-price-breakdown').scroll_into_view_if_needed()
         assert page.locator('.comps-table').first.evaluate('(el) => el.scrollWidth <= el.parentElement.clientWidth'), 'Desktop comparable adjustment column is hidden'
         page.screenshot(path=str(output/'valuation-weighted-comps.png'),full_page=False)

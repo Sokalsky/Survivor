@@ -20,6 +20,7 @@ from survivor.auction_context import auction_context, historical_contexts, marke
 
 CATEGORIES = ('PTS','REB','AST','STL','BLK','3PM','FG%','FT%')
 COUNT_FIELDS = ('pts_pg','reb_pg','ast_pg','stl_pg','blk_pg','fg3m_pg')
+COMPARISON_FIELDS = COUNT_FIELDS+('fgm_pg','fga_pg','ftm_pg','fta_pg')
 CONFIG = ROOT/'config/valuation.json'
 
 
@@ -224,7 +225,44 @@ class PriceModel:
     def raw_prediction(self, profile):
         return sum(a*b for a,b in zip(self.beta,self.standardize(feature_vector(profile,self.full,self.age))))
 
+    def match(self, profile, other):
+        """Compare both stat lines on the target's scale, without era/age dilution."""
+        rules = self.settings['comp_rules']
+        ref = profile.get('comparison_reference')
+        if ref and profile.get('stats') and other.get('stats'):
+            a,b = profile['stats'],other['stats']
+            differences = [a[k]-b[k] for k in COUNT_FIELDS]+[
+                a['fgm_pg']-b['fgm_pg']-ref['fg_baseline']*(a['fga_pg']-b['fga_pg']),
+                a['ftm_pg']-b['ftm_pg']-ref['ft_baseline']*(a['fta_pg']-b['fta_pg'])]
+            gaps = [v/ref['standard_deviations'][cat] for v,cat in zip(differences,CATEGORIES)]
+        else:
+            gaps = [profile['z'][cat]-other['z'][cat] for cat in CATEGORIES]
+        rms = math.sqrt(sum(g*g for g in gaps)/8)
+        tier = abs(sum(gaps))
+        maximum = max(abs(g) for g in gaps)
+        age = abs(profile['age']-other['age']) if self.age else None
+        games = (abs(profile['projected_games']-other['projected_games'])
+                 if profile.get('projected_games') is not None and other.get('projected_games') is not None else None)
+        distance = math.sqrt(rms*rms+(tier/rules['production_distance_scale'])**2+
+                             ((age or 0)/rules['age_distance_scale'])**2+
+                             ((games or 0)/rules['games_distance_scale'])**2)
+        def qualifies(limits):
+            return (rms<=limits['category_rms'] and tier<=limits['production_gap'] and
+                    maximum<=limits['largest_category_gap'] and
+                    (age is None or age<=limits['age_gap']) and
+                    (games is None or games<=limits['games_gap']))
+        # Prior actuals are useful secondary evidence, never a close preseason forecast.
+        strong = qualifies(rules['strong']) and other.get('outlook_basis')!='prior_actuals_proxy'
+        quality = 'strong' if strong else 'supporting' if qualifies(rules['supporting']) else 'excluded'
+        return {'distance':distance,'match_quality':quality,'category_rms':rms,'production_gap':tier,
+                'largest_category_gap':maximum,'age_gap':age,'games_gap':games}
+
     def nearest(self, profile, count=None):
+        if self.settings.get('comp_rules'):
+            matches = [(self.match(profile,o['profile']),i) for i,o in enumerate(self.observations)]
+            eligible = [(m,i) for m,i in matches if m['match_quality']!='excluded']
+            eligible.sort(key=lambda row:(row[0]['match_quality']!='strong',row[0]['distance'],row[1]))
+            return [(m['distance'],i) for m,i in eligible[:count or self.settings['neighbors']]]
         z = [profile['z'][cat] for cat in CATEGORIES]
         distances = []
         for index, other in enumerate(self.z_vectors):
@@ -248,20 +286,37 @@ class PriceModel:
         neighbors = self.nearest(profile) if neighbors is None else neighbors
         weights = [(self.weights[i]/(distance+offset)**power,distance,i) for distance,i in neighbors]
         total = sum(w for w,_,_ in weights)
-        return [{'weight':w/total,'distance':distance,'index':i} for w,distance,i in weights]
+        result = [{'weight':w/total,'distance':distance,'index':i} for w,distance,i in weights]
+        rules = self.settings.get('comp_rules')
+        if rules:
+            for row in result:
+                row.update(self.match(profile,self.observations[row['index']]['profile']))
+            strong = [r for r in result if r['match_quality']=='strong']
+            supporting = [r for r in result if r['match_quality']=='supporting']
+            if strong and supporting:
+                share = max(rules['strong_minimum_weight'],sum(r['weight'] for r in strong))
+                for group,allocation in ((strong,share),(supporting,1-share)):
+                    subtotal = sum(r['weight'] for r in group)
+                    for row in group:
+                        row['weight'] *= allocation/subtotal
+        return result
 
     def local_components(self, profile, weighted=None):
         weighted = self.weighted_neighbors(profile) if weighted is None else weighted
-        correction = self.settings['comp_correction_share']*sum(w['weight']*self.residuals[w['index']] for w in weighted)
+        share = self.settings['comp_correction_share']
+        if self.settings.get('comp_rules') and not any(w['match_quality']=='strong' for w in weighted):
+            share = self.settings['comp_rules']['supporting_correction_share'] if weighted else 0
+        correction = share*sum(w['weight']*self.residuals[w['index']] for w in weighted)
         return {'base':self.raw_prediction(profile),'correction':correction,'neighbors':weighted,
-                'effective_comps':1/sum(w['weight']**2 for w in weighted)}
+                'correction_share':share,'strong_count':sum(w.get('match_quality')=='strong' for w in weighted),
+                'effective_comps':1/sum(w['weight']**2 for w in weighted) if weighted else 0}
 
     def predictions(self, profile):
         ridge = self.raw_prediction(profile)
         neighbors = self.nearest(profile)
         weights = self.weighted_neighbors(profile,neighbors=neighbors)
         def estimate(weighted):
-            return sum(w['weight']*self.observations[w['index']]['target'] for w in weighted)
+            return sum(w['weight']*self.observations[w['index']]['target'] for w in weighted) if weighted else ridge
         knn = estimate(self.weighted_neighbors(profile,power=2,neighbors=neighbors))
         local = self.local_components(profile,weights)
         weighted_knn = estimate(weights)
@@ -345,7 +400,9 @@ def training_observations(actuals, statistics, auctions, keeper_history, rules, 
         else:
             player,profile = pair
         age_record = context.before(sale['player_id'],sale['season']) if context else None
-        profile = {**profile,'age':age_record['target_season_age'] if age_record else None}
+        profile = {**profile,'age':age_record['target_season_age'] if age_record else None,
+                   'stats':{k:player[k] for k in COMPARISON_FIELDS},'comparison_reference':references[prior],
+                   'outlook_basis':('projection' if projected else 'prior_actuals_proxy')}
         keeper = keepers.get(sale['season'],{'keepers':0,'cost':0})
         slots = rules['teams']*settings['roster_size']-keeper['keepers']
         budget = rules['teams']*rules['auction_budget']-keeper['cost']
@@ -393,6 +450,8 @@ def evaluate(observations,settings):
     plain_candidates = ('mean','ridge','comps','blend','uniform_comps','weighted_comps','weighted_blend','local')
     candidates = ('score_curve',)+plain_candidates+tuple('age_'+name for name in plain_candidates if name!='mean')+('market_local','market_age_local')
     results = {name:[] for name in candidates}
+    previous_results = []
+    previous_settings = {**settings,'comp_rules':None}
     seasons = sorted({o['season'] for o in observations})
     selected = None
     for season in seasons:
@@ -410,6 +469,8 @@ def evaluate(observations,settings):
         market_train = market_observations(train)
         market_model = PriceModel(market_train,settings,int(season[:4]))
         market_age_model = PriceModel(market_train,settings,int(season[:4]),age=True)
+        previous_model = PriceModel(market_train,previous_settings,int(season[:4]),age=True)
+        previous_fallback = PriceModel(market_train,previous_settings,int(season[:4]))
         for item in test:
             predicted = full.predictions(item['profile'])
             age_predictions = age_model.predictions(item['profile']) if item['profile'].get('age') is not None else predicted
@@ -417,6 +478,11 @@ def evaluate(observations,settings):
             predicted['score_curve'] = max(0,score.raw_prediction(item['profile']))
             predicted['market_local'] = market_model.predictions(item['profile'])['local']
             predicted['market_age_local'] = (market_age_model if item['profile'].get('age') is not None else market_model).predictions(item['profile'])['local']
+            old = previous_model if item['profile'].get('age') is not None else previous_fallback
+            prior = old.local_components(item['profile'])
+            previous_results.append({'season':season,'actual':item['recorded_cost'],
+                                     'predicted':min(200,max(settings['minimum_bid'],settings['minimum_bid']+
+                                         (prior['base']+prior['correction'])*item['auction_context']['market_scale']))})
             for candidate in candidates:
                 scale = item['auction_context']['market_scale'] if candidate.startswith('market_') else item['scale']
                 price = min(200,max(settings['minimum_bid'],settings['minimum_bid']+predicted[candidate]*scale))
@@ -440,6 +506,8 @@ def evaluate(observations,settings):
         radius = error_radius(earlier,record['predicted'],record['scale'],settings['interval_coverage'])
         covered += abs(record['predicted']-record['actual'])<=radius
     return selected, {'selected_model':selected,'development':development,'holdout':holdout,
+                     'previous_comp_method':{'development':metrics([r for r in previous_results if r['season']<settings['holdout_first_season']]),
+                                             'holdout':metrics([r for r in previous_results if r['season']>=settings['holdout_first_season']])},
                      'holdout_by_actual_price_tier':{tier:metrics([r for r in selected_holdout if price_tier(r['actual'])==tier]) for tier in ('under_10','10_to_30','30_plus')},
                      'holdout_interval_coverage':covered/len(selected_holdout),
                      'holdout_first_season':settings['holdout_first_season'],
@@ -494,7 +562,8 @@ def build_valuations(db, season, settings=None):
     for p in players:
         key = p['player_id']
         age_record = context.before(key,season)
-        profile = {**rate_profiles[key],'age':age_record['target_season_age'] if age_record else None,'projected_games':p['games']}
+        profile = {**rate_profiles[key],'age':age_record['target_season_age'] if age_record else None,'projected_games':p['games'],
+                   'stats':{k:p[k] for k in COMPARISON_FIELDS},'comparison_reference':rate_reference,'outlook_basis':'projection'}
         player_model = model if age_record or not model.age else fallback
         prediction_key = 'ridge' if method=='score_curve' else method.removeprefix('age_')
         expected = min(200,max(settings['minimum_bid'],settings['minimum_bid']+player_model.predictions(profile)[prediction_key]*scale))
@@ -509,6 +578,7 @@ def build_valuations(db, season, settings=None):
             comp = player_model.observations[i]
             regression_price = settings['minimum_bid']+player_model.raw_prediction(comp['profile'])*scale
             adjusted_price = settings['minimum_bid']+comp['target']*scale
+            target_base = settings['minimum_bid']+components['base']*scale
             comps.append({'player':comp['player'],'player_id':comp['player_id'],'season':comp['season'],
                           'stats_season':comp['stats_season'],'actual_price':comp['recorded_cost'],
                           'outlook_basis':comp['outlook_basis'],'availability_review':comp['availability_review'],
@@ -519,15 +589,22 @@ def build_valuations(db, season, settings=None):
                           'available_top_30':comp['auction_context']['available_top_counts']['30'],
                           'supply_ratio':comp['auction_context']['supply_ratio'],
                           'budget_adjusted_price':adjusted_price,'model_price':regression_price,
-                          'price_adjustment':settings['comp_correction_share']*weighted['weight']*(adjusted_price-regression_price) if prediction_key=='local' else None,
+                          'profile_adjustment':target_base-regression_price,
+                          'implied_price':adjusted_price+target_base-regression_price,
+                          'match_quality':weighted.get('match_quality'),
+                          'match_details':{k:weighted.get(k) for k in ('category_rms','production_gap','largest_category_gap','age_gap','games_gap')},
+                          'stats':comp['profile']['stats'],
+                          'price_adjustment':components['correction_share']*weighted['weight']*(adjusted_price-regression_price) if prediction_key=='local' else None,
                           'category_z':comp['profile']['z']})
         keeper = keepers.get(key)
         fair = base[key]
         flags = []
         if prior_games.get(key,0)<settings['historical_minimum_games']:
             flags.append('Fewer than 10 NBA games in the previous season: rookie/returning or low-sample player; historical forecast coverage for these cases is limited to the archived partial player pools.')
-        if nearest[0]['distance'] > 1:
-            flags.append('No close historical comparable (nearest combined similarity distance exceeds 1).')
+        if not nearest:
+            flags.append('No historical match meets the comparable rules; using the regression estimate without a comp correction.')
+        elif not components['strong_count']:
+            flags.append('No strong historical forecast match; supporting comps have a reduced price correction.')
         if not age_record:
             flags.append('No earlier recorded season age: market estimate uses the statistics-only counterpart, with no invented age or youth premium.')
         if components['effective_comps']<3:
@@ -557,8 +634,12 @@ def build_valuations(db, season, settings=None):
                                                     'comp_adjustment':components['correction']*scale if prediction_key=='local' else None,
                                                     'effective_comps':components['effective_comps'],
                                                     'comp_count':len(nearest),'weight_power':power,
+                                                    'strong_comp_count':components['strong_count'],
+                                                    'strong_comp_weight':sum(w['weight'] for w in nearest if w.get('match_quality')=='strong'),
+                                                    'comparison_stats':profile['stats'],
+                                                    'comparison_player':p['player'],'comparison_games':p['games'],
                                                     'distance_offset':settings['comp_distance_offset'],
-                                                    'correction_share':settings['comp_correction_share']},
+                                                    'correction_share':components['correction_share']},
                                           'scenario_values':{name:s['dollars'][key] for name,s in scenarios.items()}},
                        'comps':comps,'risk_notes':' '.join(flags)})
     excluded_availability = [r for r in missing if r['reason_code']=='preseason_availability']
@@ -641,7 +722,8 @@ def export_results(result, folder):
     add_sheet(workbook,'Player values',flat,list(flat[0]))
     category_rows = [{'player':v['player'],**v['category_values']['rate_z']} for v in result['values']]
     add_sheet(workbook,'Category contributions',category_rows,['player']+list(CATEGORIES))
-    comp_rows = [{'target_player':v['player'],**{k:c for k,c in comp.items() if k!='category_z'}} for v in result['values'] for comp in v['comps']]
+    comp_rows = [{'target_player':v['player'],**{k:c for k,c in comp.items() if k not in ('category_z','match_details','stats')},
+                  **comp.get('stats',{}),**comp.get('match_details',{})} for v in result['values'] for comp in v['comps']]
     add_sheet(workbook,'Historical comps',comp_rows,list(comp_rows[0]))
     contexts = [{k:v for k,v in c.items() if k not in ('teams','available_top_players','available_top_counts','unmatched_keeper_ids')} |
                 {f'available_top_{n}':count for n,count in c['available_top_counts'].items()} |

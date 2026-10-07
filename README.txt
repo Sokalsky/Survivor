@@ -222,17 +222,22 @@ preseason availability exceptions are excluded, including Tatum 2025-26 and Klay
 2019-20. Original prices and keeper budgets remain in history. Missing or invalid
 forecasts in partial archives are excluded, never made into zero forecasts.
 
-The 20 nearest profiles receive inverse-cube distance and recency weights. Half
-the weighted actual-minus-modeled price residual adjusts the regression estimate.
-Similarity includes age when known and projected GP when both sides have forecasts.
-The available-talent and budget normalization candidate now wins the development-
-year selection (market_age_local). Current dollars use the actual keeper budget;
-neutral dollars retain the separate $3,000 no-keeper allocation.
+Comps must meet production, category-shape, age and known-games limits using both
+raw stat lines on the target's reference scale. Up to 20 qualifying records are
+retained. Close forecasts receive at least 80% of the weight when present, so
+one to three close matches dominate supporting records. With no close forecasts,
+supporting evidence gets half the usual correction; with no qualifying records,
+the model uses the regression estimate alone. Missing games/age are not invented.
+The drawer compares the target with the three highest-weight stat lines and shows
+comp-implied prices adjusted for profile and auction context. See the explicit
+limits, weights and adjustment formulas in valuation_design.txt.
 
-Recent retrospective MAE is $4.30 over 468 purchases; $30+ purchases have $10.07
-error and remain underpriced on average. This cohort changed, so version-to-version errors are
-not a like-for-like accuracy comparison. The reused seasons are not independent
-holdouts. Full formulas, provenance and limitations: valuation_design.txt.
+Development selection still favors market_age_local. Current dollars use actual
+keeper budgets and available-talent normalization; neutral dollars retain the
+separate $3,000 no-keeper allocation. Recent retrospective MAE is $4.17 across
+468 purchases, versus $4.30 for v5 rerun on the identical cohort. $30+ purchase
+error is $9.50, previously $10.07; stars remain underpriced on average. These are
+reused checks, not independent holdouts. Current projections remain unchanged.
 
 The supplied workbook contains 200 forecast rows and is stored losslessly as
 original cells plus normalized rates in output/stats/preseason-2025-26.json.
@@ -290,12 +295,12 @@ On deployment, the normal startup computes and saves the run transactionally.
 Identical inputs produce the same run ID; old runs remain available. Public web
 requests cannot write valuations. No manual Railway import is needed. Completion
 is reported in startup logs as:
-  Valuations ready: 2026-27 / 348 players / survivor-8cat-v5
+  Valuations ready: 2026-27 / 348 players / survivor-8cat-v6
 Development checks do not verify that Railway has deployed the update.
 Age context can also be rebuilt offline from verified HTML caches with:
   python -m survivor.market_context
 The regular stats_workbook collector refreshes it after a complete history fetch.
-All 20 weighted comps are available in the player detail API and Excel export;
+All qualifying weighted comps are available in the player detail API and Excel export;
 the board API omits that large array and fetches player details on demand.
 
 NOTES ABOUT THE DATA

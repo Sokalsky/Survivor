@@ -1,4 +1,4 @@
-SURVIVOR VALUATION v5
+SURVIVOR VALUATION v6
 
 THREE DISTINCT OUTPUTS
 
@@ -157,42 +157,85 @@ forecast file cannot establish the full 225-player pool. Rookies, offseason role
 changes, retirements and unavailable players limit this proxy. Today's supply
 uses the complete ESPN set. Team budget dispersion is recorded, not simulated.
 
-Selected model: market_age_local. Selection is repeated on development years
-2018-19 to 2022-23 after applying the availability evidence. Development MAE is
-$4.4733. Selection changed from v3's age_local; available-talent normalization is
-now applied. Do not claim this small candidate difference establishes accuracy.
-Each historical test uses only earlier auctions, and selection stays fixed for
-the later three seasons. All candidates and settings are in model-report.json.
+Selected model: market_age_local. Selection uses development auctions from
+2018-19 through 2022-23 (610 purchases, MAE $4.6811), then stays fixed for the
+later three seasons. Each fitted model uses only earlier auctions. No target
+player's desired price is an input to comp selection. The v6 thresholds below
+are explicit working rules; one rule set was checked, not a holdout-tuned grid.
 
-Compare 20 nearest profiles by RMS distance across eight category z scores, plus
-age difference / 5 where both ages are known. If both records have projections,
-add (projected GP difference / 20) as another component. Older proxy rows have no
-invented projected GP. The 20-game scale is an explicit working model choice,
-not a fitted claim about the cost of injury. GP affects comp similarity; it is not
-a separately validated availability-price curve or a dated return model.
+COMPARABLE QUALIFICATION
 
+Compare raw per-game stat lines on the target season's reference distribution.
+For historical tests that distribution comes from the preceding actual season;
+for today's players it is the current complete projection pool. Both sides use
+the same shooting baselines and category standard deviations. This avoids calling
+two players similar just because they have similar z scores in different eras.
+Regression pricing retains each historical season's original relative strengths.
+
+For each category, gap = (target contribution - comp contribution) / target SD.
+Shooting contributions use makes above the common baseline, including volume.
+Category RMS = sqrt(sum(gap squared) / 8).
+Production gap = abs(sum(category gaps)); largest gap = max(abs(category gap)).
+Age and games add distance penalties; they never dilute the eight-stat distance.
+  distance = sqrt(RMS^2 + (production gap/4)^2 + (age gap/10)^2 + (GP gap/30)^2)
+
+A close forecast match must pass every known-field limit:
+  category RMS <= 0.75; production gap <= 3; largest category gap <= 1.25;
+  age difference <= 5 years; projected games difference <= 15.
+A supporting match must pass:
+  category RMS <= 1.15; production gap <= 4; largest category gap <= 2;
+  age difference <= 10 years; projected games difference <= 30.
+
+Unknown GP/age stays unknown, contributes no distance term and is not a failed
+limit. A close match therefore does not claim complete availability information.
+Prior-actual proxies can only be supporting evidence. Documented preseason
+exceptions remain excluded before fitting and comparison. No hard position rule:
+category shape determines statistical similarity, without invented eligibility.
+
+Keep up to 20 qualifying records, choosing close forecasts first, then by
+smallest distance. Do not fill the list with disqualified players. Start with:
   raw weight = 0.9^(years since auction - 1) / (distance + 0.25)^3
-  share = raw weight / sum(raw weights)
-  residual = normalized actual price - regression price for that comp's profile
-  adjustment = 0.5 * sum(share * residual) * current market scale
+  initial share = raw weight / sum(raw weights)
+If close forecasts exist, give that group at least 80% of total weight, preserving
+relative weights within each group. Thus one to three close forecasts dominate
+supporting evidence; twenty weak records cannot dilute them. More than three
+qualified forecasts are allowed. No supporting records means 100% goes to close
+forecasts. Recency cannot promote a supporting record into the close group.
+
+  residual = normalized actual price - regression price for the comp profile
+  correction share = 0.5 if any close forecasts, otherwise 0.25
+  adjustment = correction share * sum(weight * residual) * current market scale
   final price = clamp(regression price + adjustment, $1, $200)
+No qualifying match means zero comp adjustment and the regression estimate alone.
+The offset keeps exact matches finite; retained weights sum to 100%. Effective
+comp count is 1 / sum(weight squared), or zero with no matches. Correlated seasons
+for the same player are not independent evidence. GP is a similarity input, not
+a fitted injury-price curve or dated return model.
 
-Closer profiles receive more weight; recency can outweigh a small distance gap.
-The offset keeps exact matches finite. All 20 shares sum to 100%. Effective comp
-count is 1 / sum(share squared). Repeated player-seasons are correlated evidence.
-Comps display forecast versus prior-stat-proxy basis, projected GP when supplied,
-original price, budget context, distance, weight and individual dollar adjustment.
-Sorting comps changes their display only, not their statistical weights.
+In the drawer, the top three by weight sit beside the target's real projections,
+including attempt volume and unknown GP. Adjusted price = budget/supply-adjusted
+bid + (target regression price - comp regression price). It is a comp-implied price
+before weighting and shrinkage, not the comp's actual bid or a new forecast.
+Price effect = correction share * weight * (adjusted price - target base).
+Individual price effects sum to the displayed comp correction. All qualifying
+comps retain original bids, source basis, stats, match gaps and weights in the API
+and workbook. Sorting changes display order only.
 
-Recent retrospective checks: 468 purchases, MAE $4.30, versus $10.86 for the
-mean-price baseline. $30+ purchases have MAE $10.07 and bias -$5.77; stars are still
-underpriced on average. Nominal 80% bands cover 81.8%. Bands use earlier normalized
-absolute errors by price tier, falling back to all errors when samples are sparse.
-These seasons have been reviewed before; they are not fresh independent holdouts.
-The evaluated cohort differs from earlier versions, so before/after MAEs are not
-an apples-to-apples accuracy comparison. The 2025-26 workbook's season is supplied
-by the user, not independently dated. No test proves the current provider, rookie
-estimates, or neutral survivor formula is accurate.
+Ant example: 2020-21 Beal projects 27.61 PTS, 4.0 REB, 5.3 AST, 1.3 STL,
+0.4 BLK and 2.9 3PM, with unknown GP. He is the one close forecast and receives
+80% weight. Miller 2025-26 fails the close-category limits and remains supporting.
+Ant's expected price is $41.88 (base $38.63, adjustment +$3.25); his unchanged
+neutral value is $41.62. Those are results, never tuning targets.
+
+Recent retrospective checks: 468 purchases, MAE $4.17 versus $4.30 from the v5
+comp method rerun on the exact same cohort, and $10.86 from the mean baseline.
+The v5 development MAE was $4.7009. $30+ purchases have MAE $9.50 (previously
+$10.07) and bias -$5.20; stars remain underpriced on average. Nominal 80% bands
+cover 82.1%. Bands use earlier normalized absolute errors by price tier, falling
+back to all errors when samples are sparse. These seasons have been reviewed
+before; they are reused retrospective checks, not fresh independent holdouts.
+The supplied 2025-26 workbook is not independently dated. No test proves the
+current provider, rookie forecasts or neutral survivor formula is accurate.
 
 DESCRIPTIVE ROSTER CHECK
 
