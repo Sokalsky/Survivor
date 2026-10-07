@@ -5,7 +5,6 @@ import csv
 import io
 import json
 import unittest
-from unittest.mock import patch
 
 from survivor.catalog import ROOT, build_catalog, rows
 from survivor.bundled_stats import sync_bundled_stats, sync_bundled_projections
@@ -13,7 +12,8 @@ from survivor.database import preview_database
 from survivor.dashboard import create_app
 from survivor.keepers import sync_bundled_keepers
 from survivor.valuation import (CONFIG, allocate, build_valuations, fingerprint,
-                                profiles, save_run, survivor_scores)
+                                profiles, save_run, survivor_scores, PriceModel, CATEGORIES)
+from survivor.market_context import MarketContext, COLUMNS, digest, load_context
 
 
 def settings():
@@ -83,6 +83,74 @@ class ValueMathTests(unittest.TestCase):
             survivor_scores(players,scored,rules,config,{'first_cut_week':6,'cut_interval_weeks':2,'name':'invalid'})
 
 
+class ComparableTests(unittest.TestCase):
+    def profile(self, value, age=25):
+        return {'z':dict.fromkeys(CATEGORIES,value),'score':8*value,'age':age}
+
+    def model(self, age=False):
+        observations = [{'season':'2025-26','profile':self.profile(v,a),'target':price,'player_id':str(i)}
+                        for i,(v,a,price) in enumerate([(0,25,1),(.2,25,2),(.8,25,4),(.05,38,2)])]
+        return PriceModel(observations,settings(),2026,age=age)
+
+    def test_closer_matches_receive_more_weight_and_power_strengthens_it(self):
+        model = self.model()
+        profile = self.profile(0)
+        stronger = {r['index']:r['weight'] for r in model.weighted_neighbors(profile,power=3)}
+        previous = {r['index']:r['weight'] for r in model.weighted_neighbors(profile,power=2)}
+        self.assertAlmostEqual(sum(stronger.values()),1)
+        self.assertGreater(stronger[1],stronger[2])
+        self.assertGreater(stronger[1]/stronger[2],previous[1]/previous[2])
+        self.assertAlmostEqual(stronger[1]/stronger[2],((.8+.25)/(.2+.25))**3)
+
+    def test_recency_and_age_are_explicit_and_zero_distance_is_finite(self):
+        profile = self.profile(0)
+        model = self.model(age=True)
+        weights = model.weighted_neighbors(profile)
+        indexed = {w['index']:w for w in weights}
+        self.assertGreater(indexed[1]['weight'],indexed[3]['weight'])  # More similar age wins here.
+        self.assertTrue(all(0<w['weight']<=1 for w in weights))
+        duplicate = [dict(model.observations[0],season=s) for s in ['2024-25','2025-26']]
+        recent = PriceModel(duplicate,settings(),2026).weighted_neighbors(profile)
+        shares = {w['index']:w['weight'] for w in recent}
+        self.assertAlmostEqual(shares[0]/shares[1],.9)
+        with self.assertRaisesRegex(ValueError,'precede'):
+            PriceModel(duplicate,settings(),2025)
+
+    def test_local_price_reconciles_to_weighted_actual_minus_model_residuals(self):
+        model = self.model(age=True)
+        profile = self.profile(.3)
+        components = model.local_components(profile)
+        expected = sum(w['weight']*(model.observations[w['index']]['target']-
+                                    model.raw_prediction(model.observations[w['index']]['profile']))
+                       for w in components['neighbors'])*settings()['comp_correction_share']
+        self.assertAlmostEqual(expected,components['correction'])
+        self.assertAlmostEqual(model.predictions(profile)['local'],max(0,components['base']+expected))
+        self.assertGreaterEqual(components['effective_comps'],1)
+        self.assertLessEqual(components['effective_comps'],len(model.observations))
+
+    def test_age_context_cannot_use_future_rows_or_guess_missing_players(self):
+        sources = {s:{'url':'https://example.test/'+s,'sha256':'test','retrieved_at':'2026-10-01'}
+                   for s in ['2023-24','2025-26']}
+        data = {'version':1,'columns':COLUMNS,'sources':sources,
+                'records':[['2023-24','p','provider-p',23],['2025-26','p','provider-p',25]]}
+        payload = {**data,'sha256':digest(data)}
+        context = MarketContext(payload)
+        self.assertEqual(context.before('p','2025-26')['target_season_age'],25)
+        self.assertEqual(context.before('p','2025-26')['season'],'2023-24')
+        self.assertIsNone(context.before('p','2023-24'))
+        self.assertIsNone(context.before('unknown','2026-27'))
+        payload['records'][0][3]=99
+        with self.assertRaisesRegex(ValueError,'integrity'):
+            MarketContext(payload)
+
+    def test_bundled_age_metadata_covers_verified_source_rows(self):
+        context = load_context()
+        self.assertEqual(context.metadata['rows'],6460)
+        self.assertEqual(len(context.metadata['sources']),12)
+        self.assertEqual(context.before('anthonyedwards','2026-27')['target_season_age'],25)
+        self.assertEqual(context.before('jamesharden','2026-27')['target_season_age'],37)
+
+
 class PublishedValueIntegrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -110,6 +178,9 @@ class PublishedValueIntegrationTests(unittest.TestCase):
             self.assertEqual(round(sum(dollars),2),3000)
             self.assertEqual(sum(v>=1 for v in dollars),225)
         self.assertTrue(all(v['fair_value']==v['category_values']['neutral_value'] for v in result['values']))
+        by_id = {v['player_id']:v for v in result['values']}
+        self.assertEqual(by_id['anthonyedwards']['fair_value'],37.94)
+        self.assertEqual(by_id['jamesharden']['fair_value'],37.67)
         self.assertTrue(all(v['recommended_bid_ceiling'] is None for v in result['values']))
         self.assertEqual(self.before,fingerprint(rows(self.db,'SELECT * FROM player_stats ORDER BY dataset_id,player_id')))
 
@@ -118,6 +189,7 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         for r in result['backtest']:
             self.assertLess(r['stats_season'],r['season'])
             self.assertLess(r['training_last_season'],r['season'])
+            self.assertLess(r['age_source_season'],r['season'])
         v = result['validation']
         self.assertEqual(v['training_rows'],1991)
         self.assertEqual(v['unmatched_or_low_sample_rows'],182)
@@ -125,6 +197,29 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         self.assertLess(v['holdout'][v['selected_model']]['mae'],v['holdout']['mean']['mae'])
         self.assertIn('not independently validated',v['interpretation'])
         self.assertEqual(v['retention_audit']['bands']['top_30'],{'opening':40,'on_same_final_roster':27})
+        self.assertIn('reused',v['model_selection_basis'])
+        self.assertEqual(v['selected_model'],min(v['development'],key=lambda name:v['development'][name]['mae']))
+        self.assertLess(v['holdout'][v['selected_model']]['mae'],v['holdout']['ridge']['mae'])
+
+    def test_all_comps_weights_price_adjustments_and_age_fallback_reconcile(self):
+        missing_age = 0
+        for row in self.result['values']:
+            market = row['category_values']['market']
+            self.assertEqual(len(row['comps']),20)
+            self.assertAlmostEqual(sum(c['weight'] for c in row['comps']),1)
+            self.assertAlmostEqual(sum(c['price_adjustment'] for c in row['comps']),market['comp_adjustment'])
+            expected = min(200,max(1,market['base_price']+market['comp_adjustment']))
+            self.assertAlmostEqual(row['expected_auction_price'],round(expected,2))
+            for comp in row['comps']:
+                self.assertLess(comp['stats_season'],comp['season'])
+                self.assertLess(comp['season'],self.result['season'])
+                self.assertAlmostEqual(comp['price_adjustment'],.5*comp['weight']*(comp['budget_adjusted_price']-comp['model_price']))
+            if market['age_source'] is None:
+                missing_age += 1
+                self.assertFalse(market['age_in_model'])
+                self.assertEqual(market['method'],'local')
+                self.assertIn('no invented age',row['risk_notes'])
+        self.assertEqual(missing_age,49)
 
     def test_run_atomic_idempotent_and_immutable(self):
         save_run(self.db,self.result)
@@ -149,6 +244,9 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         self.assertEqual(payload['run']['run_id'],self.result['run_id'])
         self.assertIn('league_rules',payload['run']['settings'])
         self.assertEqual(len(payload['rows']),500)
+        self.assertNotIn('comps_json',payload['rows'][0])
+        detail = self.client.get('/api/players/anthonyedwards').json
+        self.assertEqual(len(json.loads(detail['valuations'][0]['comps_json'])),20)
         self.assertEqual(len(self.client.get('/api/valuations?availability=available').json['rows']),470)
         self.assertEqual(len(self.client.get('/api/valuations?availability=kept').json['rows']),30)
         response = self.client.get('/api/valuations.csv?availability=kept')

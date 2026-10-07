@@ -13,6 +13,7 @@ from survivor.catalog import ROOT, build_catalog, now, rows, season_name
 from survivor.database import preview_database, railway_database
 from survivor.keepers import keeper_summary, sync_bundled_keepers
 from survivor.bundled_stats import sync_bundled_stats, sync_bundled_projections
+from survivor.market_context import load_context
 
 CATEGORIES = ('PTS','REB','AST','STL','BLK','3PM','FG%','FT%')
 COUNT_FIELDS = ('pts_pg','reb_pg','ast_pg','stl_pg','blk_pg','fg3m_pg')
@@ -157,10 +158,15 @@ def retention_audit(db, actuals, statistics, settings):
             'interpretation':'Only finalists, classified by preceding-season per-game rank. Matching opening and final snapshots does not prove continuous ownership. This descriptive audit is not used to fit replacement dates or prices.'}
 
 
-def feature_vector(profile, full=True):
+def feature_vector(profile, full=True, age=False):
     score = profile['score']
     values = [profile['z'][cat] for cat in CATEGORIES] if full else [score]
-    return values + [max(0,score)**2/8]
+    values += [max(0,score)**2/8]
+    if age:
+        # Centering is only a feature transform, not an assigned/missing age.
+        a = (profile['age']-27)/5
+        values += [a,a*max(0,score)/8]
+    return values
 
 
 def solve(matrix, rhs):
@@ -183,13 +189,19 @@ def solve(matrix, rhs):
 
 
 class PriceModel:
-    def __init__(self, observations, settings, target_year, *, full=True):
+    def __init__(self, observations, settings, target_year, *, full=True, age=False):
+        if age:
+            observations = [o for o in observations if o['profile'].get('age') is not None]
         if not observations:
             raise ValueError('No past auction observations available to fit prices.')
+        if any(int(o['season'][:4])>=target_year for o in observations):
+            raise ValueError('Price training must precede the target auction season.')
         self.observations = observations
         self.settings = settings
         self.full = full
-        vectors = [feature_vector(o['profile'],full) for o in observations]
+        self.age = age
+        vectors = [feature_vector(o['profile'],full,age) for o in observations]
+        self.z_vectors = [[o['profile']['z'][cat] for cat in CATEGORIES] for o in observations]
         self.means = [mean(row[j] for row in vectors) for j in range(len(vectors[0]))]
         self.scales = [pstdev(row[j] for row in vectors) or 1 for j in range(len(vectors[0]))]
         self.target_year = target_year
@@ -201,25 +213,55 @@ class PriceModel:
         rhs = [sum(w*r[i]*o['target'] for w,r,o in zip(self.weights,x,observations)) for i in range(n)]
         self.beta = solve(matrix,rhs)
         self.mean_price = sum(w*o['target'] for w,o in zip(self.weights,observations))/sum(self.weights)
+        self.residuals = [o['target']-self.raw_prediction(o['profile']) for o in observations]
 
     def standardize(self, vector):
         return [1]+[(v-m)/s for v,m,s in zip(vector,self.means,self.scales)]
 
+    def raw_prediction(self, profile):
+        return sum(a*b for a,b in zip(self.beta,self.standardize(feature_vector(profile,self.full,self.age))))
+
     def nearest(self, profile, count=None):
         z = [profile['z'][cat] for cat in CATEGORIES]
         distances = []
-        for index, observation in enumerate(self.observations):
-            other = [observation['profile']['z'][cat] for cat in CATEGORIES]
-            distance = math.sqrt(sum((a-b)**2 for a,b in zip(z,other))/8)
+        for index, other in enumerate(self.z_vectors):
+            squared = sum((a-b)**2 for a,b in zip(z,other))
+            if self.age:
+                squared += ((profile['age']-self.observations[index]['profile']['age'])/self.settings['age_distance_years'])**2
+            distance = math.sqrt(squared/(9 if self.age else 8))
             distances.append((distance,index))
         return sorted(distances)[:count or self.settings['neighbors']]
 
+    def weighted_neighbors(self, profile, *, power=None, neighbors=None):
+        power = self.settings['comp_distance_power'] if power is None else power
+        offset = self.settings['comp_distance_offset']
+        if power<0 or offset<=0:
+            raise ValueError('Comparable weights require a positive distance offset and nonnegative power.')
+        neighbors = self.nearest(profile) if neighbors is None else neighbors
+        weights = [(self.weights[i]/(distance+offset)**power,distance,i) for distance,i in neighbors]
+        total = sum(w for w,_,_ in weights)
+        return [{'weight':w/total,'distance':distance,'index':i} for w,distance,i in weights]
+
+    def local_components(self, profile, weighted=None):
+        weighted = self.weighted_neighbors(profile) if weighted is None else weighted
+        correction = self.settings['comp_correction_share']*sum(w['weight']*self.residuals[w['index']] for w in weighted)
+        return {'base':self.raw_prediction(profile),'correction':correction,'neighbors':weighted,
+                'effective_comps':1/sum(w['weight']**2 for w in weighted)}
+
     def predictions(self, profile):
-        ridge = sum(a*b for a,b in zip(self.beta,self.standardize(feature_vector(profile,self.full))))
+        ridge = self.raw_prediction(profile)
         neighbors = self.nearest(profile)
-        weights = [(self.weights[i]/(distance+.25)**2,i) for distance,i in neighbors]
-        knn = sum(w*self.observations[i]['target'] for w,i in weights)/sum(w for w,_ in weights)
-        return {'ridge':max(0,ridge),'comps':max(0,knn),'blend':max(0,(ridge+knn)/2),'mean':self.mean_price}
+        weights = self.weighted_neighbors(profile,neighbors=neighbors)
+        def estimate(weighted):
+            return sum(w['weight']*self.observations[w['index']]['target'] for w in weighted)
+        knn = estimate(self.weighted_neighbors(profile,power=2,neighbors=neighbors))
+        local = self.local_components(profile,weights)
+        weighted_knn = estimate(weights)
+        blend = self.settings['comp_blend_share']
+        return {'ridge':max(0,ridge),'comps':max(0,knn),'blend':max(0,(ridge+knn)/2),'mean':self.mean_price,
+                'uniform_comps':max(0,estimate(self.weighted_neighbors(profile,power=0,neighbors=neighbors))),
+                'weighted_comps':max(0,weighted_knn),'weighted_blend':max(0,(1-blend)*ridge+blend*weighted_knn),
+                'local':max(0,local['base']+local['correction'])}
 
 
 def load_inputs(db, season):
@@ -254,7 +296,7 @@ def historical_keeper_groups(keeper_history):
     return groups
 
 
-def training_observations(actuals, statistics, auctions, keeper_history, rules, settings):
+def training_observations(actuals, statistics, auctions, keeper_history, rules, settings, context=None):
     historical = {}
     for season,dataset in actuals.items():
         players = statistics[dataset['dataset_id']]
@@ -269,6 +311,8 @@ def training_observations(actuals, statistics, auctions, keeper_history, rules, 
             missing.append({**sale,'stats_season':prior,'reason':'No matched prior season or fewer than 10 games'})
             continue
         player,profile = pair
+        age_record = context.before(sale['player_id'],sale['season']) if context else None
+        profile = {**profile,'age':age_record['target_season_age'] if age_record else None}
         keeper = keepers.get(sale['season'],{'keepers':0,'cost':0})
         slots = rules['teams']*settings['roster_size']-keeper['keepers']
         budget = rules['teams']*rules['auction_budget']-keeper['cost']
@@ -276,7 +320,7 @@ def training_observations(actuals, statistics, auctions, keeper_history, rules, 
         if dollars_per_slot <= 0:
             raise ValueError('Historical keeper costs exceed the assumed auction budget.')
         observations.append({**sale,'stats_season':prior,'stats_games':player['games'],
-                             'profile':profile,'scale':dollars_per_slot,
+                             'profile':profile,'scale':dollars_per_slot,'age_source':age_record,
                              'target':max(0,(sale['recorded_cost']-settings['minimum_bid'])/dollars_per_slot)})
     return observations,missing
 
@@ -309,7 +353,8 @@ def error_radius(records, expected, scale, coverage):
 
 def evaluate(observations,settings):
     """Choose on development years; lock the choice before the final three seasons."""
-    candidates = ('mean','score_curve','ridge','comps','blend')
+    plain_candidates = ('mean','ridge','comps','blend','uniform_comps','weighted_comps','weighted_blend','local')
+    candidates = ('score_curve',)+plain_candidates+tuple('age_'+name for name in plain_candidates if name!='mean')
     results = {name:[] for name in candidates}
     seasons = sorted({o['season'] for o in observations})
     selected = None
@@ -323,15 +368,20 @@ def evaluate(observations,settings):
         if selected is None and season >= settings['holdout_first_season']:
             selected = min(candidates,key=lambda name:(metrics(results[name])['mae'],name))
         full = PriceModel(train,settings,int(season[:4]))
+        age_model = PriceModel(train,settings,int(season[:4]),age=True)
         score = PriceModel(train,settings,int(season[:4]),full=False)
         for item in test:
             predicted = full.predictions(item['profile'])
-            predicted['score_curve'] = score.predictions(item['profile'])['ridge']
+            age_predictions = age_model.predictions(item['profile']) if item['profile'].get('age') is not None else predicted
+            predicted.update({'age_'+name:value for name,value in age_predictions.items() if name!='mean'})
+            predicted['score_curve'] = max(0,score.raw_prediction(item['profile']))
             for candidate in candidates:
                 price = min(200,max(settings['minimum_bid'],settings['minimum_bid']+predicted[candidate]*item['scale']))
                 results[candidate].append({'season':season,'player_id':item['player_id'],'player':item['player'],
                                           'actual':item['recorded_cost'],'predicted':price,'scale':item['scale'],
-                                          'stats_season':item['stats_season'],'training_last_season':max(o['season'] for o in train)})
+                                          'stats_season':item['stats_season'],'training_last_season':max(o['season'] for o in train),
+                                          'target_season_age':item['profile'].get('age'),
+                                          'age_source_season':item['age_source']['season'] if item.get('age_source') else None})
     if selected is None:
         raise ValueError('Not enough seasons for development and held-out price evaluation.')
     development = {name:metrics([r for r in records if r['season']<settings['holdout_first_season']]) for name,records in results.items()}
@@ -346,6 +396,8 @@ def evaluate(observations,settings):
                      'holdout_by_actual_price_tier':{tier:metrics([r for r in selected_holdout if price_tier(r['actual'])==tier]) for tier in ('under_10','10_to_30','30_plus')},
                      'holdout_interval_coverage':covered/len(selected_holdout),
                      'holdout_first_season':settings['holdout_first_season'],
+                     'model_selection_basis':'Candidate choice uses development-year MAE only. Later seasons have been reviewed during earlier model development and are reused retrospective checks, not fresh independent holdouts.',
+                     'holdout_tiers_by_model':{name:{tier:metrics([r for r in records if r['season']>=settings['holdout_first_season'] and price_tier(r['actual'])==tier]) for tier in ('under_10','10_to_30','30_plus')} for name,records in results.items()},
                      'by_season':{s:metrics([r for r in results[selected] if r['season']==s]) for s in seasons if any(r['season']==s for r in results[selected])},
                      'interpretation':'Out-of-season price tests use prior-year actuals, not archived preseason projections. Rookies and low-sample players without prior stats are excluded. Current projection-based estimates are not independently validated.'}, results[selected]
 
@@ -360,7 +412,8 @@ def build_valuations(db, season, settings=None):
         raise ValueError('Some keepers lack projections; refusing distorted budget allocation.')
     if settings['minimum_bid'] <= 0 or settings['roster_size'] <= rules['keepers_per_team']:
         raise ValueError('Invalid roster size or minimum bid.')
-    observations,missing = training_observations(actuals,statistics,auctions,keeper_history,rules,settings)
+    context = load_context()
+    observations,missing = training_observations(actuals,statistics,auctions,keeper_history,rules,settings,context)
     selected,validation,backtest = evaluate(observations,settings)
     rate_profiles,rate_reference = profiles(players,pool_size=settings['reference_pool_size'],weights=settings['category_weights'])
     scenarios = {}
@@ -373,31 +426,47 @@ def build_valuations(db, season, settings=None):
     base,base_allocation = central['dollars'],central['allocation']
     slots = rules['teams']*settings['roster_size']-len(keepers)
     scale = (draft['remaining_budget']-slots*settings['minimum_bid'])/slots
-    model = PriceModel(observations,settings,int(season[:4]),full=selected!='score_curve')
+    model = PriceModel(observations,settings,int(season[:4]),full=selected!='score_curve',age=selected.startswith('age_'))
+    fallback = PriceModel(observations,settings,int(season[:4]),full=selected!='score_curve') if model.age else model
     latest_prior = season_name(int(season[:4])-1)
     prior_games = {p['player_id']:p['games'] for p in statistics[actuals[latest_prior]['dataset_id']]} if latest_prior in actuals else {}
     values = []
     for p in players:
         key = p['player_id']
-        profile = rate_profiles[key]
-        prediction_key = 'ridge' if selected=='score_curve' else selected
-        expected = min(200,max(settings['minimum_bid'],settings['minimum_bid']+model.predictions(profile)[prediction_key]*scale))
+        age_record = context.before(key,season)
+        profile = {**rate_profiles[key],'age':age_record['target_season_age'] if age_record else None}
+        player_model = model if age_record or not model.age else fallback
+        prediction_key = 'ridge' if selected=='score_curve' else selected.removeprefix('age_')
+        expected = min(200,max(settings['minimum_bid'],settings['minimum_bid']+player_model.predictions(profile)[prediction_key]*scale))
         radius = error_radius(backtest,expected,scale,settings['interval_coverage'])
-        nearest = model.nearest(profile,5)
+        power = 0 if prediction_key=='uniform_comps' else 2 if prediction_key in ('comps','blend') else settings['comp_distance_power']
+        weighted = player_model.weighted_neighbors(profile,power=power)
+        components = player_model.local_components(profile,weighted)
+        nearest = components['neighbors']
         comps = []
-        for distance,i in nearest:
-            comp = observations[i]
+        for weighted in nearest:
+            distance,i = weighted['distance'],weighted['index']
+            comp = player_model.observations[i]
+            regression_price = settings['minimum_bid']+player_model.raw_prediction(comp['profile'])*scale
+            adjusted_price = settings['minimum_bid']+comp['target']*scale
             comps.append({'player':comp['player'],'player_id':comp['player_id'],'season':comp['season'],
                           'stats_season':comp['stats_season'],'actual_price':comp['recorded_cost'],
                           'franchise':comp['franchise_sheet'],'distance':round(distance,4),
+                          'weight':weighted['weight'],'target_season_age':comp['profile'].get('age'),
+                          'budget_adjusted_price':adjusted_price,'model_price':regression_price,
+                          'price_adjustment':settings['comp_correction_share']*weighted['weight']*(adjusted_price-regression_price) if prediction_key=='local' else None,
                           'category_z':comp['profile']['z']})
         keeper = keepers.get(key)
         fair = base[key]
         flags = []
         if prior_games.get(key,0)<settings['historical_minimum_games']:
             flags.append('Fewer than 10 NBA games in the previous season: rookie/returning or low-sample player; market-price validation does not cover this case.')
-        if nearest[0][0] > 1:
-            flags.append('No close historical eight-category comparable (nearest RMS z-distance exceeds 1).')
+        if nearest[0]['distance'] > 1:
+            flags.append('No close historical comparable (nearest combined similarity distance exceeds 1).')
+        if not age_record:
+            flags.append('No earlier recorded season age: market estimate uses the statistics-only counterpart, with no invented age or youth premium.')
+        if components['effective_comps']<3:
+            flags.append('Comparable pricing is concentrated in fewer than three effectively weighted records.')
         if p['games'] < 65:
             flags.append(f'CBS projects {p["games"]:g} games; availability is spread uniformly, so a delayed return may overstate early usefulness.')
         if keeper:
@@ -413,17 +482,28 @@ def build_valuations(db, season, settings=None):
                                           **central['contributions'][key],'neutral_value':fair,
                                           'value_basis':'neutral_15_team_no_keepers',
                                           'neutral_slot':fair>0,'games':p['games'],
+                                          'market':{'method':selected if player_model is model else prediction_key,
+                                                    'age_source':age_record,'age_in_model':player_model.age,
+                                                    'base_price':settings['minimum_bid']+components['base']*scale,
+                                                    'comp_adjustment':components['correction']*scale if prediction_key=='local' else None,
+                                                    'effective_comps':components['effective_comps'],
+                                                    'comp_count':len(nearest),'weight_power':power,
+                                                    'distance_offset':settings['comp_distance_offset'],
+                                                    'correction_share':settings['comp_correction_share']},
                                           'scenario_values':{name:s['dollars'][key] for name,s in scenarios.items()}},
                        'comps':comps,'risk_notes':' '.join(flags)})
     validation.update(training_rows=len(observations),unmatched_or_low_sample_rows=len(missing),historical_sales=len(auctions),
                       remaining_budget=draft['remaining_budget'],remaining_slots=slots,projected_players=len(players),
                       neutral_allocation=base_allocation,rate_reference=rate_reference,
+                      market_context=context.metadata,
+                      age_training_rows=sum(o['profile'].get('age') is not None for o in observations),
+                      current_age_coverage=sum(context.before(p['player_id'],season) is not None for p in players),
                       survivor_scenarios={name:s['details'] for name,s in scenarios.items()},
                       retention_audit=retention_audit(db,actuals,statistics,settings),
                       neutral_value_basis='Equal category weights; linear allocation of positive survivor value above replacement. No historical price fitting, star multiplier or category punt. Scenario estimate, not an empirically validated optimum.',
                       market_price_basis='Conditional on selection at auction; current keeper-adjusted discretionary dollars per slot. Individual estimates are not a simultaneous $2,210 auction allocation.',
                       interval={'nominal':settings['interval_coverage'],'basis':'Absolute normalized out-of-season price errors, grouped by predicted price tier; descriptive error band, not a guaranteed confidence interval.'},
-                      market_coefficients={'features':list(CATEGORIES)+['positive_score_squared/8'] if model.full else ['score','positive_score_squared/8'],
+                      market_coefficients={'features':(list(CATEGORIES)+['positive_score_squared/8'] if model.full else ['score','positive_score_squared/8'])+(['age_centered/5','age_centered/5 * positive_score/8'] if model.age else []),
                                            'standardized_coefficients':model.beta,'feature_means':model.means,'feature_scales':model.scales})
     identity = {'version':settings['model_version'],'settings':settings,'rules':rules,'projection':projection['dataset_id'],
                 'historical_datasets':{k:d['dataset_id'] for k,d in actuals.items()},'auctions':auctions,
@@ -467,6 +547,11 @@ def export_results(result, folder):
              'survivor_value_score':row['category_values']['score'],
              'expected_league_price':row['expected_auction_price'],'neutral_auction_value':row['fair_value'],
              'price_low':row['lower_estimate'],'price_high':row['upper_estimate'],
+             'market_season_age':(row['category_values']['market']['age_source'] or {}).get('target_season_age'),
+             'market_method':row['category_values']['market']['method'],
+             'price_before_comp_adjustment':row['category_values']['market']['base_price'],
+             'comp_price_adjustment':row['category_values']['market']['comp_adjustment'],
+             'effective_comps':row['category_values']['market']['effective_comps'],
              'useful_games_scenario':row['category_values']['useful_games'],
              **{f'neutral_{name}':value for name,value in row['category_values']['scenario_values'].items()},
              'keeper_cost':row['keeper_cost'],'keeper_surplus':row['keeper_surplus'],'risk_notes':row['risk_notes']}
@@ -481,6 +566,8 @@ def export_results(result, folder):
     comp_rows = [{'target_player':v['player'],**{k:c for k,c in comp.items() if k!='category_z'}} for v in result['values'] for comp in v['comps']]
     add_sheet(workbook,'Historical comps',comp_rows,list(comp_rows[0]))
     add_sheet(workbook,'Backtest',result['backtest'],list(result['backtest'][0]))
+    model_checks = [{'model':name,'split':split,**metrics} for split in ('development','holdout') for name,metrics in result['validation'][split].items()]
+    add_sheet(workbook,'Model comparison',model_checks,list(model_checks[0]))
     add_sheet(workbook,'Excluded history',result['excluded'],list(result['excluded'][0]))
     stage_rows = [{'scenario':name,**stage} for name,scenario in result['validation']['survivor_scenarios'].items() for stage in scenario['stages']]
     add_sheet(workbook,'Elimination scenarios',stage_rows,list(stage_rows[0]))

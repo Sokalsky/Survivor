@@ -216,7 +216,9 @@ def create_app(preview_db=None):
                 latest = db.execute('SELECT r.run_id FROM valuation_runs r JOIN stat_datasets d ON r.projection_dataset_id=d.dataset_id WHERE d.season=? ORDER BY r.created_at DESC LIMIT 1', (request.args.get('season', RULES['target_season']),)).fetchone()
                 run_id = latest[0] if latest else ''
             metadata = rows(db, 'SELECT r.run_id,r.created_at,r.model_version,r.training_cutoff,r.validation_json,r.league_settings_json,r.notes,d.season,d.source_name,d.as_of_date FROM valuation_runs r JOIN stat_datasets d ON d.dataset_id=r.projection_dataset_id WHERE run_id=?', (run_id,))
-            entries = rows(db, 'SELECT v.*,p.display_name AS player FROM projected_values v JOIN players p USING(player_id) WHERE v.run_id=? ORDER BY v.fair_value DESC NULLS LAST,p.display_name', (run_id,))
+            # Detailed comparisons are fetched for one player in the drawer,
+            # rather than sending 10,000 comparable records with every board.
+            entries = rows(db, 'SELECT v.run_id,v.player_id,v.fair_value,v.expected_auction_price,v.recommended_bid_ceiling,v.lower_estimate,v.upper_estimate,v.keeper_cost,v.keeper_surplus,v.category_values_json,v.risk_notes,p.display_name AS player FROM projected_values v JOIN players p USING(player_id) WHERE v.run_id=? ORDER BY v.fair_value DESC NULLS LAST,p.display_name', (run_id,))
             entries = available_entries(db, entries, metadata[0]['season'] if metadata else '')
         if metadata:
             metadata[0]['validation'] = json.loads(metadata[0]['validation_json'])
@@ -226,13 +228,15 @@ def create_app(preview_db=None):
             writer = csv.writer(stream)
             writer.writerow(['Player','Survivor value score','Expected league price','Neutral auction value',
                              'Price band low','Price band high','Draft status','Keeper owner','Confirmed keeper cost',
-                             'Neutral faster cuts','Neutral slower cuts','Run ID'])
+                             'Neutral faster cuts','Neutral slower cuts','Run ID','Market season age','Price before comps','Comp adjustment'])
             for row in entries:
                 details = json.loads(row['category_values_json'])
                 scenarios = details.get('scenario_values',{})
+                market = details.get('market',{})
                 cells = [row['player'],details.get('score'),row['expected_auction_price'],row['fair_value'],
                          row['lower_estimate'],row['upper_estimate'],row['draft_status'],row['keeper_franchise'],
-                         row['confirmed_keeper_cost'],scenarios.get('faster'),scenarios.get('slower'),run_id]
+                         row['confirmed_keeper_cost'],scenarios.get('faster'),scenarios.get('slower'),run_id,
+                         (market.get('age_source') or {}).get('target_season_age'),market.get('base_price'),market.get('comp_adjustment')]
                 writer.writerow(["'"+v if isinstance(v,str) and v.startswith(('=','+','-','@','\t','\r')) else v for v in cells])
             return Response('\ufeff'+stream.getvalue(),mimetype='text/csv',
                             headers={'Content-Disposition':'attachment; filename=survivor-valuations.csv'})

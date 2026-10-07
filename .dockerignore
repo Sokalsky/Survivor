@@ -8,6 +8,7 @@
 !output/
 !output/stats/
 !output/stats/manifest.json
+!output/stats/market-context.json
 !output/stats/actuals-*.csv
 !output/stats/projections-*-CBS.csv
 !Survivor keeper log 2025.xlsx

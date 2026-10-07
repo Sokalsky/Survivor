@@ -208,12 +208,24 @@ Exact elimination dates, stat resets and lineup constraints remain unresolved.
 Neutral values assume reaching the final, with no manager preferences or punts.
 
 The separate price model fits 1,991 matched historical purchases using only
-preceding-season stats. Chronological tests on the last three seasons have $4.86
-average absolute error; $30+ players have $13.12 error and are underpriced on
-average. Historical preseason forecasts are unavailable: this does not validate
-the current CBS forecasts or survivor formula. Full method: valuation_design.txt.
+preceding-season stats and earlier recorded age data. The overall auction estimate
+is adjusted using the 20 closest profiles, with stronger inverse-cube distance
+weights and a recency factor. Only half the weighted actual-minus-modeled comp
+price difference is applied. No fixed youth premium or future keeper bonus is
+assumed. Season ages come from verified Basketball Reference data already in the
+source Excel, bundled separately in output/stats/market-context.json. Of 500 current
+players, 451 have earlier age data; the other 49 use the statistics-only counterpart.
 
-Player details show category contributions, actual historical comps, market-price
+Chronological comparisons on the last three seasons have $4.58 average absolute
+error versus $4.86 for the earlier model; $30+ players have $11.91 error versus
+$13.12 previously and remain underpriced on average. Those seasons have already
+been reviewed, so this is a reused retrospective comparison, not new independent
+validation. Model choice uses older development seasons only. Historical preseason
+forecasts are unavailable: these checks do not validate the CBS forecasts or the
+survivor formula. Full method and limitations: valuation_design.txt.
+
+Player details show category contributions, actual historical comps, each comp's
+weight and dollar adjustment, the price decomposition, market-price
 bands, elimination-schedule sensitivity and keeper surplus. Formula and assumptions
 are expandable on the board. Export CSV downloads the selected run and availability
 filter (all matching players, independent of the text search).
@@ -223,8 +235,13 @@ On deployment, the normal startup computes and saves the run transactionally.
 Identical inputs produce the same run ID; old runs remain available. Public web
 requests cannot write valuations. No manual Railway import is needed. Completion
 is reported in startup logs as:
-  Valuations ready: 2026-27 / 500 players / survivor-8cat-v1
+  Valuations ready: 2026-27 / 500 players / survivor-8cat-v2
 Development checks do not verify that Railway has deployed the update.
+Age context can also be rebuilt offline from verified HTML caches with:
+  python -m survivor.market_context
+The regular stats_workbook collector refreshes it after a complete history fetch.
+All 20 weighted comps are available in the player detail API and Excel export;
+the board API omits that large array and fetches player details on demand.
 
 NOTES ABOUT THE DATA
 

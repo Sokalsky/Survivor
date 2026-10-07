@@ -232,7 +232,7 @@ def add_sheet(workbook, title, records, headers):
         for name, cell in zip(headers, row):
             if isinstance(cell.value, str):
                 cell.data_type = 's'  # Source text must never become an Excel formula.
-            if name.endswith('_pct'):
+            if name.endswith('_pct') or name=='weight':
                 cell.number_format = '0.0%'
             elif name.endswith('_pg'):
                 cell.number_format = '0.00'
@@ -372,6 +372,10 @@ def build_workbook(output_dir, first_start, last_start, target_season, *, refres
                 'historical_seasons':len(datasets), 'historical_rows':sum(len(r) for _,r in datasets),
                 'projection_rows':len(projections), 'projections_ready_for_valuation':bool(projections),
                 'sources':sources,'errors':errors}
+    if len(datasets)==last_start-first_start+1:
+        from survivor.market_context import write_context
+        context = write_context(datasets,sources,output_dir/'market-context.json')
+        manifest['market_context'] = {'file':'market-context.json','rows':len(context['records']),'sha256':context['sha256']}
     (output_dir/'manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
     print(f'Workbook: {workbook_path.resolve()}', flush=True)
     return manifest

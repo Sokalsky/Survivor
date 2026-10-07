@@ -1,4 +1,4 @@
-SURVIVOR VALUATION v1
+SURVIVOR VALUATION v2
 
 THREE DISTINCT OUTPUTS
 
@@ -96,28 +96,78 @@ Using Y's realized statistics to predict Y's preseason auction would leak future
 information; those statistics never enter that auction's training features.
 
 Features: eight per-game category z scores plus positive total score squared / 8.
+Age-aware candidates add (target-season age - 27) / 5 and its interaction with
+positive category score / 8. Age associations are fitted to actual auction prices;
+there is no predetermined youth bonus or estimate of future keeper savings.
 Normalize historical paid dollars above $1 by that season's discretionary league
 budget per open slot, after keeper costs. This assumes the current $200 budget
 throughout history; incomplete roster entries and historical unspent dollars can
 affect calibration. Feature centers/scales are fitted on training rows only.
-Ridge regularization = 20; annual recency weight = 0.9. No age, role changes or
-dated injury news are invented. Current features use published CBS projections.
+Ridge regularization = 20; annual recency weight = 0.9. Role changes and dated
+injury news are not invented. Current category features use published CBS stats.
 
-Compare mean-price, simple total-score curve, ridge category model, 20 nearest
-profiles, and a 50/50 ridge/comps blend. Select by MAE during 2018-19 to 2022-23,
+Recorded ages come from the already collected Basketball Reference HTML, checked
+against source hashes and exported to output/stats/market-context.json. This is
+6,460 player-season ages with source IDs, URLs, retrieval times and an integrity
+hash. Ages already existed in the source Excel; NBA projection rows are unchanged.
+For each auction, only records from earlier seasons are eligible. Advance the
+latest recorded season age by elapsed seasons to get target-season age. This is
+a season-age convention, not exact age on draft day. All 1,991 training rows have
+age context. 451/500 projected players have an earlier age; the other 49 use the
+corresponding statistics-only model. No rookie birthdays or ages are guessed.
+
+Compare mean-price, simple total-score curve, ridge category model, and several
+20-neighbor estimates: equal-similarity weights, inverse-square weights, stronger
+inverse-cube weights, a 50/50 blend using inverse-square weights, a 25% comp blend
+using inverse-cube weights, and a local residual correction. Test the same
+variants with age included (except redundant mean and score-only baselines).
+Select by MAE during 2018-19 to 2022-23,
 then lock that choice for expanding-window tests in 2023-24 through 2025-26.
 Every test year uses only earlier auction prices; earlier held-out years can be
-included when fitting a later year, but do not reselect the model. Five displayed
-comps use RMS distance across all eight z scores and show genuine original bids.
-They explain statistical resemblance, not an exact average producing the price.
+included when fitting a later year, but do not reselect the model. The historical
+comps use RMS distance across all eight z scores. For age-aware comparisons, add
+one component: age difference / 5 years, then use the RMS of nine components.
 
-Selected model: ridge. Last three years: 541 matched purchases, MAE $4.86 versus
-$5.33 for a simple score curve and $10.04 for the mean-price baseline. Purchases
-costing $30+ have MAE $13.12 and mean prediction error -$11.19: stars are materially
+Selected model: age_local. The price is an age-aware regression estimate plus
+half the similarity-weighted average historical residual. Each residual is the
+actual normalized purchase price minus the regression prediction for that same
+historical profile. Regression fits and residuals use only the training years.
+This uses what close matches sold above/below their own expected price, rather
+than assuming a different player's raw price should directly price the target.
+
+For the 20 nearest observations:
+  unnormalized_weight = 0.9^(years since auction - 1) / (distance + 0.25)^3;
+  share = unnormalized_weight / sum(unnormalized_weights);
+  adjustment = 0.5 * sum(share * residual) * current discretionary dollars/slot;
+  final price = clamp(overall regression price + adjustment, $1, $200).
+
+Equal-age, equally recent distances 0.2 versus 0.8 give about 12.7 times as much
+weight to the closer match (5.4 times with the old inverse-square formula).
+The 0.25 offset keeps an exact match finite. Recency can allow a newer, slightly
+less similar profile to outweigh an older one. No single comp is treated as
+certainty. Effective sample size = 1 / sum(share^2); below three is flagged.
+Repeated player-seasons are correlated evidence, not independent samples.
+
+Player details show the five largest weights and an expandable remaining 15.
+All 20 weights sum to 100%; rounded displayed percentages may differ slightly.
+Paid prices remain original bids. Dollar adjustments and budget-normalized comp
+prices are separate fields, with an explicit regression-plus-adjustment breakdown.
+The Excel export retains all 20 comps, their shares and individual adjustments.
+
+Development MAE: $4.65 versus $5.10 for the previous ridge model. Last three years:
+541 matched purchases, MAE $4.58 versus $4.86 for the previous ridge model, $5.33
+for a simple score curve and $10.04 for the mean-price baseline. Purchases costing
+$30+ have MAE $11.91 (previously $13.12) and mean error -$9.55: stars remain
 underpriced. Do not hide this behind the overall error. The nominal 80% price
-band achieved 78.2% chronological coverage. Bands use normalized absolute past
+band achieved 77.4% chronological coverage. Bands use normalized absolute past
 prediction errors by predicted price tier, falling back to all errors below 30
 samples. Current price estimates and bands use the $2,210/195 auction context.
+
+The later three seasons have already been reviewed in earlier model work. They
+are reused retrospective comparisons, not fresh independent validation. Candidate
+selection still uses only development-year MAE. Hyperparameters are explicit
+model choices, not a guarantee of future accuracy. A truly fresh future auction
+or archived preseason forecasts would strengthen evaluation.
 
 This is a price backtest using prior-year actuals, NOT a backtest of CBS forecasts,
 this year's rookies or the survivor value formula. Archived historical preseason
@@ -143,9 +193,14 @@ Identical inputs do not duplicate runs; older runs remain browseable. Public API
 requests remain read-only. No direct Railway access is part of development.
 
 Local preview/export (memory only): python -m survivor.valuation --preview
+Age context can be rebuilt offline from verified HTML caches using:
+  python -m survivor.market_context
+The normal stats_workbook collector also refreshes it after complete historical
+collection. Docker includes the age file; Railway reads it without fetching URLs.
 output/valuations/survivor-valuations.xlsx contains all three outputs, category
 contributions, actual comps, chronological tests, exclusions, scenarios and method.
-CSV files and model-report.json allow independent review. They are exports, not
+CSV files and model-report.json include model comparisons and allow independent
+review. Valuation exports are not
 runtime imports. Railway computes the same run from its stored inputs on startup.
 The website displays the saved model, assumptions, category bars, comps and price
 bands and provides a valuation CSV download with availability filtering.
