@@ -1,9 +1,9 @@
 {
-  "created_at": "2026-10-07T00:10:56.589851+00:00",
+  "created_at": "2026-10-07T01:22:44.554472+00:00",
   "workbook": "survivor-player-stats.xlsx",
   "historical_seasons": 12,
   "historical_rows": 6460,
-  "projection_rows": 500,
+  "projection_rows": 348,
   "projections_ready_for_valuation": true,
   "sources": [
     {
@@ -165,69 +165,97 @@
     {
       "kind": "projection",
       "season": "2026-27",
-      "source_name": "CBS Sports published projections",
+      "source_name": "ESPN published projections",
       "as_of_date": "2026-10-07",
       "as_of_basis": "retrieval_date",
-      "retrieved_at": "2026-10-07T00:08:42.996466+00:00",
-      "file": "projections-2026-27-CBS.csv",
-      "players": 500,
+      "retrieved_at": "2026-10-07T01:22:09.545483+00:00",
+      "file": "projections-2026-27-ESPN.csv",
+      "players": 348,
       "ready_for_import": true,
-      "csv_sha256": "97dfe57a000af700ef368de07b8e6c87bb2909396cfb1c59242ccc04037f13b2",
-      "note": "Published CBS season totals divided by published projected games. FGM, FGA, FTM and FTA are supplied by CBS; no statistics are estimated or imputed. Snapshot date is the retrieval date; CBS does not show a publication timestamp. CBS displays the season by its starting year. Position filters overlap; one intact source row is retained per CBS player ID.",
-      "url": "https://www.cbssports.com/fantasy/basketball/projections/",
+      "csv_sha256": "cbfee2a5072716d0201edd7e5f2e3ad8247726e9590484eb6832d09a05f05e47",
+      "note": "ESPN full-season projected totals divided by projected games; makes and attempts come from ESPN. ESPN labels seasons by ending year (2027 = 2026-27). Only source 1, season split 0, scoring period 0 is used. Absent counting-stat keys inside a nonempty ESPN projection are sparse-encoded zeroes; players without a positive-games projection are excluded. No forecasts are blended or estimated. Snapshot date is retrieval time, not a provider publication date.",
+      "url": "https://fantasy.espn.com/basketball/players/projections",
       "source_pages": [
         {
-          "group": "PG",
-          "players": 100,
-          "url": "https://www.cbssports.com/fantasy/basketball/stats/PG/2026/season/projections/",
-          "retrieved_at": "2026-10-07T00:08:41.788836+00:00",
-          "sha256": "867486dbf920d0a7f8247d362c4a18a7308ea6951db42a6fcbe5afcb56ca03af"
+          "url": "https://lm-api-reads.fantasy.espn.com/apis/v3/games/fba/seasons/2027?view=proTeamSchedules_wl",
+          "request_filter": null,
+          "sha256": "356e2532ed2e4c0fedd80e4c566579a492c9adf0877e708a79f7fc4d031b4c4f",
+          "retrieved_at": "2026-10-07T01:21:54.222167+00:00",
+          "group": "teams",
+          "players": 0
         },
         {
-          "group": "SG",
-          "players": 100,
-          "url": "https://www.cbssports.com/fantasy/basketball/stats/SG/2026/season/projections/",
-          "retrieved_at": "2026-10-07T00:08:42.254757+00:00",
-          "sha256": "37f70f9d423d81536367f40def389cdea0b84e5f5b98b7530f93d5b8063030d4"
+          "url": "https://lm-api-reads.fantasy.espn.com/apis/v3/games/fba/seasons/2027/segments/0/leaguedefaults/1?view=kona_player_info",
+          "request_filter": {
+            "players": {
+              "filterStatsForExternalIds": {
+                "value": [
+                  2027
+                ]
+              },
+              "filterStatsForSourceIds": {
+                "value": [
+                  1
+                ]
+              },
+              "useFullProjectionTable": {
+                "value": true
+              },
+              "sortDraftRanks": {
+                "sortPriority": 1,
+                "sortAsc": true,
+                "value": "ROTO"
+              },
+              "limit": 1000,
+              "offset": 0
+            }
+          },
+          "sha256": "9f5a8f4a339eb48efbc35de132b41c4614525f66f8f5637dcb1b46fa4cba772a",
+          "retrieved_at": "2026-10-07T01:21:54.381563+00:00",
+          "group": "0",
+          "players": 348,
+          "response_players": 1000
         },
         {
-          "group": "SF",
-          "players": 100,
-          "url": "https://www.cbssports.com/fantasy/basketball/stats/SF/2026/season/projections/",
-          "retrieved_at": "2026-10-07T00:08:42.996466+00:00",
-          "sha256": "f98caa164746e43805fc7c808cd84cb3d0d33eaf1d1736dbf24fc86c31b9f400"
-        },
-        {
-          "group": "PF",
-          "players": 100,
-          "url": "https://www.cbssports.com/fantasy/basketball/stats/PF/2026/season/projections/",
-          "retrieved_at": "2026-10-07T00:08:42.664441+00:00",
-          "sha256": "5804ecddccb008ec445e51431f2a1ffbda4a5dd983a453cf7b38d272dd9e00fc"
-        },
-        {
-          "group": "C",
-          "players": 100,
-          "url": "https://www.cbssports.com/fantasy/basketball/stats/C/2026/season/projections/",
-          "retrieved_at": "2026-10-07T00:07:33.040923+00:00",
-          "sha256": "ca5a55b7b6e8cc89d533c36d3a34e42d0482be0614b6ef2eff2b699974b7da28"
-        },
-        {
-          "group": "G",
-          "players": 100,
-          "url": "https://www.cbssports.com/fantasy/basketball/stats/G/2026/season/projections/",
-          "retrieved_at": "2026-10-07T00:08:03.484704+00:00",
-          "sha256": "36465feb1f3acdd2b17c493de49b15d5ad8c0ddbdb4f37032d8f355fd3de9bbe"
-        },
-        {
-          "group": "F",
-          "players": 100,
-          "url": "https://www.cbssports.com/fantasy/basketball/stats/F/2026/season/projections/",
-          "retrieved_at": "2026-10-07T00:08:03.825674+00:00",
-          "sha256": "17267c50c55f8c514d3df0a7e603f6a9fe59dbd929eb1ad7324ee6b8ff0986bd"
+          "url": "https://lm-api-reads.fantasy.espn.com/apis/v3/games/fba/seasons/2027/segments/0/leaguedefaults/1?view=kona_player_info",
+          "request_filter": {
+            "players": {
+              "filterStatsForExternalIds": {
+                "value": [
+                  2027
+                ]
+              },
+              "filterStatsForSourceIds": {
+                "value": [
+                  1
+                ]
+              },
+              "useFullProjectionTable": {
+                "value": true
+              },
+              "sortDraftRanks": {
+                "sortPriority": 1,
+                "sortAsc": true,
+                "value": "ROTO"
+              },
+              "limit": 1000,
+              "offset": 1000
+            }
+          },
+          "sha256": "b9a36b3c0bd26460b64e0199e97d24982d8ee71b2a89a3d2164cef2816d77b36",
+          "retrieved_at": "2026-10-07T01:22:09.545483+00:00",
+          "group": "1000",
+          "players": 0,
+          "response_players": 95
         }
       ],
       "provider_fields_only": true
     }
   ],
-  "errors": []
+  "errors": [],
+  "market_context": {
+    "file": "market-context.json",
+    "rows": 6460,
+    "sha256": "f76d3a271a0b1ba0192f16f2685f19b130778ac7e8344c869de19cee4dccdfb1"
+  }
 }

@@ -1,10 +1,10 @@
 {
-  "run_id": "bbeecb59e604328370d2948774ec894f162fabece5a2cccce1d45bd4f90b0c2d",
-  "projection_dataset_id": "037a7b616f3a794747ca7d32ced1b18af0c7b6e19b43369efc35849253723edc",
+  "run_id": "0c171d4941cd7473b57e99ae6cf9ad79c52df6186ed53cdcd8a76ce0d8dd39cd",
+  "projection_dataset_id": "8512725602d60917be54e9dac88175045afbe9157138db58b85e6affc9379fba",
   "season": "2026-27",
-  "model_version": "survivor-8cat-v2",
+  "model_version": "survivor-8cat-v3",
   "settings": {
-    "model_version": "survivor-8cat-v2",
+    "model_version": "survivor-8cat-v3",
     "roster_size": 15,
     "minimum_bid": 1,
     "minimum_bid_basis": "Working assumption; lowest recorded auction purchase is $1. Formal rule not confirmed.",
@@ -193,6 +193,18 @@
         "mae": 4.651832861469602,
         "rmse": 7.050843796079924,
         "bias": -0.09636386607002417
+      },
+      "market_local": {
+        "n": 890,
+        "mae": 4.909286855020377,
+        "rmse": 7.3484519284753045,
+        "bias": 0.04398152136603513
+      },
+      "market_age_local": {
+        "n": 890,
+        "mae": 4.653493901090974,
+        "rmse": 7.14755960097564,
+        "bias": 0.10112282540491509
       }
     },
     "holdout": {
@@ -291,6 +303,18 @@
         "mae": 4.584638530407806,
         "rmse": 6.746784852270791,
         "bias": -0.35508410110085864
+      },
+      "market_local": {
+        "n": 541,
+        "mae": 4.67142713492652,
+        "rmse": 6.833565710125334,
+        "bias": -0.23796887907896305
+      },
+      "market_age_local": {
+        "n": 541,
+        "mae": 4.576303897639179,
+        "rmse": 6.728832609739469,
+        "bias": -0.17661588720721905
       }
     },
     "holdout_by_actual_price_tier": {
@@ -636,6 +660,46 @@
           "rmse": 13.704852676754205,
           "bias": -9.546777299211032
         }
+      },
+      "market_local": {
+        "under_10": {
+          "n": 317,
+          "mae": 3.146447053685672,
+          "rmse": 4.726882938132582,
+          "bias": 2.640177330519698
+        },
+        "10_to_30": {
+          "n": 164,
+          "mae": 5.010131650400729,
+          "rmse": 6.469935377469144,
+          "bias": -2.4784752960200267
+        },
+        "30_plus": {
+          "n": 60,
+          "mae": 11.802612888519496,
+          "rmse": 13.732866450197614,
+          "bias": -9.320123813486315
+        }
+      },
+      "market_age_local": {
+        "under_10": {
+          "n": 317,
+          "mae": 3.1102391057851038,
+          "rmse": 4.78207271356396,
+          "bias": 2.5298880944736495
+        },
+        "10_to_30": {
+          "n": 164,
+          "mae": 4.843562671312039,
+          "rmse": 6.236448963490383,
+          "bias": -2.1913790381900107
+        },
+        "30_plus": {
+          "n": 60,
+          "mae": 11.591505566562393,
+          "rmse": 13.458103390692061,
+          "bias": -8.968959311068177
+        }
       }
     },
     "by_season": {
@@ -694,7 +758,7 @@
     "historical_sales": 2173,
     "remaining_budget": 2210,
     "remaining_slots": 195,
-    "projected_players": 500,
+    "projected_players": 348,
     "neutral_allocation": {
       "replacement_score": 0.0,
       "slots": 225,
@@ -702,32 +766,32 @@
       "exponent": 1,
       "minimum_bid": 1,
       "discretionary_budget": 2775.0,
-      "dollars_per_score": 5.09536835577768
+      "dollars_per_score": 6.009237992815264
     },
     "rate_reference": {
       "pool_size": 225,
       "selection": "highest minutes per game among eligible players",
-      "fg_baseline": 0.47564996211851723,
-      "ft_baseline": 0.7917368670711469,
+      "fg_baseline": 0.4770447956634959,
+      "ft_baseline": 0.7964518669020961,
       "means": {
-        "PTS": 13.972489586343935,
-        "REB": 4.872568147696432,
-        "AST": 3.177746564190301,
-        "STL": 0.9009968422036115,
-        "BLK": 0.5400512163200444,
-        "3PM": 1.4935670508780614,
-        "FG%": 1.8257000849391462e-16,
-        "FT%": 1.4679615547821513e-17
+        "PTS": 15.725319834249694,
+        "REB": 5.434436576635992,
+        "AST": 3.601735263010443,
+        "STL": 0.9886337299584108,
+        "BLK": 0.634586046086664,
+        "3PM": 1.6490921014804727,
+        "FG%": -1.973729821555834e-18,
+        "FT%": -2.067481988079736e-16
       },
       "standard_deviations": {
-        "PTS": 5.8337145044574585,
-        "REB": 2.291396157080638,
-        "AST": 1.8471473637878504,
-        "STL": 0.32370058937126694,
-        "BLK": 0.4076006379816578,
-        "3PM": 0.873019566750403,
-        "FG%": 0.5318831649163424,
-        "FT%": 0.2798691223874008
+        "PTS": 5.606915761638858,
+        "REB": 2.4321869861140777,
+        "AST": 1.9646603125107214,
+        "STL": 0.32009696140799515,
+        "BLK": 0.49777344471480967,
+        "3PM": 0.9357490151316409,
+        "FG%": 0.6074449984142527,
+        "FT%": 0.2831277497772132
       }
     },
     "market_context": {
@@ -798,7 +862,2807 @@
       "basis": "Basketball Reference season ages. Target-season age advances the latest earlier recorded season age by elapsed seasons; no birthdays or rookie ages are guessed."
     },
     "age_training_rows": 1991,
-    "current_age_coverage": 451,
+    "current_age_coverage": 332,
+    "auction_contexts": [
+      {
+        "season": "2015-16",
+        "stats_season": "2014-15",
+        "teams": [
+          {
+            "franchise": "Alvin",
+            "keeper_spend": 0,
+            "remaining_budget": 200,
+            "open_slots": 15,
+            "maximum_opening_bid": 186
+          },
+          {
+            "franchise": "Arthur",
+            "keeper_spend": 0,
+            "remaining_budget": 200,
+            "open_slots": 15,
+            "maximum_opening_bid": 186
+          },
+          {
+            "franchise": "Benji",
+            "keeper_spend": 0,
+            "remaining_budget": 200,
+            "open_slots": 15,
+            "maximum_opening_bid": 186
+          },
+          {
+            "franchise": "Brent",
+            "keeper_spend": 0,
+            "remaining_budget": 200,
+            "open_slots": 15,
+            "maximum_opening_bid": 186
+          },
+          {
+            "franchise": "Darren",
+            "keeper_spend": 0,
+            "remaining_budget": 200,
+            "open_slots": 15,
+            "maximum_opening_bid": 186
+          },
+          {
+            "franchise": "Graham",
+            "keeper_spend": 0,
+            "remaining_budget": 200,
+            "open_slots": 15,
+            "maximum_opening_bid": 186
+          },
+          {
+            "franchise": "Ian",
+            "keeper_spend": 0,
+            "remaining_budget": 200,
+            "open_slots": 15,
+            "maximum_opening_bid": 186
+          },
+          {
+            "franchise": "Isaac",
+            "keeper_spend": 0,
+            "remaining_budget": 200,
+            "open_slots": 15,
+            "maximum_opening_bid": 186
+          },
+          {
+            "franchise": "Jason",
+            "keeper_spend": 0,
+            "remaining_budget": 200,
+            "open_slots": 15,
+            "maximum_opening_bid": 186
+          },
+          {
+            "franchise": "Joe",
+            "keeper_spend": 0,
+            "remaining_budget": 200,
+            "open_slots": 15,
+            "maximum_opening_bid": 186
+          },
+          {
+            "franchise": "Kerry",
+            "keeper_spend": 0,
+            "remaining_budget": 200,
+            "open_slots": 15,
+            "maximum_opening_bid": 186
+          },
+          {
+            "franchise": "Mark",
+            "keeper_spend": 0,
+            "remaining_budget": 200,
+            "open_slots": 15,
+            "maximum_opening_bid": 186
+          },
+          {
+            "franchise": "Max",
+            "keeper_spend": 0,
+            "remaining_budget": 200,
+            "open_slots": 15,
+            "maximum_opening_bid": 186
+          },
+          {
+            "franchise": "Peter",
+            "keeper_spend": 0,
+            "remaining_budget": 200,
+            "open_slots": 15,
+            "maximum_opening_bid": 186
+          },
+          {
+            "franchise": "Ron",
+            "keeper_spend": 0,
+            "remaining_budget": 200,
+            "open_slots": 15,
+            "maximum_opening_bid": 186
+          }
+        ],
+        "keeper_count": 0,
+        "remaining_budget": 3000,
+        "open_slots": 225,
+        "average_team_budget": 200,
+        "median_team_budget": 200,
+        "minimum_team_budget": 200,
+        "maximum_team_budget": 200,
+        "team_budget_stddev": 0.0,
+        "discretionary_per_slot": 12.333333333333334,
+        "available_top_counts": {
+          "10": 10,
+          "20": 20,
+          "30": 30,
+          "50": 50,
+          "100": 100
+        },
+        "available_top_players": [
+          {
+            "player_id": "jamesharden",
+            "player": "James Harden",
+            "rank": 1,
+            "score": 13.03478777143321
+          },
+          {
+            "player_id": "stephencurry",
+            "player": "Stephen Curry",
+            "rank": 2,
+            "score": 13.03320475895329
+          },
+          {
+            "player_id": "anthonydavis",
+            "player": "Anthony Davis",
+            "rank": 3,
+            "score": 12.48213127110174
+          },
+          {
+            "player_id": "russellwestbrook",
+            "player": "Russell Westbrook",
+            "rank": 4,
+            "score": 10.739762143666116
+          },
+          {
+            "player_id": "chrispaul",
+            "player": "Chris Paul",
+            "rank": 5,
+            "score": 10.113491023936021
+          },
+          {
+            "player_id": "kevindurant",
+            "player": "Kevin Durant",
+            "rank": 6,
+            "score": 10.08314810569519
+          },
+          {
+            "player_id": "demarcuscousins",
+            "player": "DeMarcus Cousins",
+            "rank": 7,
+            "score": 9.412771116800895
+          },
+          {
+            "player_id": "lebronjames",
+            "player": "LeBron James",
+            "rank": 8,
+            "score": 8.536096187127615
+          },
+          {
+            "player_id": "kyrieirving",
+            "player": "Kyrie Irving",
+            "rank": 9,
+            "score": 6.749050816352342
+          },
+          {
+            "player_id": "johnwall",
+            "player": "John Wall",
+            "rank": 10,
+            "score": 6.551047832451024
+          },
+          {
+            "player_id": "kawhileonard",
+            "player": "Kawhi Leonard",
+            "rank": 11,
+            "score": 6.505929174997509
+          },
+          {
+            "player_id": "klaythompson",
+            "player": "Klay Thompson",
+            "rank": 12,
+            "score": 6.499115886103883
+          },
+          {
+            "player_id": "damianlillard",
+            "player": "Damian Lillard",
+            "rank": 13,
+            "score": 6.171423095141508
+          },
+          {
+            "player_id": "jimmybutler",
+            "player": "Jimmy Butler",
+            "rank": 14,
+            "score": 6.082958888956223
+          },
+          {
+            "player_id": "paugasol",
+            "player": "Pau Gasol",
+            "rank": 15,
+            "score": 5.666471486837909
+          },
+          {
+            "player_id": "paulmillsap",
+            "player": "Paul Millsap",
+            "rank": 16,
+            "score": 5.5657654898655
+          },
+          {
+            "player_id": "lamarcusaldridge",
+            "player": "LaMarcus Aldridge",
+            "rank": 17,
+            "score": 5.207211934505035
+          },
+          {
+            "player_id": "jeffteague",
+            "player": "Jeff Teague",
+            "rank": 18,
+            "score": 4.99322878836089
+          },
+          {
+            "player_id": "rudygay",
+            "player": "Rudy Gay",
+            "rank": 19,
+            "score": 4.945334089074739
+          },
+          {
+            "player_id": "ericbledsoe",
+            "player": "Eric Bledsoe",
+            "rank": 20,
+            "score": 4.91780206205329
+          },
+          {
+            "player_id": "marcgasol",
+            "player": "Marc Gasol",
+            "rank": 21,
+            "score": 4.885046774993721
+          },
+          {
+            "player_id": "kylelowry",
+            "player": "Kyle Lowry",
+            "rank": 22,
+            "score": 4.514990513264981
+          },
+          {
+            "player_id": "gordonhayward",
+            "player": "Gordon Hayward",
+            "rank": 23,
+            "score": 4.458197831064033
+          },
+          {
+            "player_id": "jrueholiday",
+            "player": "Jrue Holiday",
+            "rank": 24,
+            "score": 4.269767715330129
+          },
+          {
+            "player_id": "blakegriffin",
+            "player": "Blake Griffin",
+            "rank": 25,
+            "score": 4.257427972883536
+          },
+          {
+            "player_id": "carmeloanthony",
+            "player": "Carmelo Anthony",
+            "rank": 26,
+            "score": 4.251868470376147
+          },
+          {
+            "player_id": "nikolavucevic",
+            "player": "Nikola Vucevic",
+            "rank": 27,
+            "score": 4.198848424358859
+          },
+          {
+            "player_id": "sergeibaka",
+            "player": "Serge Ibaka",
+            "rank": 28,
+            "score": 4.138633922823289
+          },
+          {
+            "player_id": "timduncan",
+            "player": "Tim Duncan",
+            "rank": 29,
+            "score": 4.129944916667007
+          },
+          {
+            "player_id": "draymondgreen",
+            "player": "Draymond Green",
+            "rank": 30,
+            "score": 4.026346020834053
+          }
+        ],
+        "unmatched_keeper_ids": [],
+        "available_pool_count": 455,
+        "available_strength": 927.4382307215964,
+        "full_strength": 927.4382307215964,
+        "supply_ratio": 1.0,
+        "market_scale": 12.333333333333334,
+        "basis": "Prior-season NBA rates, excluding recorded keepers. Missing rookies, low-sample players, retirements, injuries and offseason changes are not reconstructed; this is a draft-pool proxy.",
+        "budget_basis": "$200 starting budget and 15 opening slots per team; historical budget rule assumed constant."
+      },
+      {
+        "season": "2016-17",
+        "stats_season": "2015-16",
+        "teams": [
+          {
+            "franchise": "Alvin",
+            "keeper_spend": 85,
+            "remaining_budget": 115,
+            "open_slots": 13,
+            "maximum_opening_bid": 103
+          },
+          {
+            "franchise": "Arthur",
+            "keeper_spend": 90,
+            "remaining_budget": 110,
+            "open_slots": 13,
+            "maximum_opening_bid": 98
+          },
+          {
+            "franchise": "Benji",
+            "keeper_spend": 153,
+            "remaining_budget": 47,
+            "open_slots": 13,
+            "maximum_opening_bid": 35
+          },
+          {
+            "franchise": "Brent",
+            "keeper_spend": 79,
+            "remaining_budget": 121,
+            "open_slots": 13,
+            "maximum_opening_bid": 109
+          },
+          {
+            "franchise": "Darren",
+            "keeper_spend": 22,
+            "remaining_budget": 178,
+            "open_slots": 13,
+            "maximum_opening_bid": 166
+          },
+          {
+            "franchise": "Graham",
+            "keeper_spend": 51,
+            "remaining_budget": 149,
+            "open_slots": 13,
+            "maximum_opening_bid": 137
+          },
+          {
+            "franchise": "Ian",
+            "keeper_spend": 38,
+            "remaining_budget": 162,
+            "open_slots": 13,
+            "maximum_opening_bid": 150
+          },
+          {
+            "franchise": "Isaac",
+            "keeper_spend": 103,
+            "remaining_budget": 97,
+            "open_slots": 13,
+            "maximum_opening_bid": 85
+          },
+          {
+            "franchise": "Jason",
+            "keeper_spend": 62,
+            "remaining_budget": 138,
+            "open_slots": 13,
+            "maximum_opening_bid": 126
+          },
+          {
+            "franchise": "Joe",
+            "keeper_spend": 31,
+            "remaining_budget": 169,
+            "open_slots": 13,
+            "maximum_opening_bid": 157
+          },
+          {
+            "franchise": "Kerry",
+            "keeper_spend": 80,
+            "remaining_budget": 120,
+            "open_slots": 13,
+            "maximum_opening_bid": 108
+          },
+          {
+            "franchise": "Mark",
+            "keeper_spend": 61,
+            "remaining_budget": 139,
+            "open_slots": 13,
+            "maximum_opening_bid": 127
+          },
+          {
+            "franchise": "Max",
+            "keeper_spend": 22,
+            "remaining_budget": 178,
+            "open_slots": 13,
+            "maximum_opening_bid": 166
+          },
+          {
+            "franchise": "Peter",
+            "keeper_spend": 51,
+            "remaining_budget": 149,
+            "open_slots": 13,
+            "maximum_opening_bid": 137
+          },
+          {
+            "franchise": "Ron",
+            "keeper_spend": 47,
+            "remaining_budget": 153,
+            "open_slots": 13,
+            "maximum_opening_bid": 141
+          }
+        ],
+        "keeper_count": 30,
+        "remaining_budget": 2025,
+        "open_slots": 195,
+        "average_team_budget": 135,
+        "median_team_budget": 139,
+        "minimum_team_budget": 47,
+        "maximum_team_budget": 178,
+        "team_budget_stddev": 33.62340454703142,
+        "discretionary_per_slot": 9.384615384615385,
+        "available_top_counts": {
+          "10": 4,
+          "20": 7,
+          "30": 12,
+          "50": 27,
+          "100": 73
+        },
+        "available_top_players": [
+          {
+            "player_id": "jamesharden",
+            "player": "James Harden",
+            "rank": 3,
+            "score": 12.005448465031364
+          },
+          {
+            "player_id": "anthonydavis",
+            "player": "Anthony Davis",
+            "rank": 8,
+            "score": 8.3249338177225
+          },
+          {
+            "player_id": "kylelowry",
+            "player": "Kyle Lowry",
+            "rank": 9,
+            "score": 7.835050103508969
+          },
+          {
+            "player_id": "johnwall",
+            "player": "John Wall",
+            "rank": 10,
+            "score": 7.576639164671577
+          },
+          {
+            "player_id": "demarcuscousins",
+            "player": "DeMarcus Cousins",
+            "rank": 13,
+            "score": 7.450742881609998
+          },
+          {
+            "player_id": "ericbledsoe",
+            "player": "Eric Bledsoe",
+            "rank": 16,
+            "score": 6.6297157210797
+          },
+          {
+            "player_id": "damianlillard",
+            "player": "Damian Lillard",
+            "rank": 17,
+            "score": 6.628188679429077
+          },
+          {
+            "player_id": "rajonrondo",
+            "player": "Rajon Rondo",
+            "rank": 22,
+            "score": 5.158929383483042
+          },
+          {
+            "player_id": "klaythompson",
+            "player": "Klay Thompson",
+            "rank": 23,
+            "score": 4.945492451528319
+          },
+          {
+            "player_id": "alhorford",
+            "player": "Al Horford",
+            "rank": 26,
+            "score": 4.5599185378738145
+          },
+          {
+            "player_id": "khrismiddleton",
+            "player": "Khris Middleton",
+            "rank": 28,
+            "score": 4.285632895364849
+          },
+          {
+            "player_id": "carmeloanthony",
+            "player": "Carmelo Anthony",
+            "rank": 29,
+            "score": 3.9966444979038496
+          }
+        ],
+        "unmatched_keeper_ids": [],
+        "available_pool_count": 411,
+        "available_strength": 647.6027921043222,
+        "full_strength": 921.0881511809611,
+        "supply_ratio": 1.2326636132871582,
+        "market_scale": 11.568073909310254,
+        "basis": "Prior-season NBA rates, excluding recorded keepers. Missing rookies, low-sample players, retirements, injuries and offseason changes are not reconstructed; this is a draft-pool proxy.",
+        "budget_basis": "$200 starting budget and 15 opening slots per team; historical budget rule assumed constant."
+      },
+      {
+        "season": "2017-18",
+        "stats_season": "2016-17",
+        "teams": [
+          {
+            "franchise": "Alvin",
+            "keeper_spend": 91,
+            "remaining_budget": 109,
+            "open_slots": 13,
+            "maximum_opening_bid": 97
+          },
+          {
+            "franchise": "Arthur",
+            "keeper_spend": 32,
+            "remaining_budget": 168,
+            "open_slots": 13,
+            "maximum_opening_bid": 156
+          },
+          {
+            "franchise": "Benji",
+            "keeper_spend": 60,
+            "remaining_budget": 140,
+            "open_slots": 13,
+            "maximum_opening_bid": 128
+          },
+          {
+            "franchise": "Brent",
+            "keeper_spend": 63,
+            "remaining_budget": 137,
+            "open_slots": 13,
+            "maximum_opening_bid": 125
+          },
+          {
+            "franchise": "Darren",
+            "keeper_spend": 20,
+            "remaining_budget": 180,
+            "open_slots": 13,
+            "maximum_opening_bid": 168
+          },
+          {
+            "franchise": "Graham",
+            "keeper_spend": 29,
+            "remaining_budget": 171,
+            "open_slots": 13,
+            "maximum_opening_bid": 159
+          },
+          {
+            "franchise": "Ian",
+            "keeper_spend": 4,
+            "remaining_budget": 196,
+            "open_slots": 13,
+            "maximum_opening_bid": 184
+          },
+          {
+            "franchise": "Isaac",
+            "keeper_spend": 42,
+            "remaining_budget": 158,
+            "open_slots": 13,
+            "maximum_opening_bid": 146
+          },
+          {
+            "franchise": "Jason",
+            "keeper_spend": 45,
+            "remaining_budget": 155,
+            "open_slots": 13,
+            "maximum_opening_bid": 143
+          },
+          {
+            "franchise": "Joe",
+            "keeper_spend": 32,
+            "remaining_budget": 168,
+            "open_slots": 13,
+            "maximum_opening_bid": 156
+          },
+          {
+            "franchise": "Kerry",
+            "keeper_spend": 102,
+            "remaining_budget": 98,
+            "open_slots": 13,
+            "maximum_opening_bid": 86
+          },
+          {
+            "franchise": "Mark",
+            "keeper_spend": 62,
+            "remaining_budget": 138,
+            "open_slots": 13,
+            "maximum_opening_bid": 126
+          },
+          {
+            "franchise": "Max",
+            "keeper_spend": 84,
+            "remaining_budget": 116,
+            "open_slots": 13,
+            "maximum_opening_bid": 104
+          },
+          {
+            "franchise": "Peter",
+            "keeper_spend": 48,
+            "remaining_budget": 152,
+            "open_slots": 13,
+            "maximum_opening_bid": 140
+          },
+          {
+            "franchise": "Ron",
+            "keeper_spend": 40,
+            "remaining_budget": 160,
+            "open_slots": 13,
+            "maximum_opening_bid": 148
+          }
+        ],
+        "keeper_count": 30,
+        "remaining_budget": 2246,
+        "open_slots": 195,
+        "average_team_budget": 149.73333333333332,
+        "median_team_budget": 155,
+        "minimum_team_budget": 98,
+        "maximum_team_budget": 196,
+        "team_budget_stddev": 26.14183535170313,
+        "discretionary_per_slot": 10.517948717948718,
+        "available_top_counts": {
+          "10": 5,
+          "20": 9,
+          "30": 13,
+          "50": 27,
+          "100": 74
+        },
+        "available_top_players": [
+          {
+            "player_id": "jamesharden",
+            "player": "James Harden",
+            "rank": 1,
+            "score": 13.442744890716634
+          },
+          {
+            "player_id": "stephencurry",
+            "player": "Stephen Curry",
+            "rank": 5,
+            "score": 10.930715214177113
+          },
+          {
+            "player_id": "kawhileonard",
+            "player": "Kawhi Leonard",
+            "rank": 7,
+            "score": 9.60720322603751
+          },
+          {
+            "player_id": "lebronjames",
+            "player": "LeBron James",
+            "rank": 9,
+            "score": 9.124502331107326
+          },
+          {
+            "player_id": "chrispaul",
+            "player": "Chris Paul",
+            "rank": 10,
+            "score": 8.818710484339785
+          },
+          {
+            "player_id": "isaiahthomas",
+            "player": "Isaiah Thomas",
+            "rank": 13,
+            "score": 8.490363788391667
+          },
+          {
+            "player_id": "jimmybutler",
+            "player": "Jimmy Butler",
+            "rank": 14,
+            "score": 8.118353346782472
+          },
+          {
+            "player_id": "paulgeorge",
+            "player": "Paul George",
+            "rank": 16,
+            "score": 7.669327607107027
+          },
+          {
+            "player_id": "damianlillard",
+            "player": "Damian Lillard",
+            "rank": 17,
+            "score": 7.205049022674436
+          },
+          {
+            "player_id": "mikeconley",
+            "player": "Mike Conley",
+            "rank": 22,
+            "score": 5.793148466824983
+          },
+          {
+            "player_id": "ericbledsoe",
+            "player": "Eric Bledsoe",
+            "rank": 24,
+            "score": 5.231380113975504
+          },
+          {
+            "player_id": "marcgasol",
+            "player": "Marc Gasol",
+            "rank": 25,
+            "score": 5.1608091102197635
+          },
+          {
+            "player_id": "rudygay",
+            "player": "Rudy Gay",
+            "rank": 29,
+            "score": 4.795965944021814
+          }
+        ],
+        "unmatched_keeper_ids": [],
+        "available_pool_count": 415,
+        "available_strength": 667.2316812825668,
+        "full_strength": 935.8043396738827,
+        "supply_ratio": 1.2155154655701979,
+        "market_scale": 12.784729332740902,
+        "basis": "Prior-season NBA rates, excluding recorded keepers. Missing rookies, low-sample players, retirements, injuries and offseason changes are not reconstructed; this is a draft-pool proxy.",
+        "budget_basis": "$200 starting budget and 15 opening slots per team; historical budget rule assumed constant."
+      },
+      {
+        "season": "2018-19",
+        "stats_season": "2017-18",
+        "teams": [
+          {
+            "franchise": "Alvin",
+            "keeper_spend": 27,
+            "remaining_budget": 173,
+            "open_slots": 13,
+            "maximum_opening_bid": 161
+          },
+          {
+            "franchise": "Arthur",
+            "keeper_spend": 77,
+            "remaining_budget": 123,
+            "open_slots": 13,
+            "maximum_opening_bid": 111
+          },
+          {
+            "franchise": "Benji",
+            "keeper_spend": 15,
+            "remaining_budget": 185,
+            "open_slots": 13,
+            "maximum_opening_bid": 173
+          },
+          {
+            "franchise": "Brent",
+            "keeper_spend": 47,
+            "remaining_budget": 153,
+            "open_slots": 13,
+            "maximum_opening_bid": 141
+          },
+          {
+            "franchise": "Darren",
+            "keeper_spend": 31,
+            "remaining_budget": 169,
+            "open_slots": 13,
+            "maximum_opening_bid": 157
+          },
+          {
+            "franchise": "Graham",
+            "keeper_spend": 63,
+            "remaining_budget": 137,
+            "open_slots": 13,
+            "maximum_opening_bid": 125
+          },
+          {
+            "franchise": "Ian",
+            "keeper_spend": 27,
+            "remaining_budget": 173,
+            "open_slots": 13,
+            "maximum_opening_bid": 161
+          },
+          {
+            "franchise": "Isaac",
+            "keeper_spend": 21,
+            "remaining_budget": 179,
+            "open_slots": 13,
+            "maximum_opening_bid": 167
+          },
+          {
+            "franchise": "Jason",
+            "keeper_spend": 78,
+            "remaining_budget": 122,
+            "open_slots": 13,
+            "maximum_opening_bid": 110
+          },
+          {
+            "franchise": "Joe",
+            "keeper_spend": 38,
+            "remaining_budget": 162,
+            "open_slots": 13,
+            "maximum_opening_bid": 150
+          },
+          {
+            "franchise": "Kerry",
+            "keeper_spend": 31,
+            "remaining_budget": 169,
+            "open_slots": 13,
+            "maximum_opening_bid": 157
+          },
+          {
+            "franchise": "Mark",
+            "keeper_spend": 77,
+            "remaining_budget": 123,
+            "open_slots": 13,
+            "maximum_opening_bid": 111
+          },
+          {
+            "franchise": "Max",
+            "keeper_spend": 21,
+            "remaining_budget": 179,
+            "open_slots": 13,
+            "maximum_opening_bid": 167
+          },
+          {
+            "franchise": "Peter",
+            "keeper_spend": 57,
+            "remaining_budget": 143,
+            "open_slots": 13,
+            "maximum_opening_bid": 131
+          },
+          {
+            "franchise": "Ron",
+            "keeper_spend": 50,
+            "remaining_budget": 150,
+            "open_slots": 13,
+            "maximum_opening_bid": 138
+          }
+        ],
+        "keeper_count": 30,
+        "remaining_budget": 2340,
+        "open_slots": 195,
+        "average_team_budget": 156,
+        "median_team_budget": 162,
+        "minimum_team_budget": 122,
+        "maximum_team_budget": 185,
+        "team_budget_stddev": 21.228911104120876,
+        "discretionary_per_slot": 11.0,
+        "available_top_counts": {
+          "10": 3,
+          "20": 8,
+          "30": 15,
+          "50": 30,
+          "100": 76
+        },
+        "available_top_players": [
+          {
+            "player_id": "stephencurry",
+            "player": "Stephen Curry",
+            "rank": 3,
+            "score": 12.498432353497728
+          },
+          {
+            "player_id": "kevindurant",
+            "player": "Kevin Durant",
+            "rank": 4,
+            "score": 12.354621591684857
+          },
+          {
+            "player_id": "demarcuscousins",
+            "player": "DeMarcus Cousins",
+            "rank": 6,
+            "score": 11.28309537317748
+          },
+          {
+            "player_id": "russellwestbrook",
+            "player": "Russell Westbrook",
+            "rank": 12,
+            "score": 8.248817086483854
+          },
+          {
+            "player_id": "chrispaul",
+            "player": "Chris Paul",
+            "rank": 13,
+            "score": 8.21631649157998
+          },
+          {
+            "player_id": "jimmybutler",
+            "player": "Jimmy Butler",
+            "rank": 14,
+            "score": 7.344707478945898
+          },
+          {
+            "player_id": "paulgeorge",
+            "player": "Paul George",
+            "rank": 16,
+            "score": 6.859981353769602
+          },
+          {
+            "player_id": "ericbledsoe",
+            "player": "Eric Bledsoe",
+            "rank": 20,
+            "score": 5.322330655570742
+          },
+          {
+            "player_id": "andredrummond",
+            "player": "Andre Drummond",
+            "rank": 21,
+            "score": 5.285978450902069
+          },
+          {
+            "player_id": "draymondgreen",
+            "player": "Draymond Green",
+            "rank": 22,
+            "score": 5.216762750790856
+          },
+          {
+            "player_id": "kembawalker",
+            "player": "Kemba Walker",
+            "rank": 26,
+            "score": 4.8645285665086995
+          },
+          {
+            "player_id": "kylelowry",
+            "player": "Kyle Lowry",
+            "rank": 27,
+            "score": 4.814449709978555
+          },
+          {
+            "player_id": "johnwall",
+            "player": "John Wall",
+            "rank": 28,
+            "score": 4.492236908414805
+          },
+          {
+            "player_id": "louwilliams",
+            "player": "Lou Williams",
+            "rank": 29,
+            "score": 4.376201432672427
+          },
+          {
+            "player_id": "bensimmons",
+            "player": "Ben Simmons",
+            "rank": 30,
+            "score": 4.3682101135930615
+          }
+        ],
+        "unmatched_keeper_ids": [
+          "gordonhayward"
+        ],
+        "available_pool_count": 439,
+        "available_strength": 673.163015810546,
+        "full_strength": 929.5794310022385,
+        "supply_ratio": 1.1967911010359837,
+        "market_scale": 13.16470211139582,
+        "basis": "Prior-season NBA rates, excluding recorded keepers. Missing rookies, low-sample players, retirements, injuries and offseason changes are not reconstructed; this is a draft-pool proxy.",
+        "budget_basis": "$200 starting budget and 15 opening slots per team; historical budget rule assumed constant."
+      },
+      {
+        "season": "2019-20",
+        "stats_season": "2018-19",
+        "teams": [
+          {
+            "franchise": "Alvin",
+            "keeper_spend": 40,
+            "remaining_budget": 160,
+            "open_slots": 13,
+            "maximum_opening_bid": 148
+          },
+          {
+            "franchise": "Arthur",
+            "keeper_spend": 30,
+            "remaining_budget": 170,
+            "open_slots": 13,
+            "maximum_opening_bid": 158
+          },
+          {
+            "franchise": "Benji",
+            "keeper_spend": 26,
+            "remaining_budget": 174,
+            "open_slots": 13,
+            "maximum_opening_bid": 162
+          },
+          {
+            "franchise": "Brent",
+            "keeper_spend": 50,
+            "remaining_budget": 150,
+            "open_slots": 13,
+            "maximum_opening_bid": 138
+          },
+          {
+            "franchise": "Darren",
+            "keeper_spend": 51,
+            "remaining_budget": 149,
+            "open_slots": 13,
+            "maximum_opening_bid": 137
+          },
+          {
+            "franchise": "Graham",
+            "keeper_spend": 105,
+            "remaining_budget": 95,
+            "open_slots": 13,
+            "maximum_opening_bid": 83
+          },
+          {
+            "franchise": "Ian",
+            "keeper_spend": 38,
+            "remaining_budget": 162,
+            "open_slots": 13,
+            "maximum_opening_bid": 150
+          },
+          {
+            "franchise": "Isaac",
+            "keeper_spend": 44,
+            "remaining_budget": 156,
+            "open_slots": 13,
+            "maximum_opening_bid": 144
+          },
+          {
+            "franchise": "Jason",
+            "keeper_spend": 61,
+            "remaining_budget": 139,
+            "open_slots": 13,
+            "maximum_opening_bid": 127
+          },
+          {
+            "franchise": "Joe",
+            "keeper_spend": 20,
+            "remaining_budget": 180,
+            "open_slots": 13,
+            "maximum_opening_bid": 168
+          },
+          {
+            "franchise": "Kerry",
+            "keeper_spend": 25,
+            "remaining_budget": 175,
+            "open_slots": 13,
+            "maximum_opening_bid": 163
+          },
+          {
+            "franchise": "Mark",
+            "keeper_spend": 88,
+            "remaining_budget": 112,
+            "open_slots": 13,
+            "maximum_opening_bid": 100
+          },
+          {
+            "franchise": "Max",
+            "keeper_spend": 19,
+            "remaining_budget": 181,
+            "open_slots": 13,
+            "maximum_opening_bid": 169
+          },
+          {
+            "franchise": "Peter",
+            "keeper_spend": 51,
+            "remaining_budget": 149,
+            "open_slots": 13,
+            "maximum_opening_bid": 137
+          },
+          {
+            "franchise": "Ron",
+            "keeper_spend": 47,
+            "remaining_budget": 153,
+            "open_slots": 13,
+            "maximum_opening_bid": 141
+          }
+        ],
+        "keeper_count": 30,
+        "remaining_budget": 2305,
+        "open_slots": 195,
+        "average_team_budget": 153.66666666666666,
+        "median_team_budget": 156,
+        "minimum_team_budget": 95,
+        "maximum_team_budget": 181,
+        "team_budget_stddev": 23.297114747443633,
+        "discretionary_per_slot": 10.820512820512821,
+        "available_top_counts": {
+          "10": 5,
+          "20": 8,
+          "30": 16,
+          "50": 30,
+          "100": 71
+        },
+        "available_top_players": [
+          {
+            "player_id": "jamesharden",
+            "player": "James Harden",
+            "rank": 1,
+            "score": 17.04764583807279
+          },
+          {
+            "player_id": "stephencurry",
+            "player": "Stephen Curry",
+            "rank": 3,
+            "score": 10.815867927813695
+          },
+          {
+            "player_id": "paulgeorge",
+            "player": "Paul George",
+            "rank": 5,
+            "score": 10.720669476147773
+          },
+          {
+            "player_id": "kevindurant",
+            "player": "Kevin Durant",
+            "rank": 8,
+            "score": 9.203288244492356
+          },
+          {
+            "player_id": "kawhileonard",
+            "player": "Kawhi Leonard",
+            "rank": 9,
+            "score": 8.558103724608594
+          },
+          {
+            "player_id": "russellwestbrook",
+            "player": "Russell Westbrook",
+            "rank": 16,
+            "score": 6.764085221080601
+          },
+          {
+            "player_id": "kembawalker",
+            "player": "Kemba Walker",
+            "rank": 18,
+            "score": 6.084048841026879
+          },
+          {
+            "player_id": "chrispaul",
+            "player": "Chris Paul",
+            "rank": 20,
+            "score": 5.834290051512334
+          },
+          {
+            "player_id": "jimmybutler",
+            "player": "Jimmy Butler",
+            "rank": 22,
+            "score": 5.024335585596039
+          },
+          {
+            "player_id": "rudygobert",
+            "player": "Rudy Gobert",
+            "rank": 23,
+            "score": 4.52547752932288
+          },
+          {
+            "player_id": "kylelowry",
+            "player": "Kyle Lowry",
+            "rank": 24,
+            "score": 4.506998282705057
+          },
+          {
+            "player_id": "mikeconley",
+            "player": "Mike Conley",
+            "rank": 25,
+            "score": 4.462734402967474
+          },
+          {
+            "player_id": "robertcovington",
+            "player": "Robert Covington",
+            "rank": 26,
+            "score": 4.4255658992837645
+          },
+          {
+            "player_id": "lamarcusaldridge",
+            "player": "LaMarcus Aldridge",
+            "rank": 27,
+            "score": 4.316167132682203
+          },
+          {
+            "player_id": "johnwall",
+            "player": "John Wall",
+            "rank": 28,
+            "score": 4.039866535689904
+          },
+          {
+            "player_id": "demarcuscousins",
+            "player": "DeMarcus Cousins",
+            "rank": 29,
+            "score": 3.890839662236663
+          }
+        ],
+        "unmatched_keeper_ids": [
+          "kristapsporzingis"
+        ],
+        "available_pool_count": 440,
+        "available_strength": 755.3551748414852,
+        "full_strength": 1030.9909513786067,
+        "supply_ratio": 1.1829209899598596,
+        "market_scale": 12.799811737514379,
+        "basis": "Prior-season NBA rates, excluding recorded keepers. Missing rookies, low-sample players, retirements, injuries and offseason changes are not reconstructed; this is a draft-pool proxy.",
+        "budget_basis": "$200 starting budget and 15 opening slots per team; historical budget rule assumed constant."
+      },
+      {
+        "season": "2020-21",
+        "stats_season": "2019-20",
+        "teams": [
+          {
+            "franchise": "Alvin",
+            "keeper_spend": 73,
+            "remaining_budget": 127,
+            "open_slots": 13,
+            "maximum_opening_bid": 115
+          },
+          {
+            "franchise": "Arthur",
+            "keeper_spend": 84,
+            "remaining_budget": 116,
+            "open_slots": 13,
+            "maximum_opening_bid": 104
+          },
+          {
+            "franchise": "Benji",
+            "keeper_spend": 48,
+            "remaining_budget": 152,
+            "open_slots": 13,
+            "maximum_opening_bid": 140
+          },
+          {
+            "franchise": "Brent",
+            "keeper_spend": 70,
+            "remaining_budget": 130,
+            "open_slots": 13,
+            "maximum_opening_bid": 118
+          },
+          {
+            "franchise": "Darren",
+            "keeper_spend": 49,
+            "remaining_budget": 151,
+            "open_slots": 13,
+            "maximum_opening_bid": 139
+          },
+          {
+            "franchise": "Graham",
+            "keeper_spend": 45,
+            "remaining_budget": 155,
+            "open_slots": 13,
+            "maximum_opening_bid": 143
+          },
+          {
+            "franchise": "Ian",
+            "keeper_spend": 53,
+            "remaining_budget": 147,
+            "open_slots": 13,
+            "maximum_opening_bid": 135
+          },
+          {
+            "franchise": "Isaac",
+            "keeper_spend": 45,
+            "remaining_budget": 155,
+            "open_slots": 13,
+            "maximum_opening_bid": 143
+          },
+          {
+            "franchise": "Jason",
+            "keeper_spend": 67,
+            "remaining_budget": 133,
+            "open_slots": 13,
+            "maximum_opening_bid": 121
+          },
+          {
+            "franchise": "Joe",
+            "keeper_spend": 28,
+            "remaining_budget": 172,
+            "open_slots": 13,
+            "maximum_opening_bid": 160
+          },
+          {
+            "franchise": "Kerry",
+            "keeper_spend": 31,
+            "remaining_budget": 169,
+            "open_slots": 13,
+            "maximum_opening_bid": 157
+          },
+          {
+            "franchise": "Mark",
+            "keeper_spend": 50,
+            "remaining_budget": 150,
+            "open_slots": 13,
+            "maximum_opening_bid": 138
+          },
+          {
+            "franchise": "Max",
+            "keeper_spend": 75,
+            "remaining_budget": 125,
+            "open_slots": 13,
+            "maximum_opening_bid": 113
+          },
+          {
+            "franchise": "Peter",
+            "keeper_spend": 69,
+            "remaining_budget": 131,
+            "open_slots": 13,
+            "maximum_opening_bid": 119
+          },
+          {
+            "franchise": "Ron",
+            "keeper_spend": 65,
+            "remaining_budget": 135,
+            "open_slots": 13,
+            "maximum_opening_bid": 123
+          }
+        ],
+        "keeper_count": 30,
+        "remaining_budget": 2148,
+        "open_slots": 195,
+        "average_team_budget": 143.2,
+        "median_team_budget": 147,
+        "minimum_team_budget": 116,
+        "maximum_team_budget": 172,
+        "team_budget_stddev": 15.91728620085723,
+        "discretionary_per_slot": 10.015384615384615,
+        "available_top_counts": {
+          "10": 3,
+          "20": 6,
+          "30": 13,
+          "50": 27,
+          "100": 73
+        },
+        "available_top_players": [
+          {
+            "player_id": "jamesharden",
+            "player": "James Harden",
+            "rank": 1,
+            "score": 15.286441708161654
+          },
+          {
+            "player_id": "bradleybeal",
+            "player": "Bradley Beal",
+            "rank": 8,
+            "score": 7.576642863972935
+          },
+          {
+            "player_id": "lebronjames",
+            "player": "LeBron James",
+            "rank": 10,
+            "score": 7.414588591965339
+          },
+          {
+            "player_id": "kylelowry",
+            "player": "Kyle Lowry",
+            "rank": 16,
+            "score": 6.132865368955157
+          },
+          {
+            "player_id": "andredrummond",
+            "player": "Andre Drummond",
+            "rank": 19,
+            "score": 5.909666100843634
+          },
+          {
+            "player_id": "hassanwhiteside",
+            "player": "Hassan Whiteside",
+            "rank": 20,
+            "score": 5.866857854974628
+          },
+          {
+            "player_id": "jimmybutler",
+            "player": "Jimmy Butler",
+            "rank": 21,
+            "score": 5.758338808216957
+          },
+          {
+            "player_id": "chrispaul",
+            "player": "Chris Paul",
+            "rank": 22,
+            "score": 5.73843916912761
+          },
+          {
+            "player_id": "paulgeorge",
+            "player": "Paul George",
+            "rank": 23,
+            "score": 5.702835371133892
+          },
+          {
+            "player_id": "fredvanvleet",
+            "player": "Fred VanVleet",
+            "rank": 27,
+            "score": 5.006517797359402
+          },
+          {
+            "player_id": "kristapsporzingis",
+            "player": "Kristaps Porzingis",
+            "rank": 28,
+            "score": 4.953906707487065
+          },
+          {
+            "player_id": "jrueholiday",
+            "player": "Jrue Holiday",
+            "rank": 29,
+            "score": 4.743628538766954
+          },
+          {
+            "player_id": "khrismiddleton",
+            "player": "Khris Middleton",
+            "rank": 30,
+            "score": 4.4865703775973484
+          }
+        ],
+        "unmatched_keeper_ids": [
+          "kevindurant"
+        ],
+        "available_pool_count": 431,
+        "available_strength": 689.3237687074935,
+        "full_strength": 961.3576155406422,
+        "supply_ratio": 1.2086868870015304,
+        "market_scale": 12.10546405289225,
+        "basis": "Prior-season NBA rates, excluding recorded keepers. Missing rookies, low-sample players, retirements, injuries and offseason changes are not reconstructed; this is a draft-pool proxy.",
+        "budget_basis": "$200 starting budget and 15 opening slots per team; historical budget rule assumed constant."
+      },
+      {
+        "season": "2021-22",
+        "stats_season": "2020-21",
+        "teams": [
+          {
+            "franchise": "Alvin",
+            "keeper_spend": 33,
+            "remaining_budget": 167,
+            "open_slots": 13,
+            "maximum_opening_bid": 155
+          },
+          {
+            "franchise": "Arthur",
+            "keeper_spend": 76,
+            "remaining_budget": 124,
+            "open_slots": 13,
+            "maximum_opening_bid": 112
+          },
+          {
+            "franchise": "Benji",
+            "keeper_spend": 28,
+            "remaining_budget": 172,
+            "open_slots": 13,
+            "maximum_opening_bid": 160
+          },
+          {
+            "franchise": "Brent",
+            "keeper_spend": 39,
+            "remaining_budget": 161,
+            "open_slots": 13,
+            "maximum_opening_bid": 149
+          },
+          {
+            "franchise": "Darren",
+            "keeper_spend": 54,
+            "remaining_budget": 146,
+            "open_slots": 13,
+            "maximum_opening_bid": 134
+          },
+          {
+            "franchise": "Graham",
+            "keeper_spend": 55,
+            "remaining_budget": 145,
+            "open_slots": 13,
+            "maximum_opening_bid": 133
+          },
+          {
+            "franchise": "Ian",
+            "keeper_spend": 62,
+            "remaining_budget": 138,
+            "open_slots": 13,
+            "maximum_opening_bid": 126
+          },
+          {
+            "franchise": "Isaac",
+            "keeper_spend": 37,
+            "remaining_budget": 163,
+            "open_slots": 13,
+            "maximum_opening_bid": 151
+          },
+          {
+            "franchise": "Jason",
+            "keeper_spend": 49,
+            "remaining_budget": 151,
+            "open_slots": 13,
+            "maximum_opening_bid": 139
+          },
+          {
+            "franchise": "Joe",
+            "keeper_spend": 40,
+            "remaining_budget": 160,
+            "open_slots": 13,
+            "maximum_opening_bid": 148
+          },
+          {
+            "franchise": "Kerry",
+            "keeper_spend": 72,
+            "remaining_budget": 128,
+            "open_slots": 13,
+            "maximum_opening_bid": 116
+          },
+          {
+            "franchise": "Mark",
+            "keeper_spend": 40,
+            "remaining_budget": 160,
+            "open_slots": 13,
+            "maximum_opening_bid": 148
+          },
+          {
+            "franchise": "Max",
+            "keeper_spend": 39,
+            "remaining_budget": 161,
+            "open_slots": 13,
+            "maximum_opening_bid": 149
+          },
+          {
+            "franchise": "Peter",
+            "keeper_spend": 42,
+            "remaining_budget": 158,
+            "open_slots": 13,
+            "maximum_opening_bid": 146
+          },
+          {
+            "franchise": "Ron",
+            "keeper_spend": 46,
+            "remaining_budget": 154,
+            "open_slots": 13,
+            "maximum_opening_bid": 142
+          }
+        ],
+        "keeper_count": 30,
+        "remaining_budget": 2288,
+        "open_slots": 195,
+        "average_team_budget": 152.53333333333333,
+        "median_team_budget": 158,
+        "minimum_team_budget": 124,
+        "maximum_team_budget": 172,
+        "team_budget_stddev": 13.450485327881502,
+        "discretionary_per_slot": 10.733333333333333,
+        "available_top_counts": {
+          "10": 7,
+          "20": 11,
+          "30": 16,
+          "50": 28,
+          "100": 71
+        },
+        "available_top_players": [
+          {
+            "player_id": "nikolajokic",
+            "player": "Nikola Jokic",
+            "rank": 1,
+            "score": 12.09326209916474
+          },
+          {
+            "player_id": "stephencurry",
+            "player": "Stephen Curry",
+            "rank": 2,
+            "score": 11.296922715066021
+          },
+          {
+            "player_id": "jamesharden",
+            "player": "James Harden",
+            "rank": 3,
+            "score": 10.58475788834519
+          },
+          {
+            "player_id": "kyrieirving",
+            "player": "Kyrie Irving",
+            "rank": 6,
+            "score": 9.229954224209127
+          },
+          {
+            "player_id": "damianlillard",
+            "player": "Damian Lillard",
+            "rank": 7,
+            "score": 8.76942205070994
+          },
+          {
+            "player_id": "jimmybutler",
+            "player": "Jimmy Butler",
+            "rank": 8,
+            "score": 8.211868136296783
+          },
+          {
+            "player_id": "kawhileonard",
+            "player": "Kawhi Leonard",
+            "rank": 9,
+            "score": 8.169312642726853
+          },
+          {
+            "player_id": "bradleybeal",
+            "player": "Bradley Beal",
+            "rank": 12,
+            "score": 7.173107667871226
+          },
+          {
+            "player_id": "paulgeorge",
+            "player": "Paul George",
+            "rank": 17,
+            "score": 6.165574973563098
+          },
+          {
+            "player_id": "domantassabonis",
+            "player": "Domantas Sabonis",
+            "rank": 18,
+            "score": 6.054501567241405
+          },
+          {
+            "player_id": "lebronjames",
+            "player": "LeBron James",
+            "rank": 19,
+            "score": 5.748958990495835
+          },
+          {
+            "player_id": "chrispaul",
+            "player": "Chris Paul",
+            "rank": 23,
+            "score": 5.288862674281951
+          },
+          {
+            "player_id": "juliusrandle",
+            "player": "Julius Randle",
+            "rank": 24,
+            "score": 5.019114467638897
+          },
+          {
+            "player_id": "mylesturner",
+            "player": "Myles Turner",
+            "rank": 27,
+            "score": 4.969112883529893
+          },
+          {
+            "player_id": "anthonydavis",
+            "player": "Anthony Davis",
+            "rank": 29,
+            "score": 4.327786291619373
+          },
+          {
+            "player_id": "jamalmurray",
+            "player": "Jamal Murray",
+            "rank": 30,
+            "score": 4.252325223419501
+          }
+        ],
+        "unmatched_keeper_ids": [],
+        "available_pool_count": 460,
+        "available_strength": 710.9410788054078,
+        "full_strength": 960.5047492897735,
+        "supply_ratio": 1.1708951335084092,
+        "market_scale": 12.567607766323592,
+        "basis": "Prior-season NBA rates, excluding recorded keepers. Missing rookies, low-sample players, retirements, injuries and offseason changes are not reconstructed; this is a draft-pool proxy.",
+        "budget_basis": "$200 starting budget and 15 opening slots per team; historical budget rule assumed constant."
+      },
+      {
+        "season": "2022-23",
+        "stats_season": "2021-22",
+        "teams": [
+          {
+            "franchise": "Alvin",
+            "keeper_spend": 49,
+            "remaining_budget": 151,
+            "open_slots": 13,
+            "maximum_opening_bid": 139
+          },
+          {
+            "franchise": "Arthur",
+            "keeper_spend": 14,
+            "remaining_budget": 186,
+            "open_slots": 13,
+            "maximum_opening_bid": 174
+          },
+          {
+            "franchise": "Benji",
+            "keeper_spend": 19,
+            "remaining_budget": 181,
+            "open_slots": 13,
+            "maximum_opening_bid": 169
+          },
+          {
+            "franchise": "Brent",
+            "keeper_spend": 27,
+            "remaining_budget": 173,
+            "open_slots": 13,
+            "maximum_opening_bid": 161
+          },
+          {
+            "franchise": "Darren",
+            "keeper_spend": 51,
+            "remaining_budget": 149,
+            "open_slots": 13,
+            "maximum_opening_bid": 137
+          },
+          {
+            "franchise": "Graham",
+            "keeper_spend": 50,
+            "remaining_budget": 150,
+            "open_slots": 13,
+            "maximum_opening_bid": 138
+          },
+          {
+            "franchise": "Ian",
+            "keeper_spend": 50,
+            "remaining_budget": 150,
+            "open_slots": 13,
+            "maximum_opening_bid": 138
+          },
+          {
+            "franchise": "Isaac",
+            "keeper_spend": 6,
+            "remaining_budget": 194,
+            "open_slots": 13,
+            "maximum_opening_bid": 182
+          },
+          {
+            "franchise": "Jason",
+            "keeper_spend": 62,
+            "remaining_budget": 138,
+            "open_slots": 13,
+            "maximum_opening_bid": 126
+          },
+          {
+            "franchise": "Joe",
+            "keeper_spend": 51,
+            "remaining_budget": 149,
+            "open_slots": 13,
+            "maximum_opening_bid": 137
+          },
+          {
+            "franchise": "Kerry",
+            "keeper_spend": 30,
+            "remaining_budget": 170,
+            "open_slots": 13,
+            "maximum_opening_bid": 158
+          },
+          {
+            "franchise": "Mark",
+            "keeper_spend": 97,
+            "remaining_budget": 103,
+            "open_slots": 13,
+            "maximum_opening_bid": 91
+          },
+          {
+            "franchise": "Max",
+            "keeper_spend": 29,
+            "remaining_budget": 171,
+            "open_slots": 13,
+            "maximum_opening_bid": 159
+          },
+          {
+            "franchise": "Peter",
+            "keeper_spend": 53,
+            "remaining_budget": 147,
+            "open_slots": 13,
+            "maximum_opening_bid": 135
+          },
+          {
+            "franchise": "Ron",
+            "keeper_spend": 52,
+            "remaining_budget": 148,
+            "open_slots": 13,
+            "maximum_opening_bid": 136
+          }
+        ],
+        "keeper_count": 30,
+        "remaining_budget": 2360,
+        "open_slots": 195,
+        "average_team_budget": 157.33333333333334,
+        "median_team_budget": 150,
+        "minimum_team_budget": 103,
+        "maximum_team_budget": 194,
+        "team_budget_stddev": 21.79500452448272,
+        "discretionary_per_slot": 11.102564102564102,
+        "available_top_counts": {
+          "10": 7,
+          "20": 10,
+          "30": 16,
+          "50": 27,
+          "100": 72
+        },
+        "available_top_players": [
+          {
+            "player_id": "lebronjames",
+            "player": "LeBron James",
+            "rank": 3,
+            "score": 10.458857236105583
+          },
+          {
+            "player_id": "joelembiid",
+            "player": "Joel Embiid",
+            "rank": 4,
+            "score": 10.432689228487765
+          },
+          {
+            "player_id": "kyrieirving",
+            "player": "Kyrie Irving",
+            "rank": 5,
+            "score": 9.024385350931816
+          },
+          {
+            "player_id": "stephencurry",
+            "player": "Stephen Curry",
+            "rank": 6,
+            "score": 8.897502705411293
+          },
+          {
+            "player_id": "jamesharden",
+            "player": "James Harden",
+            "rank": 7,
+            "score": 8.836469453537138
+          },
+          {
+            "player_id": "karlanthonytowns",
+            "player": "Karl-Anthony Towns",
+            "rank": 9,
+            "score": 8.220540320650832
+          },
+          {
+            "player_id": "paulgeorge",
+            "player": "Paul George",
+            "rank": 10,
+            "score": 8.186569086387225
+          },
+          {
+            "player_id": "anthonydavis",
+            "player": "Anthony Davis",
+            "rank": 16,
+            "score": 6.761690470174695
+          },
+          {
+            "player_id": "fredvanvleet",
+            "player": "Fred VanVleet",
+            "rank": 17,
+            "score": 6.4674239696394915
+          },
+          {
+            "player_id": "jimmybutler",
+            "player": "Jimmy Butler",
+            "rank": 20,
+            "score": 5.965440190889744
+          },
+          {
+            "player_id": "chrispaul",
+            "player": "Chris Paul",
+            "rank": 21,
+            "score": 5.905280594812364
+          },
+          {
+            "player_id": "kristapsporzingis",
+            "player": "Kristaps Porzingis",
+            "rank": 25,
+            "score": 5.081259409269014
+          },
+          {
+            "player_id": "lonzoball",
+            "player": "Lonzo Ball",
+            "rank": 26,
+            "score": 5.040164103461169
+          },
+          {
+            "player_id": "jrueholiday",
+            "player": "Jrue Holiday",
+            "rank": 27,
+            "score": 4.846642645420441
+          },
+          {
+            "player_id": "shaigilgeousalexander",
+            "player": "Shai Gilgeous-Alexander",
+            "rank": 28,
+            "score": 4.784848038762303
+          },
+          {
+            "player_id": "robertwilliamsiii",
+            "player": "Robert Williams III",
+            "rank": 30,
+            "score": 4.600126489427665
+          }
+        ],
+        "unmatched_keeper_ids": [
+          "jamalmurray",
+          "kawhileonard"
+        ],
+        "available_pool_count": 472,
+        "available_strength": 674.0865548723673,
+        "full_strength": 926.397996403591,
+        "supply_ratio": 1.1910610851774033,
+        "market_scale": 13.223832048251682,
+        "basis": "Prior-season NBA rates, excluding recorded keepers. Missing rookies, low-sample players, retirements, injuries and offseason changes are not reconstructed; this is a draft-pool proxy.",
+        "budget_basis": "$200 starting budget and 15 opening slots per team; historical budget rule assumed constant."
+      },
+      {
+        "season": "2023-24",
+        "stats_season": "2022-23",
+        "teams": [
+          {
+            "franchise": "Alvin",
+            "keeper_spend": 25,
+            "remaining_budget": 175,
+            "open_slots": 13,
+            "maximum_opening_bid": 163
+          },
+          {
+            "franchise": "Arthur",
+            "keeper_spend": 64,
+            "remaining_budget": 136,
+            "open_slots": 13,
+            "maximum_opening_bid": 124
+          },
+          {
+            "franchise": "Benji",
+            "keeper_spend": 28,
+            "remaining_budget": 172,
+            "open_slots": 13,
+            "maximum_opening_bid": 160
+          },
+          {
+            "franchise": "Brent",
+            "keeper_spend": 36,
+            "remaining_budget": 164,
+            "open_slots": 13,
+            "maximum_opening_bid": 152
+          },
+          {
+            "franchise": "Darren",
+            "keeper_spend": 26,
+            "remaining_budget": 174,
+            "open_slots": 13,
+            "maximum_opening_bid": 162
+          },
+          {
+            "franchise": "Graham",
+            "keeper_spend": 59,
+            "remaining_budget": 141,
+            "open_slots": 13,
+            "maximum_opening_bid": 129
+          },
+          {
+            "franchise": "Ian",
+            "keeper_spend": 24,
+            "remaining_budget": 176,
+            "open_slots": 13,
+            "maximum_opening_bid": 164
+          },
+          {
+            "franchise": "Isaac",
+            "keeper_spend": 9,
+            "remaining_budget": 191,
+            "open_slots": 13,
+            "maximum_opening_bid": 179
+          },
+          {
+            "franchise": "Jason",
+            "keeper_spend": 83,
+            "remaining_budget": 117,
+            "open_slots": 13,
+            "maximum_opening_bid": 105
+          },
+          {
+            "franchise": "Joe",
+            "keeper_spend": 66,
+            "remaining_budget": 134,
+            "open_slots": 13,
+            "maximum_opening_bid": 122
+          },
+          {
+            "franchise": "Kerry",
+            "keeper_spend": 35,
+            "remaining_budget": 165,
+            "open_slots": 13,
+            "maximum_opening_bid": 153
+          },
+          {
+            "franchise": "Mark",
+            "keeper_spend": 34,
+            "remaining_budget": 166,
+            "open_slots": 13,
+            "maximum_opening_bid": 154
+          },
+          {
+            "franchise": "Max",
+            "keeper_spend": 60,
+            "remaining_budget": 140,
+            "open_slots": 13,
+            "maximum_opening_bid": 128
+          },
+          {
+            "franchise": "Peter",
+            "keeper_spend": 77,
+            "remaining_budget": 123,
+            "open_slots": 13,
+            "maximum_opening_bid": 111
+          },
+          {
+            "franchise": "Ron",
+            "keeper_spend": 42,
+            "remaining_budget": 158,
+            "open_slots": 13,
+            "maximum_opening_bid": 146
+          }
+        ],
+        "keeper_count": 30,
+        "remaining_budget": 2332,
+        "open_slots": 195,
+        "average_team_budget": 155.46666666666667,
+        "median_team_budget": 164,
+        "minimum_team_budget": 117,
+        "maximum_team_budget": 191,
+        "team_budget_stddev": 21.26927883643971,
+        "discretionary_per_slot": 10.95897435897436,
+        "available_top_counts": {
+          "10": 4,
+          "20": 10,
+          "30": 15,
+          "50": 29,
+          "100": 71
+        },
+        "available_top_players": [
+          {
+            "player_id": "nikolajokic",
+            "player": "Nikola Jokic",
+            "rank": 1,
+            "score": 12.043780533061131
+          },
+          {
+            "player_id": "joelembiid",
+            "player": "Joel Embiid",
+            "rank": 2,
+            "score": 11.959834046874334
+          },
+          {
+            "player_id": "stephencurry",
+            "player": "Stephen Curry",
+            "rank": 6,
+            "score": 9.604828588100265
+          },
+          {
+            "player_id": "anthonydavis",
+            "player": "Anthony Davis",
+            "rank": 7,
+            "score": 8.886586137258039
+          },
+          {
+            "player_id": "kyrieirving",
+            "player": "Kyrie Irving",
+            "rank": 11,
+            "score": 7.648891933582294
+          },
+          {
+            "player_id": "jamesharden",
+            "player": "James Harden",
+            "rank": 12,
+            "score": 7.645587425620831
+          },
+          {
+            "player_id": "kristapsporzingis",
+            "player": "Kristaps Porzingis",
+            "rank": 14,
+            "score": 6.640270549328105
+          },
+          {
+            "player_id": "jimmybutler",
+            "player": "Jimmy Butler",
+            "rank": 15,
+            "score": 6.576549973253267
+          },
+          {
+            "player_id": "lebronjames",
+            "player": "LeBron James",
+            "rank": 18,
+            "score": 6.166653202828388
+          },
+          {
+            "player_id": "paulgeorge",
+            "player": "Paul George",
+            "rank": 19,
+            "score": 5.993999023989536
+          },
+          {
+            "player_id": "fredvanvleet",
+            "player": "Fred VanVleet",
+            "rank": 22,
+            "score": 5.484004515193758
+          },
+          {
+            "player_id": "traeyoung",
+            "player": "Trae Young",
+            "rank": 23,
+            "score": 5.359138762113169
+          },
+          {
+            "player_id": "jrueholiday",
+            "player": "Jrue Holiday",
+            "rank": 27,
+            "score": 4.441140842778632
+          },
+          {
+            "player_id": "mylesturner",
+            "player": "Myles Turner",
+            "rank": 28,
+            "score": 4.369830232243413
+          },
+          {
+            "player_id": "karlanthonytowns",
+            "player": "Karl-Anthony Towns",
+            "rank": 29,
+            "score": 4.369800723891408
+          }
+        ],
+        "unmatched_keeper_ids": [
+          "chetholmgren"
+        ],
+        "available_pool_count": 441,
+        "available_strength": 725.601208558774,
+        "full_strength": 990.4188309530929,
+        "supply_ratio": 1.1829679673920859,
+        "market_scale": 12.964115622137886,
+        "basis": "Prior-season NBA rates, excluding recorded keepers. Missing rookies, low-sample players, retirements, injuries and offseason changes are not reconstructed; this is a draft-pool proxy.",
+        "budget_basis": "$200 starting budget and 15 opening slots per team; historical budget rule assumed constant."
+      },
+      {
+        "season": "2024-25",
+        "stats_season": "2023-24",
+        "teams": [
+          {
+            "franchise": "Alvin",
+            "keeper_spend": 41,
+            "remaining_budget": 159,
+            "open_slots": 13,
+            "maximum_opening_bid": 147
+          },
+          {
+            "franchise": "Arthur",
+            "keeper_spend": 60,
+            "remaining_budget": 140,
+            "open_slots": 13,
+            "maximum_opening_bid": 128
+          },
+          {
+            "franchise": "Benji",
+            "keeper_spend": 42,
+            "remaining_budget": 158,
+            "open_slots": 13,
+            "maximum_opening_bid": 146
+          },
+          {
+            "franchise": "Brent",
+            "keeper_spend": 34,
+            "remaining_budget": 166,
+            "open_slots": 13,
+            "maximum_opening_bid": 154
+          },
+          {
+            "franchise": "Darren",
+            "keeper_spend": 71,
+            "remaining_budget": 129,
+            "open_slots": 13,
+            "maximum_opening_bid": 117
+          },
+          {
+            "franchise": "Graham",
+            "keeper_spend": 43,
+            "remaining_budget": 157,
+            "open_slots": 13,
+            "maximum_opening_bid": 145
+          },
+          {
+            "franchise": "Ian",
+            "keeper_spend": 57,
+            "remaining_budget": 143,
+            "open_slots": 13,
+            "maximum_opening_bid": 131
+          },
+          {
+            "franchise": "Isaac",
+            "keeper_spend": 49,
+            "remaining_budget": 151,
+            "open_slots": 13,
+            "maximum_opening_bid": 139
+          },
+          {
+            "franchise": "Jason",
+            "keeper_spend": 44,
+            "remaining_budget": 156,
+            "open_slots": 13,
+            "maximum_opening_bid": 144
+          },
+          {
+            "franchise": "Joe",
+            "keeper_spend": 38,
+            "remaining_budget": 162,
+            "open_slots": 13,
+            "maximum_opening_bid": 150
+          },
+          {
+            "franchise": "Kerry",
+            "keeper_spend": 44,
+            "remaining_budget": 156,
+            "open_slots": 13,
+            "maximum_opening_bid": 144
+          },
+          {
+            "franchise": "Mark",
+            "keeper_spend": 59,
+            "remaining_budget": 141,
+            "open_slots": 13,
+            "maximum_opening_bid": 129
+          },
+          {
+            "franchise": "Max",
+            "keeper_spend": 42,
+            "remaining_budget": 158,
+            "open_slots": 13,
+            "maximum_opening_bid": 146
+          },
+          {
+            "franchise": "Peter",
+            "keeper_spend": 48,
+            "remaining_budget": 152,
+            "open_slots": 13,
+            "maximum_opening_bid": 140
+          },
+          {
+            "franchise": "Ron",
+            "keeper_spend": 63,
+            "remaining_budget": 137,
+            "open_slots": 13,
+            "maximum_opening_bid": 125
+          }
+        ],
+        "keeper_count": 30,
+        "remaining_budget": 2265,
+        "open_slots": 195,
+        "average_team_budget": 151,
+        "median_team_budget": 156,
+        "minimum_team_budget": 129,
+        "maximum_team_budget": 166,
+        "team_budget_stddev": 10.198039027185569,
+        "discretionary_per_slot": 10.615384615384615,
+        "available_top_counts": {
+          "10": 4,
+          "20": 8,
+          "30": 13,
+          "50": 26,
+          "100": 73
+        },
+        "available_top_players": [
+          {
+            "player_id": "joelembiid",
+            "player": "Joel Embiid",
+            "rank": 1,
+            "score": 15.000313978400614
+          },
+          {
+            "player_id": "nikolajokic",
+            "player": "Nikola Jokic",
+            "rank": 2,
+            "score": 12.329419392725237
+          },
+          {
+            "player_id": "lukadoncic",
+            "player": "Luka Doncic",
+            "rank": 3,
+            "score": 11.960504237251724
+          },
+          {
+            "player_id": "kevindurant",
+            "player": "Kevin Durant",
+            "rank": 8,
+            "score": 7.912927022353847
+          },
+          {
+            "player_id": "kyrieirving",
+            "player": "Kyrie Irving",
+            "rank": 13,
+            "score": 6.904657783036071
+          },
+          {
+            "player_id": "traeyoung",
+            "player": "Trae Young",
+            "rank": 14,
+            "score": 6.8065107930385
+          },
+          {
+            "player_id": "stephencurry",
+            "player": "Stephen Curry",
+            "rank": 18,
+            "score": 5.97186869138334
+          },
+          {
+            "player_id": "domantassabonis",
+            "player": "Domantas Sabonis",
+            "rank": 19,
+            "score": 5.895240893298269
+          },
+          {
+            "player_id": "giannisantetokounmpo",
+            "player": "Giannis Antetokounmpo",
+            "rank": 21,
+            "score": 5.803287334654227
+          },
+          {
+            "player_id": "damianlillard",
+            "player": "Damian Lillard",
+            "rank": 22,
+            "score": 5.625123235009166
+          },
+          {
+            "player_id": "deaaronfox",
+            "player": "De'Aaron Fox",
+            "rank": 23,
+            "score": 5.494343272297884
+          },
+          {
+            "player_id": "kristapsporzingis",
+            "player": "Kristaps Porzingis",
+            "rank": 24,
+            "score": 5.464627647880909
+          },
+          {
+            "player_id": "jamesharden",
+            "player": "James Harden",
+            "rank": 26,
+            "score": 5.166707755180205
+          }
+        ],
+        "unmatched_keeper_ids": [
+          "jamorant"
+        ],
+        "available_pool_count": 468,
+        "available_strength": 738.5407627341078,
+        "full_strength": 1022.3657690704309,
+        "supply_ratio": 1.1997311156044783,
+        "market_scale": 12.735607227186,
+        "basis": "Prior-season NBA rates, excluding recorded keepers. Missing rookies, low-sample players, retirements, injuries and offseason changes are not reconstructed; this is a draft-pool proxy.",
+        "budget_basis": "$200 starting budget and 15 opening slots per team; historical budget rule assumed constant."
+      },
+      {
+        "season": "2025-26",
+        "stats_season": "2024-25",
+        "teams": [
+          {
+            "franchise": "Alvin",
+            "keeper_spend": 48,
+            "remaining_budget": 152,
+            "open_slots": 13,
+            "maximum_opening_bid": 140
+          },
+          {
+            "franchise": "Arthur",
+            "keeper_spend": 57,
+            "remaining_budget": 143,
+            "open_slots": 13,
+            "maximum_opening_bid": 131
+          },
+          {
+            "franchise": "Benji",
+            "keeper_spend": 51,
+            "remaining_budget": 149,
+            "open_slots": 13,
+            "maximum_opening_bid": 137
+          },
+          {
+            "franchise": "Brent",
+            "keeper_spend": 45,
+            "remaining_budget": 155,
+            "open_slots": 13,
+            "maximum_opening_bid": 143
+          },
+          {
+            "franchise": "Darren",
+            "keeper_spend": 80,
+            "remaining_budget": 120,
+            "open_slots": 13,
+            "maximum_opening_bid": 108
+          },
+          {
+            "franchise": "Graham",
+            "keeper_spend": 52,
+            "remaining_budget": 148,
+            "open_slots": 13,
+            "maximum_opening_bid": 136
+          },
+          {
+            "franchise": "Ian",
+            "keeper_spend": 34,
+            "remaining_budget": 166,
+            "open_slots": 13,
+            "maximum_opening_bid": 154
+          },
+          {
+            "franchise": "Isaac",
+            "keeper_spend": 38,
+            "remaining_budget": 162,
+            "open_slots": 13,
+            "maximum_opening_bid": 150
+          },
+          {
+            "franchise": "Jason",
+            "keeper_spend": 105,
+            "remaining_budget": 95,
+            "open_slots": 13,
+            "maximum_opening_bid": 83
+          },
+          {
+            "franchise": "Joe",
+            "keeper_spend": 51,
+            "remaining_budget": 149,
+            "open_slots": 13,
+            "maximum_opening_bid": 137
+          },
+          {
+            "franchise": "Kerry",
+            "keeper_spend": 70,
+            "remaining_budget": 130,
+            "open_slots": 13,
+            "maximum_opening_bid": 118
+          },
+          {
+            "franchise": "Mark",
+            "keeper_spend": 68,
+            "remaining_budget": 132,
+            "open_slots": 13,
+            "maximum_opening_bid": 120
+          },
+          {
+            "franchise": "Max",
+            "keeper_spend": 130,
+            "remaining_budget": 70,
+            "open_slots": 13,
+            "maximum_opening_bid": 58
+          },
+          {
+            "franchise": "Peter",
+            "keeper_spend": 53,
+            "remaining_budget": 147,
+            "open_slots": 13,
+            "maximum_opening_bid": 135
+          },
+          {
+            "franchise": "Ron",
+            "keeper_spend": 67,
+            "remaining_budget": 133,
+            "open_slots": 13,
+            "maximum_opening_bid": 121
+          }
+        ],
+        "keeper_count": 30,
+        "remaining_budget": 2051,
+        "open_slots": 195,
+        "average_team_budget": 136.73333333333332,
+        "median_team_budget": 147,
+        "minimum_team_budget": 70,
+        "maximum_team_budget": 166,
+        "team_budget_stddev": 24.75336116346402,
+        "discretionary_per_slot": 9.517948717948718,
+        "available_top_counts": {
+          "10": 3,
+          "20": 10,
+          "30": 14,
+          "50": 27,
+          "100": 71
+        },
+        "available_top_players": [
+          {
+            "player_id": "jamesharden",
+            "player": "James Harden",
+            "rank": 5,
+            "score": 7.894026542707471
+          },
+          {
+            "player_id": "damianlillard",
+            "player": "Damian Lillard",
+            "rank": 7,
+            "score": 7.450954623403089
+          },
+          {
+            "player_id": "stephencurry",
+            "player": "Stephen Curry",
+            "rank": 8,
+            "score": 7.3799854241847
+          },
+          {
+            "player_id": "jaysontatum",
+            "player": "Jayson Tatum",
+            "rank": 12,
+            "score": 6.744381695501211
+          },
+          {
+            "player_id": "lebronjames",
+            "player": "LeBron James",
+            "rank": 13,
+            "score": 6.680360560550169
+          },
+          {
+            "player_id": "tyresehaliburton",
+            "player": "Tyrese Haliburton",
+            "rank": 15,
+            "score": 6.538901763211658
+          },
+          {
+            "player_id": "traeyoung",
+            "player": "Trae Young",
+            "rank": 17,
+            "score": 6.379111595143554
+          },
+          {
+            "player_id": "kyrieirving",
+            "player": "Kyrie Irving",
+            "rank": 18,
+            "score": 6.083685778299335
+          },
+          {
+            "player_id": "jalenjohnson",
+            "player": "Jalen Johnson",
+            "rank": 19,
+            "score": 5.543422657623274
+          },
+          {
+            "player_id": "domantassabonis",
+            "player": "Domantas Sabonis",
+            "rank": 20,
+            "score": 5.251711872925219
+          },
+          {
+            "player_id": "tylerherro",
+            "player": "Tyler Herro",
+            "rank": 25,
+            "score": 4.680463336513461
+          },
+          {
+            "player_id": "lameloball",
+            "player": "LaMelo Ball",
+            "rank": 26,
+            "score": 4.592148674997354
+          },
+          {
+            "player_id": "deaaronfox",
+            "player": "De'Aaron Fox",
+            "rank": 28,
+            "score": 4.446503328632327
+          },
+          {
+            "player_id": "kawhileonard",
+            "player": "Kawhi Leonard",
+            "rank": 30,
+            "score": 4.137580665702754
+          }
+        ],
+        "unmatched_keeper_ids": [],
+        "available_pool_count": 478,
+        "available_strength": 682.6307725388322,
+        "full_strength": 962.163749689792,
+        "supply_ratio": 1.221561176666288,
+        "market_scale": 11.626756635346823,
+        "basis": "Prior-season NBA rates, excluding recorded keepers. Missing rookies, low-sample players, retirements, injuries and offseason changes are not reconstructed; this is a draft-pool proxy.",
+        "budget_basis": "$200 starting budget and 15 opening slots per team; historical budget rule assumed constant."
+      },
+      {
+        "season": "2026-27",
+        "stats_season": null,
+        "teams": [
+          {
+            "franchise": "Alvin",
+            "keeper_spend": 18,
+            "remaining_budget": 182,
+            "open_slots": 13,
+            "maximum_opening_bid": 170
+          },
+          {
+            "franchise": "Arthur",
+            "keeper_spend": 65,
+            "remaining_budget": 135,
+            "open_slots": 13,
+            "maximum_opening_bid": 123
+          },
+          {
+            "franchise": "Benji",
+            "keeper_spend": 41,
+            "remaining_budget": 159,
+            "open_slots": 13,
+            "maximum_opening_bid": 147
+          },
+          {
+            "franchise": "Brent",
+            "keeper_spend": 49,
+            "remaining_budget": 151,
+            "open_slots": 13,
+            "maximum_opening_bid": 139
+          },
+          {
+            "franchise": "Darren",
+            "keeper_spend": 57,
+            "remaining_budget": 143,
+            "open_slots": 13,
+            "maximum_opening_bid": 131
+          },
+          {
+            "franchise": "Graham",
+            "keeper_spend": 71,
+            "remaining_budget": 129,
+            "open_slots": 13,
+            "maximum_opening_bid": 117
+          },
+          {
+            "franchise": "Ian",
+            "keeper_spend": 30,
+            "remaining_budget": 170,
+            "open_slots": 13,
+            "maximum_opening_bid": 158
+          },
+          {
+            "franchise": "Isaac",
+            "keeper_spend": 64,
+            "remaining_budget": 136,
+            "open_slots": 13,
+            "maximum_opening_bid": 124
+          },
+          {
+            "franchise": "Jason",
+            "keeper_spend": 68,
+            "remaining_budget": 132,
+            "open_slots": 13,
+            "maximum_opening_bid": 120
+          },
+          {
+            "franchise": "Joe",
+            "keeper_spend": 21,
+            "remaining_budget": 179,
+            "open_slots": 13,
+            "maximum_opening_bid": 167
+          },
+          {
+            "franchise": "Kerry",
+            "keeper_spend": 88,
+            "remaining_budget": 112,
+            "open_slots": 13,
+            "maximum_opening_bid": 100
+          },
+          {
+            "franchise": "Mark",
+            "keeper_spend": 35,
+            "remaining_budget": 165,
+            "open_slots": 13,
+            "maximum_opening_bid": 153
+          },
+          {
+            "franchise": "Max",
+            "keeper_spend": 91,
+            "remaining_budget": 109,
+            "open_slots": 13,
+            "maximum_opening_bid": 97
+          },
+          {
+            "franchise": "Peter",
+            "keeper_spend": 49,
+            "remaining_budget": 151,
+            "open_slots": 13,
+            "maximum_opening_bid": 139
+          },
+          {
+            "franchise": "Ron",
+            "keeper_spend": 43,
+            "remaining_budget": 157,
+            "open_slots": 13,
+            "maximum_opening_bid": 145
+          }
+        ],
+        "keeper_count": 30,
+        "remaining_budget": 2210,
+        "open_slots": 195,
+        "average_team_budget": 147.33333333333334,
+        "median_team_budget": 151,
+        "minimum_team_budget": 109,
+        "maximum_team_budget": 182,
+        "team_budget_stddev": 21.40923995744724,
+        "discretionary_per_slot": 10.333333333333334,
+        "available_top_counts": {
+          "10": 4,
+          "20": 11,
+          "30": 17,
+          "50": 27,
+          "100": 72
+        },
+        "available_top_players": [
+          {
+            "player_id": "kawhileonard",
+            "player": "Kawhi Leonard",
+            "rank": 5,
+            "score": 7.235539714074159
+          },
+          {
+            "player_id": "anthonydavis",
+            "player": "Anthony Davis",
+            "rank": 6,
+            "score": 7.062162823473891
+          },
+          {
+            "player_id": "donovanmitchell",
+            "player": "Donovan Mitchell",
+            "rank": 8,
+            "score": 6.611746314414515
+          },
+          {
+            "player_id": "anthonyedwards",
+            "player": "Anthony Edwards",
+            "rank": 10,
+            "score": 6.488794552351901
+          },
+          {
+            "player_id": "stephencurry",
+            "player": "Stephen Curry",
+            "rank": 11,
+            "score": 6.180701651930175
+          },
+          {
+            "player_id": "joelembiid",
+            "player": "Joel Embiid",
+            "rank": 15,
+            "score": 5.966553595623745
+          },
+          {
+            "player_id": "kyrieirving",
+            "player": "Kyrie Irving",
+            "rank": 16,
+            "score": 5.750462925135373
+          },
+          {
+            "player_id": "karlanthonytowns",
+            "player": "Karl-Anthony Towns",
+            "rank": 17,
+            "score": 5.6208925782175125
+          },
+          {
+            "player_id": "jamesharden",
+            "player": "James Harden",
+            "rank": 18,
+            "score": 5.474661207919943
+          },
+          {
+            "player_id": "kevindurant",
+            "player": "Kevin Durant",
+            "rank": 19,
+            "score": 5.465338678820876
+          },
+          {
+            "player_id": "lameloball",
+            "player": "LaMelo Ball",
+            "rank": 20,
+            "score": 5.2609813058433685
+          },
+          {
+            "player_id": "traeyoung",
+            "player": "Trae Young",
+            "rank": 21,
+            "score": 5.236366750224787
+          },
+          {
+            "player_id": "joshgiddey",
+            "player": "Josh Giddey",
+            "rank": 23,
+            "score": 5.0413422257996565
+          },
+          {
+            "player_id": "giannisantetokounmpo",
+            "player": "Giannis Antetokounmpo",
+            "rank": 24,
+            "score": 4.922701042631604
+          },
+          {
+            "player_id": "domantassabonis",
+            "player": "Domantas Sabonis",
+            "rank": 27,
+            "score": 4.731853057526542
+          },
+          {
+            "player_id": "devinbooker",
+            "player": "Devin Booker",
+            "rank": 28,
+            "score": 4.603050044834614
+          },
+          {
+            "player_id": "paulgeorge",
+            "player": "Paul George",
+            "rank": 29,
+            "score": 4.328706370463414
+          }
+        ],
+        "unmatched_keeper_ids": [],
+        "available_pool_count": 318,
+        "available_strength": 708.6617217296301,
+        "full_strength": 974.5614778894866,
+        "supply_ratio": 1.1918520806270705,
+        "market_scale": 12.315804833146396,
+        "basis": "Published projected NBA rates, excluding confirmed keepers.",
+        "budget_basis": "$200 starting budget and 15 opening slots per team; historical budget rule assumed constant."
+      }
+    ],
+    "supply_adjustment_selected": false,
     "survivor_scenarios": {
       "faster": {
         "name": "faster",
@@ -809,9 +3673,9 @@
             "end_week": 5,
             "fraction": 0.20114942528735633,
             "replacement_depth": 225,
-            "replacement_score": -5.239216384451486,
-            "game_utilization": 0.8677642920778906,
-            "neutral_games_per_team": 201.1494252873563,
+            "replacement_score": -4.196172112597263,
+            "game_utilization": 0.9828331804481719,
+            "neutral_games_per_team": 201.14942528735634,
             "expected_moves_used": 0.0
           },
           {
@@ -820,8 +3684,8 @@
             "end_week": 6,
             "fraction": 0.040229885057471264,
             "replacement_depth": 210,
-            "replacement_score": -4.652460783185996,
-            "game_utilization": 0.8596498768858569,
+            "replacement_score": -3.7359890036645025,
+            "game_utilization": 0.9819737672722171,
             "neutral_games_per_team": 40.229885057471265,
             "expected_moves_used": 1.0
           },
@@ -831,8 +3695,8 @@
             "end_week": 7,
             "fraction": 0.040229885057471264,
             "replacement_depth": 195,
-            "replacement_score": -4.1525356212406725,
-            "game_utilization": 0.8604371020478403,
+            "replacement_score": -3.4543638216478993,
+            "game_utilization": 0.9843264935261604,
             "neutral_games_per_team": 40.229885057471265,
             "expected_moves_used": 2.071428571428571
           },
@@ -842,8 +3706,8 @@
             "end_week": 8,
             "fraction": 0.040229885057471264,
             "replacement_depth": 180,
-            "replacement_score": -3.690989878255584,
-            "game_utilization": 0.8600732495717552,
+            "replacement_score": -3.0202279310590043,
+            "game_utilization": 0.980872976949485,
             "neutral_games_per_team": 40.229885057471265,
             "expected_moves_used": 3.225274725274725
           },
@@ -853,9 +3717,9 @@
             "end_week": 9,
             "fraction": 0.040229885057471264,
             "replacement_depth": 165,
-            "replacement_score": -3.0518863453323415,
-            "game_utilization": 0.8608074373762589,
-            "neutral_games_per_team": 40.229885057471265,
+            "replacement_score": -2.479179137260251,
+            "game_utilization": 0.973279065652097,
+            "neutral_games_per_team": 40.22988505747127,
             "expected_moves_used": 4.4752747252747245
           },
           {
@@ -864,9 +3728,9 @@
             "end_week": 10,
             "fraction": 0.040229885057471264,
             "replacement_depth": 150,
-            "replacement_score": -2.2943904371403576,
-            "game_utilization": 0.8612448432965006,
-            "neutral_games_per_team": 40.22988505747126,
+            "replacement_score": -2.1508681712392757,
+            "game_utilization": 0.9712509712509714,
+            "neutral_games_per_team": 40.229885057471265,
             "expected_moves_used": 5.838911088911088
           },
           {
@@ -875,8 +3739,8 @@
             "end_week": 11,
             "fraction": 0.040229885057471264,
             "replacement_depth": 135,
-            "replacement_score": -1.3223450695082288,
-            "game_utilization": 0.8589835361488904,
+            "replacement_score": -1.652735302307243,
+            "game_utilization": 0.9698275862068966,
             "neutral_games_per_team": 40.229885057471265,
             "expected_moves_used": 7.338911088911088
           },
@@ -886,9 +3750,9 @@
             "end_week": 12,
             "fraction": 0.040229885057471264,
             "replacement_depth": 120,
-            "replacement_score": -0.5681033913355757,
-            "game_utilization": 0.8597897813984481,
-            "neutral_games_per_team": 40.22988505747127,
+            "replacement_score": -0.7944074590908524,
+            "game_utilization": 0.9714632665452337,
+            "neutral_games_per_team": 40.229885057471265,
             "expected_moves_used": 9.005577755577754
           },
           {
@@ -897,8 +3761,8 @@
             "end_week": 13,
             "fraction": 0.040229885057471264,
             "replacement_depth": 105,
-            "replacement_score": -0.07581209338118797,
-            "game_utilization": 0.8612204724409449,
+            "replacement_score": -0.2507907862733393,
+            "game_utilization": 0.9731683581259557,
             "neutral_games_per_team": 40.229885057471265,
             "expected_moves_used": 10.880577755577754
           },
@@ -908,8 +3772,8 @@
             "end_week": 14,
             "fraction": 0.040229885057471264,
             "replacement_depth": 90,
-            "replacement_score": 0.6666575202592327,
-            "game_utilization": 0.8630361612151549,
+            "replacement_score": 0.4620041008534749,
+            "game_utilization": 0.970402717127608,
             "neutral_games_per_team": 40.229885057471265,
             "expected_moves_used": 13.023434898434896
           },
@@ -919,8 +3783,8 @@
             "end_week": 15,
             "fraction": 0.040229885057471264,
             "replacement_depth": 75,
-            "replacement_score": 1.575222678867332,
-            "game_utilization": 0.8604519093427869,
+            "replacement_score": 0.8761763362203273,
+            "game_utilization": 0.972951936174353,
             "neutral_games_per_team": 40.229885057471265,
             "expected_moves_used": 15.523434898434896
           },
@@ -930,8 +3794,8 @@
             "end_week": 16,
             "fraction": 0.040229885057471264,
             "replacement_depth": 60,
-            "replacement_score": 2.6354040810077337,
-            "game_utilization": 0.8630175408315175,
+            "replacement_score": 2.1049964062092545,
+            "game_utilization": 0.9806325079676391,
             "neutral_games_per_team": 40.229885057471265,
             "expected_moves_used": 18.523434898434896
           },
@@ -941,8 +3805,8 @@
             "end_week": 17,
             "fraction": 0.040229885057471264,
             "replacement_depth": 45,
-            "replacement_score": 3.3432528206987167,
-            "game_utilization": 0.8638313801146016,
+            "replacement_score": 3.104113760570571,
+            "game_utilization": 0.9852216748768473,
             "neutral_games_per_team": 40.229885057471265,
             "expected_moves_used": 22.273434898434896
           },
@@ -952,8 +3816,8 @@
             "end_week": 24.857142857142858,
             "fraction": 0.3160919540229885,
             "replacement_depth": 30,
-            "replacement_score": 4.466230038629087,
-            "game_utilization": 0.8595126563238643,
+            "replacement_score": 3.894665279505021,
+            "game_utilization": 0.9837678307919331,
             "neutral_games_per_team": 316.0919540229885,
             "expected_moves_used": 27.273434898434896
           }
@@ -971,8 +3835,8 @@
             "end_week": 5.5,
             "fraction": 0.22126436781609196,
             "replacement_depth": 225,
-            "replacement_score": -5.239216384451486,
-            "game_utilization": 0.8677642920778906,
+            "replacement_score": -4.196172112597263,
+            "game_utilization": 0.9828331804481719,
             "neutral_games_per_team": 221.26436781609198,
             "expected_moves_used": 0.0
           },
@@ -982,9 +3846,9 @@
             "end_week": 7.0,
             "fraction": 0.06034482758620689,
             "replacement_depth": 210,
-            "replacement_score": -4.652460783185996,
-            "game_utilization": 0.8596498768858569,
-            "neutral_games_per_team": 60.3448275862069,
+            "replacement_score": -3.7359890036645025,
+            "game_utilization": 0.9819737672722171,
+            "neutral_games_per_team": 60.34482758620689,
             "expected_moves_used": 1.0
           },
           {
@@ -993,9 +3857,9 @@
             "end_week": 8.5,
             "fraction": 0.06034482758620689,
             "replacement_depth": 195,
-            "replacement_score": -4.1525356212406725,
-            "game_utilization": 0.8604371020478403,
-            "neutral_games_per_team": 60.3448275862069,
+            "replacement_score": -3.4543638216478993,
+            "game_utilization": 0.9843264935261604,
+            "neutral_games_per_team": 60.34482758620689,
             "expected_moves_used": 2.071428571428571
           },
           {
@@ -1004,9 +3868,9 @@
             "end_week": 10.0,
             "fraction": 0.06034482758620689,
             "replacement_depth": 180,
-            "replacement_score": -3.690989878255584,
-            "game_utilization": 0.8600732495717552,
-            "neutral_games_per_team": 60.34482758620689,
+            "replacement_score": -3.0202279310590043,
+            "game_utilization": 0.980872976949485,
+            "neutral_games_per_team": 60.3448275862069,
             "expected_moves_used": 3.225274725274725
           },
           {
@@ -1015,9 +3879,9 @@
             "end_week": 11.5,
             "fraction": 0.06034482758620689,
             "replacement_depth": 165,
-            "replacement_score": -3.0518863453323415,
-            "game_utilization": 0.8608074373762589,
-            "neutral_games_per_team": 60.34482758620689,
+            "replacement_score": -2.479179137260251,
+            "game_utilization": 0.973279065652097,
+            "neutral_games_per_team": 60.3448275862069,
             "expected_moves_used": 4.4752747252747245
           },
           {
@@ -1026,9 +3890,9 @@
             "end_week": 13.0,
             "fraction": 0.06034482758620689,
             "replacement_depth": 150,
-            "replacement_score": -2.2943904371403576,
-            "game_utilization": 0.8612448432965006,
-            "neutral_games_per_team": 60.3448275862069,
+            "replacement_score": -2.1508681712392757,
+            "game_utilization": 0.9712509712509714,
+            "neutral_games_per_team": 60.34482758620689,
             "expected_moves_used": 5.838911088911088
           },
           {
@@ -1037,9 +3901,9 @@
             "end_week": 14.5,
             "fraction": 0.06034482758620689,
             "replacement_depth": 135,
-            "replacement_score": -1.3223450695082288,
-            "game_utilization": 0.8589835361488904,
-            "neutral_games_per_team": 60.3448275862069,
+            "replacement_score": -1.652735302307243,
+            "game_utilization": 0.9698275862068966,
+            "neutral_games_per_team": 60.34482758620689,
             "expected_moves_used": 7.338911088911088
           },
           {
@@ -1048,9 +3912,9 @@
             "end_week": 16.0,
             "fraction": 0.06034482758620689,
             "replacement_depth": 120,
-            "replacement_score": -0.5681033913355757,
-            "game_utilization": 0.8597897813984481,
-            "neutral_games_per_team": 60.34482758620689,
+            "replacement_score": -0.7944074590908524,
+            "game_utilization": 0.9714632665452337,
+            "neutral_games_per_team": 60.3448275862069,
             "expected_moves_used": 9.005577755577754
           },
           {
@@ -1059,8 +3923,8 @@
             "end_week": 17.5,
             "fraction": 0.06034482758620689,
             "replacement_depth": 105,
-            "replacement_score": -0.07581209338118797,
-            "game_utilization": 0.8612204724409449,
+            "replacement_score": -0.2507907862733393,
+            "game_utilization": 0.9731683581259557,
             "neutral_games_per_team": 60.34482758620689,
             "expected_moves_used": 10.880577755577754
           },
@@ -1070,9 +3934,9 @@
             "end_week": 19.0,
             "fraction": 0.06034482758620689,
             "replacement_depth": 90,
-            "replacement_score": 0.6666575202592327,
-            "game_utilization": 0.8630361612151549,
-            "neutral_games_per_team": 60.3448275862069,
+            "replacement_score": 0.4620041008534749,
+            "game_utilization": 0.970402717127608,
+            "neutral_games_per_team": 60.34482758620689,
             "expected_moves_used": 13.023434898434896
           },
           {
@@ -1081,9 +3945,9 @@
             "end_week": 20.5,
             "fraction": 0.06034482758620689,
             "replacement_depth": 75,
-            "replacement_score": 1.575222678867332,
-            "game_utilization": 0.8604519093427869,
-            "neutral_games_per_team": 60.3448275862069,
+            "replacement_score": 0.8761763362203273,
+            "game_utilization": 0.972951936174353,
+            "neutral_games_per_team": 60.34482758620689,
             "expected_moves_used": 15.523434898434896
           },
           {
@@ -1092,9 +3956,9 @@
             "end_week": 22.0,
             "fraction": 0.06034482758620689,
             "replacement_depth": 60,
-            "replacement_score": 2.6354040810077337,
-            "game_utilization": 0.8630175408315175,
-            "neutral_games_per_team": 60.3448275862069,
+            "replacement_score": 2.1049964062092545,
+            "game_utilization": 0.9806325079676391,
+            "neutral_games_per_team": 60.34482758620689,
             "expected_moves_used": 18.523434898434896
           },
           {
@@ -1103,9 +3967,9 @@
             "end_week": 23.5,
             "fraction": 0.06034482758620689,
             "replacement_depth": 45,
-            "replacement_score": 3.3432528206987167,
-            "game_utilization": 0.8638313801146016,
-            "neutral_games_per_team": 60.3448275862069,
+            "replacement_score": 3.104113760570571,
+            "game_utilization": 0.9852216748768473,
+            "neutral_games_per_team": 60.34482758620689,
             "expected_moves_used": 22.273434898434896
           },
           {
@@ -1114,8 +3978,8 @@
             "end_week": 24.857142857142858,
             "fraction": 0.054597701149425304,
             "replacement_depth": 30,
-            "replacement_score": 4.466230038629087,
-            "game_utilization": 0.8595126563238643,
+            "replacement_score": 3.894665279505021,
+            "game_utilization": 0.9837678307919331,
             "neutral_games_per_team": 54.597701149425305,
             "expected_moves_used": 27.273434898434896
           }
@@ -1133,8 +3997,8 @@
             "end_week": 6.0,
             "fraction": 0.24137931034482757,
             "replacement_depth": 225,
-            "replacement_score": -5.239216384451486,
-            "game_utilization": 0.8677642920778906,
+            "replacement_score": -4.196172112597263,
+            "game_utilization": 0.9828331804481719,
             "neutral_games_per_team": 241.37931034482756,
             "expected_moves_used": 0.0
           },
@@ -1144,9 +4008,9 @@
             "end_week": 7.5,
             "fraction": 0.06034482758620689,
             "replacement_depth": 210,
-            "replacement_score": -4.652460783185996,
-            "game_utilization": 0.8596498768858569,
-            "neutral_games_per_team": 60.3448275862069,
+            "replacement_score": -3.7359890036645025,
+            "game_utilization": 0.9819737672722171,
+            "neutral_games_per_team": 60.34482758620689,
             "expected_moves_used": 1.0
           },
           {
@@ -1155,9 +4019,9 @@
             "end_week": 9.0,
             "fraction": 0.06034482758620689,
             "replacement_depth": 195,
-            "replacement_score": -4.1525356212406725,
-            "game_utilization": 0.8604371020478403,
-            "neutral_games_per_team": 60.3448275862069,
+            "replacement_score": -3.4543638216478993,
+            "game_utilization": 0.9843264935261604,
+            "neutral_games_per_team": 60.34482758620689,
             "expected_moves_used": 2.071428571428571
           },
           {
@@ -1166,9 +4030,9 @@
             "end_week": 10.5,
             "fraction": 0.06034482758620689,
             "replacement_depth": 180,
-            "replacement_score": -3.690989878255584,
-            "game_utilization": 0.8600732495717552,
-            "neutral_games_per_team": 60.34482758620689,
+            "replacement_score": -3.0202279310590043,
+            "game_utilization": 0.980872976949485,
+            "neutral_games_per_team": 60.3448275862069,
             "expected_moves_used": 3.225274725274725
           },
           {
@@ -1177,9 +4041,9 @@
             "end_week": 12.0,
             "fraction": 0.06034482758620689,
             "replacement_depth": 165,
-            "replacement_score": -3.0518863453323415,
-            "game_utilization": 0.8608074373762589,
-            "neutral_games_per_team": 60.34482758620689,
+            "replacement_score": -2.479179137260251,
+            "game_utilization": 0.973279065652097,
+            "neutral_games_per_team": 60.3448275862069,
             "expected_moves_used": 4.4752747252747245
           },
           {
@@ -1188,9 +4052,9 @@
             "end_week": 13.5,
             "fraction": 0.06034482758620689,
             "replacement_depth": 150,
-            "replacement_score": -2.2943904371403576,
-            "game_utilization": 0.8612448432965006,
-            "neutral_games_per_team": 60.3448275862069,
+            "replacement_score": -2.1508681712392757,
+            "game_utilization": 0.9712509712509714,
+            "neutral_games_per_team": 60.34482758620689,
             "expected_moves_used": 5.838911088911088
           },
           {
@@ -1199,9 +4063,9 @@
             "end_week": 15.0,
             "fraction": 0.06034482758620689,
             "replacement_depth": 135,
-            "replacement_score": -1.3223450695082288,
-            "game_utilization": 0.8589835361488904,
-            "neutral_games_per_team": 60.3448275862069,
+            "replacement_score": -1.652735302307243,
+            "game_utilization": 0.9698275862068966,
+            "neutral_games_per_team": 60.34482758620689,
             "expected_moves_used": 7.338911088911088
           },
           {
@@ -1210,9 +4074,9 @@
             "end_week": 16.5,
             "fraction": 0.06034482758620689,
             "replacement_depth": 120,
-            "replacement_score": -0.5681033913355757,
-            "game_utilization": 0.8597897813984481,
-            "neutral_games_per_team": 60.34482758620689,
+            "replacement_score": -0.7944074590908524,
+            "game_utilization": 0.9714632665452337,
+            "neutral_games_per_team": 60.3448275862069,
             "expected_moves_used": 9.005577755577754
           },
           {
@@ -1221,8 +4085,8 @@
             "end_week": 18.0,
             "fraction": 0.06034482758620689,
             "replacement_depth": 105,
-            "replacement_score": -0.07581209338118797,
-            "game_utilization": 0.8612204724409449,
+            "replacement_score": -0.2507907862733393,
+            "game_utilization": 0.9731683581259557,
             "neutral_games_per_team": 60.34482758620689,
             "expected_moves_used": 10.880577755577754
           },
@@ -1232,9 +4096,9 @@
             "end_week": 19.5,
             "fraction": 0.06034482758620689,
             "replacement_depth": 90,
-            "replacement_score": 0.6666575202592327,
-            "game_utilization": 0.8630361612151549,
-            "neutral_games_per_team": 60.3448275862069,
+            "replacement_score": 0.4620041008534749,
+            "game_utilization": 0.970402717127608,
+            "neutral_games_per_team": 60.34482758620689,
             "expected_moves_used": 13.023434898434896
           },
           {
@@ -1243,9 +4107,9 @@
             "end_week": 21.0,
             "fraction": 0.06034482758620689,
             "replacement_depth": 75,
-            "replacement_score": 1.575222678867332,
-            "game_utilization": 0.8604519093427869,
-            "neutral_games_per_team": 60.3448275862069,
+            "replacement_score": 0.8761763362203273,
+            "game_utilization": 0.972951936174353,
+            "neutral_games_per_team": 60.34482758620689,
             "expected_moves_used": 15.523434898434896
           },
           {
@@ -1254,9 +4118,9 @@
             "end_week": 22.5,
             "fraction": 0.06034482758620689,
             "replacement_depth": 60,
-            "replacement_score": 2.6354040810077337,
-            "game_utilization": 0.8630175408315175,
-            "neutral_games_per_team": 60.3448275862069,
+            "replacement_score": 2.1049964062092545,
+            "game_utilization": 0.9806325079676391,
+            "neutral_games_per_team": 60.34482758620689,
             "expected_moves_used": 18.523434898434896
           },
           {
@@ -1265,9 +4129,9 @@
             "end_week": 24.0,
             "fraction": 0.06034482758620689,
             "replacement_depth": 45,
-            "replacement_score": 3.3432528206987167,
-            "game_utilization": 0.8638313801146016,
-            "neutral_games_per_team": 60.3448275862069,
+            "replacement_score": 3.104113760570571,
+            "game_utilization": 0.9852216748768473,
+            "neutral_games_per_team": 60.34482758620689,
             "expected_moves_used": 22.273434898434896
           },
           {
@@ -1276,14 +4140,14 @@
             "end_week": 24.857142857142858,
             "fraction": 0.034482758620689676,
             "replacement_depth": 30,
-            "replacement_score": 4.466230038629087,
-            "game_utilization": 0.8595126563238643,
+            "replacement_score": 3.894665279505021,
+            "game_utilization": 0.9837678307919331,
             "neutral_games_per_team": 34.48275862068967,
             "expected_moves_used": 27.273434898434896
           }
         ],
         "expected_moves_used": 27.273434898434896,
-        "neutral_games_per_team": 1000.0,
+        "neutral_games_per_team": 999.9999999999999,
         "conditional_on": "Surviving to the final with neutral access to the improving player pool."
       }
     },
@@ -1324,7 +4188,7 @@
       "interpretation": "Only finalists, classified by preceding-season per-game rank. Matching opening and final snapshots does not prove continuous ownership. This descriptive audit is not used to fit replacement dates or prices."
     },
     "neutral_value_basis": "Equal category weights; linear allocation of positive survivor value above replacement. No historical price fitting, star multiplier or category punt. Scenario estimate, not an empirically validated optimum.",
-    "market_price_basis": "Conditional on selection at auction; current keeper-adjusted discretionary dollars per slot. Individual estimates are not a simultaneous $2,210 auction allocation.",
+    "market_price_basis": "Conditional on selection at auction; keeper-adjusted discretionary money per open slot; available-talent correction was evaluated but not selected. Individual estimates are not a simultaneous auction allocation. Team budget distribution is displayed, not a simulation of manager bidding.",
     "interval": {
       "nominal": 0.8,
       "basis": "Absolute normalized out-of-season price errors, grouped by predicted price tier; descriptive error band, not a guaranteed confidence interval."

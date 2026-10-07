@@ -1,5 +1,5 @@
 {
-  "model_version": "survivor-8cat-v2",
+  "model_version": "survivor-8cat-v3",
   "roster_size": 15,
   "minimum_bid": 1,
   "minimum_bid_basis": "Working assumption; lowest recorded auction purchase is $1. Formal rule not confirmed.",

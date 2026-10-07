@@ -282,14 +282,14 @@ def build_workbook(output_dir, first_start, last_start, target_season, *, refres
     projections, projection_pages, projection_audit_headers = [], [], []
     if include_projections:
         try:
-            from survivor.cbs_projections import collect_projections, AUDIT_HEADERS, SOURCE_NAME, SOURCE_NOTE, SOURCE_URL
+            from survivor.espn_projections import collect_projections, AUDIT_HEADERS, SOURCE_NAME, SOURCE_NOTE, SOURCE_URL
             projections, projection_pages = collect_projections(output_dir, target_season, refresh=refresh)
             projection_audit_headers = AUDIT_HEADERS
             retrieved_at = max(page['retrieved_at'] for page in projection_pages)
             for row in projections:
                 row.update(season=target_season, source_date=retrieved_at[:10],
-                           ready_for_valuation=True, quality_note='Published CBS projections; no imputed statistics.')
-            path = output_dir/f'projections-{target_season}-CBS.csv'
+                           ready_for_valuation=True, quality_note=SOURCE_NOTE)
+            path = output_dir/f'projections-{target_season}-ESPN.csv'
             write_csv(path, projections, STAT_HEADERS+AUDIT_HEADERS)
             validate_csv(path)
             source = dict(kind='projection', season=target_season, source_name=SOURCE_NAME,
@@ -298,10 +298,10 @@ def build_workbook(output_dir, first_start, last_start, target_season, *, refres
                           csv_sha256=csv_hash(path), note=SOURCE_NOTE, url=SOURCE_URL,
                           source_pages=projection_pages, provider_fields_only=True)
             sources.append(source)
-            print(f'{target_season}: {len(projections)} published CBS projections including shooting volume', flush=True)
+            print(f'{target_season}: {len(projections)} published ESPN projections including shooting volume', flush=True)
         except Exception as exc:
             projections = []
-            errors.append({'season':target_season,'source':'CBS Sports','note':str(exc)})
+            errors.append({'season':target_season,'source':'ESPN','note':str(exc)})
             print(f'Projections: FAILED - {exc}', flush=True)
 
     db = preview_database()
@@ -314,6 +314,8 @@ def build_workbook(output_dir, first_start, last_start, target_season, *, refres
     finally:
         db.close()
     keepers = {row['player_id']:row for row in draft['rows']} if draft else {}
+    if projections and set(keepers)-{resolve_name(r['player'],aliases)[0] for r in projections}:
+        raise ValueError('Published projection set does not cover every confirmed keeper.')
     for dataset_label, records in datasets+[('projection',projections)]:
         for record in records:
             key, _, _ = resolve_name(record['player'], aliases)
@@ -332,13 +334,13 @@ def build_workbook(output_dir, first_start, last_start, target_season, *, refres
         {'item':'History','note':f'{season_name(first_start)} through {season_name(last_start)} requested; regular season only, one combined row per player-season.'},
         {'item':'Historical units','note':'Per-game values calculated from exact source totals. Aggregate TOT / multi-team rows replace individual team splits.'},
         {'item':'Historical dates','note':'As-of dates are retrieval dates, not evidence that final stats were known before that season began.'},
-        {'item':'Projection units','note':'CBS published season totals divided by published projected games. Makes and attempts come directly from CBS. Published percentages and original totals are retained for checking.'},
-        {'item':'Projection completeness','note':f'{len(projections)} CBS player projections collected. No statistical estimates, imputation or cross-provider blending. No dollar valuations are calculated here.'},
-        {'item':'Projection provenance','note':'Each row retains its CBS player ID, URL, original totals, source hash and retrieval date. CBS labels seasons by starting year and does not show a publication timestamp. Overlapping position filters are deduplicated by player ID.'},
+        {'item':'Projection units','note':'ESPN published season totals divided by published projected games. Makes and attempts come directly from ESPN. Published percentages and original totals are retained for checking; rounding can cause slight percentage differences.'},
+        {'item':'Projection completeness','note':f'{len(projections)} ESPN positive-games projections collected. Players without a projection are excluded; sparse zero-count fields within a projection are decoded and recorded in the audit columns. No cross-provider blending.'},
+        {'item':'Projection provenance','note':'Each row retains its ESPN player ID, API URL, original totals, source hash and retrieval date. ESPN labels seasons by ending year. Only full-season projected rows are accepted; actual and short-term splits are excluded.'},
         {'item':'Identity matching','note':'Source player IDs and normalized archive matches are included. Unmatched names require review before modeling.'},
         {'item':'Keepers','note':'Confirmed keeper availability applies only to the target projection season. Historical purchases remain separate.'},
         {'item':'Refresh','note':'Run python -m survivor.stats_workbook. Use --refresh to download again; cache snapshots retain source hashes and dates.'},
-        {'item':'Database','note':'Committed actuals and complete CBS projections import automatically when the Railway dashboard starts. Repeated startups do not duplicate identical snapshots.'},
+        {'item':'Database','note':'Committed actuals and ESPN projections import automatically when the Railway dashboard starts. Repeated startups do not duplicate identical snapshots. Earlier CBS sets remain in an existing database for comparison.'},
         {'item':'Fetch errors','note':str(len(errors))+' failed sources; see Issues and manifest.json. A failed refresh is never labeled complete.'},
     ]
     add_sheet(workbook,'Read me',notes,['item','note'])

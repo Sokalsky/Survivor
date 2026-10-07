@@ -71,23 +71,23 @@ class PublishedProjectionTests(unittest.TestCase):
         metadata, path = sources[0]
         with path.open(encoding='utf-8-sig',newline='') as stream:
             published = list(csv.DictReader(stream))
-        self.assertEqual(len(published),500)
-        self.assertEqual(len({row['source_player_id'] for row in published}),500)
-        self.assertEqual(len(metadata['source_pages']),7)
+        self.assertEqual(len(published),348)
+        self.assertEqual(len({row['source_player_id'] for row in published}),348)
+        self.assertEqual(len(metadata['source_pages']),3)
         db = preview_database()
         self.addCleanup(db.close)
         sync_bundled_keepers(db)
         with contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(sync_bundled_projections(db),{'datasets':1,'rows':500})
-            self.assertEqual(sync_bundled_projections(db),{'datasets':1,'rows':500})
+            self.assertEqual(sync_bundled_projections(db),{'datasets':1,'rows':348})
+            self.assertEqual(sync_bundled_projections(db),{'datasets':1,'rows':348})
         self.assertEqual(db.execute('SELECT COUNT(*) FROM stat_datasets').fetchone()[0],1)
         self.assertEqual(db.execute('SELECT COUNT(*) FROM projected_values').fetchone()[0],0)
         client = create_app(db).test_client()
         payload = client.get('/api/projections').json
-        self.assertEqual(len(payload['rows']),500)
-        self.assertEqual(payload['dataset']['source_name'],'CBS Sports published projections')
-        self.assertIn('no statistics are estimated or imputed',payload['dataset']['notes'])
-        self.assertEqual(len(client.get('/api/projections?availability=available').json['rows']),470)
+        self.assertEqual(len(payload['rows']),348)
+        self.assertEqual(payload['dataset']['source_name'],'ESPN published projections')
+        self.assertIn('No forecasts are blended or estimated',payload['dataset']['notes'])
+        self.assertEqual(len(client.get('/api/projections?availability=available').json['rows']),318)
         self.assertEqual(len(client.get('/api/projections?availability=kept').json['rows']),30)
         indexed = {row['player_id']:row for row in payload['rows']}
         aliases = load_aliases()
@@ -95,11 +95,15 @@ class PublishedProjectionTests(unittest.TestCase):
             stored = indexed[resolve_name(row['player'],aliases)[0]]
             for field in STAT_HEADERS[3:]:
                 self.assertAlmostEqual(stored[field],float(row[field]))
-            for field, source in TOTAL_FIELDS.items():
-                self.assertAlmostEqual(stored[field]*stored['games'],float(row[source+'_total']))
+            for field in TOTAL_FIELDS:
+                self.assertAlmostEqual(stored[field]*stored['games'],float(row[field.removesuffix('_pg')+'_total']))
+        acuff = indexed['dariusacuffjr']
+        self.assertAlmostEqual(acuff['pts_pg'],1234/73)
+        self.assertAlmostEqual(acuff['ast_pg'],431/73)
+        self.assertAlmostEqual(acuff['stl_pg'],80/73)
         jokic = indexed['nikolajokic']
-        self.assertAlmostEqual(jokic['fga_pg'],1359.5/78.3)
-        self.assertAlmostEqual(jokic['fta_pg'],520.4/78.3)
+        self.assertAlmostEqual(jokic['fga_pg'],1325/72)
+        self.assertAlmostEqual(jokic['fta_pg'],475/72)
         self.assertEqual(jokic['confirmed_keeper_cost'],88)
         self.assertEqual(client.get('/api/projections?season=2025-26').json,{'dataset':None,'rows':[]})
         self.assertFalse(db.execute('PRAGMA foreign_key_check').fetchall())

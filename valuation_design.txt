@@ -1,4 +1,4 @@
-SURVIVOR VALUATION v2
+SURVIVOR VALUATION v3
 
 THREE DISTINCT OUTPUTS
 
@@ -18,7 +18,7 @@ recommended_bid_ceiling remains NULL; that is not one of the three outputs.
 
 INPUTS AND RULES
 
-500 complete, published CBS Sports 2026-27 forecasts supply games, minutes and all
+348 complete, published ESPN 2026-27 forecasts supply games, minutes and all
 eight categories. Original projections are unchanged. 6,460 historical NBA rows
 cover 2014-15 through 2025-26. The league archive contains 2,173 actual purchases.
 Keeper salaries and final-roster recorded costs are not price training examples.
@@ -104,7 +104,45 @@ budget per open slot, after keeper costs. This assumes the current $200 budget
 throughout history; incomplete roster entries and historical unspent dollars can
 affect calibration. Feature centers/scales are fitted on training rows only.
 Ridge regularization = 20; annual recency weight = 0.9. Role changes and dated
-injury news are not invented. Current category features use published CBS stats.
+injury news are not invented. Current category features use published ESPN stats.
+
+Draft market context is now saved for 2015-16 through 2026-27. For each season,
+rebuild every franchise's capital as $200 minus its opening keeper salaries.
+Record open slots and maximum opening bid after reserving $1 for other slots.
+Display budget average, median, range and dispersion; this does not simulate how
+specific managers allocate their funds or which needs their keepers already fill.
+
+Build the historical available pool from prior-season NBA players with at least
+10 games, excluding the recorded keepers. Do not use auction winners to decide
+the talent pool and do not use the current season's realized stats. Missing
+rookies and offseason retirements/injuries remain limitations of this proxy.
+Current available talent instead uses the complete published projection set.
+Top-10/20/30/50/100 counts and the names of available top-30 players are recorded.
+
+For an optional supply adjustment, compute total positive per-game advantage
+above replacement for the best available N players (N = open slots), and the
+equivalent no-keeper strength for 225 slots. Then:
+  supply_ratio = (full_strength / 225) / (available_strength / N)
+  market_scale = discretionary_dollars_per_slot * supply_ratio
+Convert historical bids above $1 into these market units before fitting, and
+convert predictions into today's units afterward. This accounts for the money
+competing for comparable available talent without assigning a manual star bonus.
+Two additional candidates (market_local, market_age_local) test this normalization.
+
+The added adjustment did not win the predetermined development-year selection:
+market_age_local MAE $4.653494 vs age_local $4.651833. Reused recent-year MAE was
+$4.576304 vs $4.584639. Differences are tiny; do not present them as evidence of
+improved accuracy. age_local remains selected, so live prices still normalize
+by budget per slot. The draft-pool context is displayed in the UI and retained
+in exports, but the extra talent multiplier is not applied to current prices.
+
+ESPN replaces CBS as the active statistical source. Original projection totals
+are preserved; sparse zero-count keys are decoded within nonempty projections.
+No player without a positive-games forecast is assigned invented statistics.
+The smaller 348-player set changes the reference distribution and allocations;
+it is not a forced correction to Edwards, Harden or Acuff. All keepers and the
+225-player roster depth are covered. No historical test establishes ESPN as
+more accurate than CBS. Earlier CBS CSVs and existing DB runs are preserved.
 
 Recorded ages come from the already collected Basketball Reference HTML, checked
 against source hashes and exported to output/stats/market-context.json. This is
@@ -113,7 +151,7 @@ hash. Ages already existed in the source Excel; NBA projection rows are unchange
 For each auction, only records from earlier seasons are eligible. Advance the
 latest recorded season age by elapsed seasons to get target-season age. This is
 a season-age convention, not exact age on draft day. All 1,991 training rows have
-age context. 451/500 projected players have an earlier age; the other 49 use the
+age context. 332/348 projected players have an earlier age; the other 16 use the
 corresponding statistics-only model. No rookie birthdays or ages are guessed.
 
 Compare mean-price, simple total-score curve, ridge category model, and several
@@ -169,7 +207,7 @@ selection still uses only development-year MAE. Hyperparameters are explicit
 model choices, not a guarantee of future accuracy. A truly fresh future auction
 or archived preseason forecasts would strengthen evaluation.
 
-This is a price backtest using prior-year actuals, NOT a backtest of CBS forecasts,
+This is a price backtest using prior-year actuals, NOT a backtest of provider forecasts,
 this year's rookies or the survivor value formula. Archived historical preseason
 projections and dated league standings/transactions would improve those tests.
 Scenario dollar ranges are distinct from empirical market-price error bands.

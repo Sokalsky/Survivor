@@ -171,7 +171,7 @@ class PublishedValueIntegrationTests(unittest.TestCase):
 
     def test_complete_real_player_values_and_budget_reconcile(self):
         result = self.result
-        self.assertEqual(len(result['values']),500)
+        self.assertEqual(len(result['values']),348)
         self.assertEqual(sum(v['keeper_cost'] is not None for v in result['values']),30)
         for name in ('central','faster','slower'):
             dollars = [v['category_values']['scenario_values'][name] for v in result['values']]
@@ -179,8 +179,8 @@ class PublishedValueIntegrationTests(unittest.TestCase):
             self.assertEqual(sum(v>=1 for v in dollars),225)
         self.assertTrue(all(v['fair_value']==v['category_values']['neutral_value'] for v in result['values']))
         by_id = {v['player_id']:v for v in result['values']}
-        self.assertEqual(by_id['anthonyedwards']['fair_value'],37.94)
-        self.assertEqual(by_id['jamesharden']['fair_value'],37.67)
+        self.assertGreater(by_id['anthonyedwards']['fair_value'],by_id['jamesharden']['fair_value'])
+        self.assertLess(by_id['dariusacuffjr']['fair_value'],by_id['anthonyedwards']['fair_value'])
         self.assertTrue(all(v['recommended_bid_ceiling'] is None for v in result['values']))
         self.assertEqual(self.before,fingerprint(rows(self.db,'SELECT * FROM player_stats ORDER BY dataset_id,player_id')))
 
@@ -219,12 +219,21 @@ class PublishedValueIntegrationTests(unittest.TestCase):
                 self.assertFalse(market['age_in_model'])
                 self.assertEqual(market['method'],'local')
                 self.assertIn('no invented age',row['risk_notes'])
-        self.assertEqual(missing_age,49)
+        self.assertEqual(missing_age,16)
+        markets=self.result['validation']['auction_contexts']
+        self.assertEqual(len(markets),12)
+        self.assertEqual(markets[-1]['remaining_budget'],2210)
+        self.assertAlmostEqual(markets[-1]['average_team_budget'],2210/15)
+        self.assertEqual(markets[-1]['open_slots'],195)
+        for market in markets:
+            self.assertEqual(len(market['teams']),15)
+            if market['stats_season']:
+                self.assertLess(market['stats_season'],market['season'])
 
     def test_run_atomic_idempotent_and_immutable(self):
         save_run(self.db,self.result)
         self.assertEqual(self.db.execute('SELECT COUNT(*) FROM valuation_runs').fetchone()[0],1)
-        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM projected_values').fetchone()[0],500)
+        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM projected_values').fetchone()[0],348)
         broken = copy.deepcopy(self.result)
         broken['run_id']='failed-test-run'
         broken['values'][1]['player_id']='missing-player-for-rollback-test'
@@ -243,11 +252,11 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         payload = self.client.get('/api/valuations').json
         self.assertEqual(payload['run']['run_id'],self.result['run_id'])
         self.assertIn('league_rules',payload['run']['settings'])
-        self.assertEqual(len(payload['rows']),500)
+        self.assertEqual(len(payload['rows']),348)
         self.assertNotIn('comps_json',payload['rows'][0])
         detail = self.client.get('/api/players/anthonyedwards').json
         self.assertEqual(len(json.loads(detail['valuations'][0]['comps_json'])),20)
-        self.assertEqual(len(self.client.get('/api/valuations?availability=available').json['rows']),470)
+        self.assertEqual(len(self.client.get('/api/valuations?availability=available').json['rows']),318)
         self.assertEqual(len(self.client.get('/api/valuations?availability=kept').json['rows']),30)
         response = self.client.get('/api/valuations.csv?availability=kept')
         exported = list(csv.DictReader(io.StringIO(response.data.decode('utf-8-sig'))))

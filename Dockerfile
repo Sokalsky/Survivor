@@ -8,6 +8,6 @@ COPY config ./config
 COPY output/stats/manifest.json ./output/stats/manifest.json
 COPY output/stats/market-context.json ./output/stats/market-context.json
 COPY output/stats/actuals-*.csv ./output/stats/
-COPY output/stats/projections-*-CBS.csv ./output/stats/
+COPY output/stats/projections-*-ESPN.csv ./output/stats/
 COPY ["Survivor keeper log 2025.xlsx", "./"]
 CMD ["python", "-m", "survivor.dashboard"]

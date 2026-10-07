@@ -14,6 +14,7 @@ from survivor.database import preview_database, railway_database
 from survivor.keepers import keeper_summary, sync_bundled_keepers
 from survivor.bundled_stats import sync_bundled_stats, sync_bundled_projections
 from survivor.market_context import load_context
+from survivor.auction_context import auction_context, historical_contexts, market_observations
 
 CATEGORIES = ('PTS','REB','AST','STL','BLK','3PM','FG%','FT%')
 COUNT_FIELDS = ('pts_pg','reb_pg','ast_pg','stl_pg','blk_pg','fg3m_pg')
@@ -279,7 +280,7 @@ def load_inputs(db, season):
         if row['dataset_id'] in ids:
             statistics[row['dataset_id']].append(row)
     auctions = rows(db, 'SELECT season,player_id,player,franchise_sheet,recorded_cost FROM auction_sales WHERE season<? ORDER BY season,player_id', (season,))
-    historical_keepers = rows(db, 'SELECT season,player_id,recorded_cost FROM keeper_costs WHERE season<? ORDER BY season,player_id', (season,))
+    historical_keepers = rows(db, 'SELECT season,player_id,franchise_sheet,recorded_cost FROM keeper_costs WHERE season<? ORDER BY season,player_id', (season,))
     draft = keeper_summary(db,season)
     if not draft:
         raise ValueError('A complete keeper list is required for auction-dollar allocation.')
@@ -303,6 +304,7 @@ def training_observations(actuals, statistics, auctions, keeper_history, rules, 
         scored,_ = profiles(players,pool_size=settings['reference_pool_size'],minimum_games=settings['historical_minimum_games'])
         historical[season] = {p['player_id']:(p,scored[p['player_id']]) for p in players}
     keepers = historical_keeper_groups(keeper_history)
+    markets = historical_contexts(actuals,statistics,auctions,keeper_history,rules,settings,profiles)
     observations, missing = [], []
     for sale in auctions:
         prior = season_name(int(sale['season'][:4])-1)
@@ -321,6 +323,7 @@ def training_observations(actuals, statistics, auctions, keeper_history, rules, 
             raise ValueError('Historical keeper costs exceed the assumed auction budget.')
         observations.append({**sale,'stats_season':prior,'stats_games':player['games'],
                              'profile':profile,'scale':dollars_per_slot,'age_source':age_record,
+                             'auction_context':markets[sale['season']],
                              'target':max(0,(sale['recorded_cost']-settings['minimum_bid'])/dollars_per_slot)})
     return observations,missing
 
@@ -354,7 +357,7 @@ def error_radius(records, expected, scale, coverage):
 def evaluate(observations,settings):
     """Choose on development years; lock the choice before the final three seasons."""
     plain_candidates = ('mean','ridge','comps','blend','uniform_comps','weighted_comps','weighted_blend','local')
-    candidates = ('score_curve',)+plain_candidates+tuple('age_'+name for name in plain_candidates if name!='mean')
+    candidates = ('score_curve',)+plain_candidates+tuple('age_'+name for name in plain_candidates if name!='mean')+('market_local','market_age_local')
     results = {name:[] for name in candidates}
     seasons = sorted({o['season'] for o in observations})
     selected = None
@@ -370,15 +373,24 @@ def evaluate(observations,settings):
         full = PriceModel(train,settings,int(season[:4]))
         age_model = PriceModel(train,settings,int(season[:4]),age=True)
         score = PriceModel(train,settings,int(season[:4]),full=False)
+        market_train = market_observations(train)
+        market_model = PriceModel(market_train,settings,int(season[:4]))
+        market_age_model = PriceModel(market_train,settings,int(season[:4]),age=True)
         for item in test:
             predicted = full.predictions(item['profile'])
             age_predictions = age_model.predictions(item['profile']) if item['profile'].get('age') is not None else predicted
             predicted.update({'age_'+name:value for name,value in age_predictions.items() if name!='mean'})
             predicted['score_curve'] = max(0,score.raw_prediction(item['profile']))
+            predicted['market_local'] = market_model.predictions(item['profile'])['local']
+            predicted['market_age_local'] = (market_age_model if item['profile'].get('age') is not None else market_model).predictions(item['profile'])['local']
             for candidate in candidates:
-                price = min(200,max(settings['minimum_bid'],settings['minimum_bid']+predicted[candidate]*item['scale']))
+                scale = item['auction_context']['market_scale'] if candidate.startswith('market_') else item['scale']
+                price = min(200,max(settings['minimum_bid'],settings['minimum_bid']+predicted[candidate]*scale))
                 results[candidate].append({'season':season,'player_id':item['player_id'],'player':item['player'],
-                                          'actual':item['recorded_cost'],'predicted':price,'scale':item['scale'],
+                                          'actual':item['recorded_cost'],'predicted':price,'scale':scale,
+                                          'average_team_budget':item['auction_context']['average_team_budget'],
+                                          'available_top_30':item['auction_context']['available_top_counts']['30'],
+                                          'supply_ratio':item['auction_context']['supply_ratio'],
                                           'stats_season':item['stats_season'],'training_last_season':max(o['season'] for o in train),
                                           'target_season_age':item['profile'].get('age'),
                                           'age_source_season':item['age_source']['season'] if item.get('age_source') else None})
@@ -426,8 +438,16 @@ def build_valuations(db, season, settings=None):
     base,base_allocation = central['dollars'],central['allocation']
     slots = rules['teams']*settings['roster_size']-len(keepers)
     scale = (draft['remaining_budget']-slots*settings['minimum_bid'])/slots
-    model = PriceModel(observations,settings,int(season[:4]),full=selected!='score_curve',age=selected.startswith('age_'))
-    fallback = PriceModel(observations,settings,int(season[:4]),full=selected!='score_curve') if model.age else model
+    current_market = auction_context(season,players,rate_profiles,
+        [{'player_id':k['player_id'],'franchise_sheet':k['franchise'],'recorded_cost':k['keeper_cost']} for k in draft['rows']],
+        [t['franchise'] for t in draft['teams']],rules,settings)
+    market_adjusted = selected.startswith('market_')
+    method = selected.removeprefix('market_')
+    model_rows = market_observations(observations) if market_adjusted else observations
+    if market_adjusted:
+        scale = current_market['market_scale']
+    model = PriceModel(model_rows,settings,int(season[:4]),full=method!='score_curve',age=method.startswith('age_'))
+    fallback = PriceModel(model_rows,settings,int(season[:4]),full=method!='score_curve') if model.age else model
     latest_prior = season_name(int(season[:4])-1)
     prior_games = {p['player_id']:p['games'] for p in statistics[actuals[latest_prior]['dataset_id']]} if latest_prior in actuals else {}
     values = []
@@ -436,7 +456,7 @@ def build_valuations(db, season, settings=None):
         age_record = context.before(key,season)
         profile = {**rate_profiles[key],'age':age_record['target_season_age'] if age_record else None}
         player_model = model if age_record or not model.age else fallback
-        prediction_key = 'ridge' if selected=='score_curve' else selected.removeprefix('age_')
+        prediction_key = 'ridge' if method=='score_curve' else method.removeprefix('age_')
         expected = min(200,max(settings['minimum_bid'],settings['minimum_bid']+player_model.predictions(profile)[prediction_key]*scale))
         radius = error_radius(backtest,expected,scale,settings['interval_coverage'])
         power = 0 if prediction_key=='uniform_comps' else 2 if prediction_key in ('comps','blend') else settings['comp_distance_power']
@@ -453,6 +473,9 @@ def build_valuations(db, season, settings=None):
                           'stats_season':comp['stats_season'],'actual_price':comp['recorded_cost'],
                           'franchise':comp['franchise_sheet'],'distance':round(distance,4),
                           'weight':weighted['weight'],'target_season_age':comp['profile'].get('age'),
+                          'average_team_budget':comp['auction_context']['average_team_budget'],
+                          'available_top_30':comp['auction_context']['available_top_counts']['30'],
+                          'supply_ratio':comp['auction_context']['supply_ratio'],
                           'budget_adjusted_price':adjusted_price,'model_price':regression_price,
                           'price_adjustment':settings['comp_correction_share']*weighted['weight']*(adjusted_price-regression_price) if prediction_key=='local' else None,
                           'category_z':comp['profile']['z']})
@@ -468,7 +491,7 @@ def build_valuations(db, season, settings=None):
         if components['effective_comps']<3:
             flags.append('Comparable pricing is concentrated in fewer than three effectively weighted records.')
         if p['games'] < 65:
-            flags.append(f'CBS projects {p["games"]:g} games; availability is spread uniformly, so a delayed return may overstate early usefulness.')
+            flags.append(f'The provider projects {p["games"]:g} games; availability is spread uniformly, so a delayed return may overstate early usefulness.')
         if keeper:
             flags.append('Kept: expected price is hypothetical if available; neutral value uses a fresh $3,000 draft with no keepers.')
         elif fair == 0:
@@ -482,7 +505,11 @@ def build_valuations(db, season, settings=None):
                                           **central['contributions'][key],'neutral_value':fair,
                                           'value_basis':'neutral_15_team_no_keepers',
                                           'neutral_slot':fair>0,'games':p['games'],
-                                          'market':{'method':selected if player_model is model else prediction_key,
+                                          'market':{'method':selected if player_model is model else ('market_' if market_adjusted else '')+prediction_key,
+                                                    'supply_adjusted':market_adjusted,
+                                                    'average_team_budget':current_market['average_team_budget'],
+                                                    'available_top_30':current_market['available_top_counts']['30'],
+                                                    'supply_ratio':current_market['supply_ratio'],
                                                     'age_source':age_record,'age_in_model':player_model.age,
                                                     'base_price':settings['minimum_bid']+components['base']*scale,
                                                     'comp_adjustment':components['correction']*scale if prediction_key=='local' else None,
@@ -498,10 +525,12 @@ def build_valuations(db, season, settings=None):
                       market_context=context.metadata,
                       age_training_rows=sum(o['profile'].get('age') is not None for o in observations),
                       current_age_coverage=sum(context.before(p['player_id'],season) is not None for p in players),
+                      auction_contexts=[next(o['auction_context'] for o in observations if o['season']==s) for s in sorted({o['season'] for o in observations})]+[current_market],
+                      supply_adjustment_selected=market_adjusted,
                       survivor_scenarios={name:s['details'] for name,s in scenarios.items()},
                       retention_audit=retention_audit(db,actuals,statistics,settings),
                       neutral_value_basis='Equal category weights; linear allocation of positive survivor value above replacement. No historical price fitting, star multiplier or category punt. Scenario estimate, not an empirically validated optimum.',
-                      market_price_basis='Conditional on selection at auction; current keeper-adjusted discretionary dollars per slot. Individual estimates are not a simultaneous $2,210 auction allocation.',
+                      market_price_basis='Conditional on selection at auction; keeper-adjusted discretionary money '+('per available talent unit.' if market_adjusted else 'per open slot; available-talent correction was evaluated but not selected.')+' Individual estimates are not a simultaneous auction allocation. Team budget distribution is displayed, not a simulation of manager bidding.',
                       interval={'nominal':settings['interval_coverage'],'basis':'Absolute normalized out-of-season price errors, grouped by predicted price tier; descriptive error band, not a guaranteed confidence interval.'},
                       market_coefficients={'features':(list(CATEGORIES)+['positive_score_squared/8'] if model.full else ['score','positive_score_squared/8'])+(['age_centered/5','age_centered/5 * positive_score/8'] if model.age else []),
                                            'standardized_coefficients':model.beta,'feature_means':model.means,'feature_scales':model.scales})
@@ -523,7 +552,7 @@ def save_run(db, result):
         db.execute('INSERT INTO valuation_runs VALUES (?,?,?,?,?,?,?,?)',
                    (result['run_id'],result['projection_dataset_id'],now(),result['model_version'],canonical(result['settings']),
                     result['training_cutoff'],canonical(result['validation']),
-                    'Published CBS forecasts valued with 8-category z scores and actual league prices. No NBA projection statistics are changed.'))
+                    'Published provider forecasts valued with 8-category z scores and actual league prices. No NBA projection statistics are changed.'))
         db.executemany('INSERT INTO projected_values VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
                        [(result['run_id'],v['player_id'],v['fair_value'],v['expected_auction_price'],v['recommended_bid_ceiling'],
                          v['lower_estimate'],v['upper_estimate'],v['keeper_cost'],v['keeper_surplus'],canonical(v['category_values']),
@@ -565,6 +594,12 @@ def export_results(result, folder):
     add_sheet(workbook,'Category contributions',category_rows,['player']+list(CATEGORIES))
     comp_rows = [{'target_player':v['player'],**{k:c for k,c in comp.items() if k!='category_z'}} for v in result['values'] for comp in v['comps']]
     add_sheet(workbook,'Historical comps',comp_rows,list(comp_rows[0]))
+    contexts = [{k:v for k,v in c.items() if k not in ('teams','available_top_players','available_top_counts','unmatched_keeper_ids')} |
+                {f'available_top_{n}':count for n,count in c['available_top_counts'].items()} |
+                {'unmatched_keepers':len(c['unmatched_keeper_ids'])} for c in result['validation']['auction_contexts']]
+    add_sheet(workbook,'Auction markets',contexts,list(contexts[0]))
+    teams = [{'season':c['season'],**t} for c in result['validation']['auction_contexts'] for t in c['teams']]
+    add_sheet(workbook,'Historical budgets',teams,list(teams[0]))
     add_sheet(workbook,'Backtest',result['backtest'],list(result['backtest'][0]))
     model_checks = [{'model':name,'split':split,**metrics} for split in ('development','holdout') for name,metrics in result['validation'][split].items()]
     add_sheet(workbook,'Model comparison',model_checks,list(model_checks[0]))

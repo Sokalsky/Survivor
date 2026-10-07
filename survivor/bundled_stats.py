@@ -38,8 +38,8 @@ def validated_sources(folder=SNAPSHOT, *, kind='actual'):
         if season in seasons or source.get('ready_for_import') is not True:
             raise ValueError('Duplicate or unready season in historical snapshot.')
         seasons.add(season)
-        expected_file = f'actuals-{season}.csv' if kind == 'actual' else f'projections-{season}-CBS.csv'
-        if source['file'] != expected_file:
+        expected_files = [f'actuals-{season}.csv'] if kind == 'actual' else [f'projections-{season}-{provider}.csv' for provider in ('CBS','ESPN')]
+        if source['file'] not in expected_files:
             raise ValueError('Unexpected historical snapshot filename.')
         path = (folder/source['file']).resolve()
         if path.parent != folder:

@@ -14,3 +14,24 @@
 .comp-price-breakdown{display:flex;gap:16px;padding:17px;background:#edf3e7;border-radius:7px;font-size:11px}.comp-price-breakdown>span{flex:1}.comp-price-breakdown strong{display:block;font-size:22px;margin-top:9px}.remaining-comps summary{cursor:pointer}.comp-weight{font-weight:650;color:var(--ink)}
 @media(max-width:760px){.value-table th{white-space:normal;font-size:7px;letter-spacing:.4px;min-width:88px}.value-table th:first-child{min-width:135px}.value-table td,.value-table th{padding:12px 10px}.value-table .player-button{white-space:normal;font-size:10px}.value-table .player-initials{display:none}.value-table small{white-space:normal;font-size:8px}.value-table .money-cell{font-size:14px}.valuation-metrics small{line-height:1.6;min-height:24px;display:block}.valuation-metrics strong{font-size:20px}.category-bars{padding:10px 14px}}
 @media(max-width:760px){.valuation-guide{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.valuation-guide .info-tile{padding:12px 10px}.valuation-guide h3{font-size:10px;line-height:1.5;margin-bottom:0}.valuation-guide p{display:none}.value-table,.value-table tbody{display:block;width:100%}.value-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.value-table tbody tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--line);padding:4px 7px 10px}.value-table td{border:0;min-width:0;text-align:left;padding:10px 8px}.value-table td.player-cell{grid-column:1/-1}.value-table .player-button{font-size:12px}.value-table .player-initials{display:grid}.value-table td[data-label]:before{content:attr(data-label);display:block;font-size:8px;color:var(--muted);font-weight:400;margin-bottom:7px}.value-table .money-cell{font-size:18px}.value-table small{font-size:8px;line-height:1.5}}
+/* Make pricing evidence reachable directly from the value board. */
+.price-comps-button { border:0; background:none; color:inherit; font:inherit; font-weight:inherit; cursor:pointer; text-align:inherit; padding:0; }
+.price-comps-button span { display:block; font-size:11px; font-weight:400; text-decoration:underline; margin-top:4px; }
+.price-comps-button:hover { color:#47713c; }
+#auction-market { margin-bottom:24px; }
+#auction-market td:first-child { min-width:210px; max-width:460px; }
+#auction-market td { vertical-align:top; }
+#auction-market td details p { white-space:normal; }
+#player-comps { scroll-margin-top:30px; }
+.comps-table { table-layout:fixed; white-space:normal; }
+.comps-table th,.comps-table td { padding:11px 6px; font-size:10px; overflow-wrap:anywhere; }
+.comps-table th { font-size:7px; letter-spacing:.4px; }
+.comps-table th:first-child,.comps-table td:first-child { width:29%; padding-left:10px; }
+.comps-table th:nth-child(2) { width:23%; }
+.comps-table th:nth-child(3) { width:11%; }
+.comps-table th:nth-child(4) { width:11%; }
+.comps-table th:nth-child(5) { width:11%; }
+.comps-table th:last-child,.comps-table td:last-child { padding-right:10px; }
+.comps-table .player-button { font-size:10px; white-space:normal; }
+.comps-table .player-initials { display:none; }
+@media(max-width:760px) { .comps-table { min-width:520px; } }
