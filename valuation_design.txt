@@ -1,4 +1,4 @@
-SURVIVOR VALUATION v4
+SURVIVOR VALUATION v5
 
 THREE DISTINCT OUTPUTS
 
@@ -88,7 +88,8 @@ of future keeper escalation, which is not yet specified.
 
 MARKET PRICE MODEL AND COMPARABLES
 
-Historical outlooks have two explicit bases. For 2025-26, use the user's
+Historical outlooks distinguish dated published forecasts, a supplied workbook,
+and prior-stat proxies. For 2025-26, use the user's
 200-player projection workbook, preserved in output/stats/preseason-2025-26.json.
 163 of 195 purchases match after explicit spelling corrections. Four documented
 availability exceptions and 28 absent names are excluded. Absence in the partial
@@ -100,14 +101,29 @@ received_at is a receipt date, never a claimed preseason publication date.
 Minutes, NBA teams and positions are absent and remain NULL. Rank columns and
 supplied ages are retained for audit but are not used as predictive features.
 
-For older auctions, use preceding-season actual rates as a proxy, with at least
-10 games. Never use the auction season's realized stats. All forecast and actual
-profiles for a historical year use the same prior-year reference distribution:
-225 highest-minutes eligible players, fixed category means, shooting baselines
-and standard deviations. The partial 200-player workbook does not define a
-new reference pool; missing forecast minutes are not filled from actual minutes.
+For 2017-18 through 2023-24, use the dated Razzball/Kostas articles, preserving
+per-game rates and attempts. FGM/FTM = published percentage times attempts.
+GP, minutes, positions and teams are unknown, not filled from actuals. For
+2024-25 use only Rotoworld PDF PROJ rows, preserving source GP, rounded per-game
+makes/attempts and numeric rows with page references. The PDF's column order is
+reconstructed geometrically so names stay with their tables across columns/pages.
+The reusable Razzball preseason URL is excluded because its contents mix seasons.
+Five invalid publisher rows remain in rejected_records, never fitted or corrected
+by guessing. See README.txt and output/stats/historical-projections.xlsx.
 
-config/preseason_availability.json documents 13 season-specific availability
+Only 2015-16 and 2016-17 still use preceding-season actual rates as proxies,
+requiring at least 10 games. Never use the auction season's realized stats.
+All forecast and actual profiles for a historical year use the same prior-year
+reference distribution: 225 highest-minutes eligible players, fixed category
+means, shooting baselines and standard deviations. Partial forecast coverage
+does not define a new reference pool. Missing forecast GP is NULL and does not
+participate in similarity; known GP differences remain a similarity dimension.
+These dated sources are preseason evidence, not verified league auction-day
+snapshots. Early publications may miss subsequent trades or availability news.
+Partial top-player lists reduce coverage of cheap auction purchases, introducing
+selection limitations that retrospective price errors cannot eliminate.
+
+config/preseason_availability.json documents 16 season-specific availability
 exceptions. They are excluded before both regression fitting and comp selection.
 This includes Tatum 2025-26 and Klay 2019-20. The original purchase records and
 keeper budgets remain untouched. Each exclusion includes a dated NBA source,
@@ -117,13 +133,14 @@ It covers major rehabilitation, delayed starts and Wall's planned nonparticipati
 no actual games played later in the season determine an exclusion. No replacement
 healthy price, zero projection, future return date or medical probability is made up.
 
-Current fit: 1,965 purchases; 167 lack a prior sample, 13 have documented outlook
-exceptions, and 28 are absent from the partial forecast file: 2,173 total.
+Current fit: 1,589 purchases, including 1,203 forecast-based observations. Of the
+2,173 total purchases, 34 lack a prior sample, 16 have documented availability
+exceptions, and 534 have no usable forecast in their season's partial archive.
 Exclusions are exported with reasons and source links.
 
 Features: eight category z scores, positive score squared / 8; age-aware models
 also use (season age - 27) / 5 and its interaction with positive score / 8.
-Recorded ages come from prior-season Basketball Reference data only. 1,954 fitted
+Recorded ages come from prior-season Basketball Reference data only. 1,540 fitted
 observations have age context. 332/348 current players have prior ages; the other
 16 use the statistics-only counterpart. No ages or youth premium are assigned.
 Ridge penalty is 20; recency weight is 0.9 per elapsed year. Model feature scaling
@@ -167,15 +184,15 @@ Comps display forecast versus prior-stat-proxy basis, projected GP when supplied
 original price, budget context, distance, weight and individual dollar adjustment.
 Sorting comps changes their display only, not their statistical weights.
 
-Recent retrospective checks: 523 purchases, MAE $4.58, versus $10.13 for the
-mean-price baseline. $30+ purchases have MAE $11.18 and bias -$8.29; stars are still
-underpriced on average. Nominal 80% bands cover 76.1%. Bands use earlier normalized
+Recent retrospective checks: 468 purchases, MAE $4.30, versus $10.86 for the
+mean-price baseline. $30+ purchases have MAE $10.07 and bias -$5.77; stars are still
+underpriced on average. Nominal 80% bands cover 81.8%. Bands use earlier normalized
 absolute errors by price tier, falling back to all errors when samples are sparse.
 These seasons have been reviewed before; they are not fresh independent holdouts.
-The evaluated cohort differs from v3, so before/after MAEs are not an apples-to-
-apples accuracy comparison. The 2025-26 projection date is user-asserted, not
-independently dated. Earlier tests still use actual-stat proxies. No test proves
-the current provider, rookie estimates, or neutral survivor formula is accurate.
+The evaluated cohort differs from earlier versions, so before/after MAEs are not
+an apples-to-apples accuracy comparison. The 2025-26 workbook's season is supplied
+by the user, not independently dated. No test proves the current provider, rookie
+estimates, or neutral survivor formula is accurate.
 
 DESCRIPTIVE ROSTER CHECK
 
@@ -209,12 +226,18 @@ The website keeps the numeric outputs, category bars, comps and price bands.
 Explanatory panels were removed at the user's request. Formula and source audits
 remain here and in the model report. Board and CSV filters agree for search,
 position, availability, metric and direction; missing numbers always sort last.
-The supplied partial forecast is selectable on the projections page. Its JSON
-archive is imported into historical_projection_sets on normal Railway startup.
+All nine partial archives are selectable on the projections page. Their JSON
+files are imported idempotently into historical_projection_sets on normal Railway
+startup. Current bundled IDs select model sources; stored prior versions remain
+immutable. Published source dates and workbook received dates remain distinct.
 
 SOURCE REFERENCES
 https://fantasy.espn.com/basketball/players/projections
 Dated availability sources: config/preseason_availability.json
-Historical forecast source: user-supplied 2025-26 Player Projections.xlsx
+Historical forecast sources: output/stats/preseason-*.json
+User-supplied 2025-26 Player Projections.xlsx
+https://basketball.razzball.com/top-155-roto-projections/
+https://basketball.razzball.com/top-155-roto-projections-2023-24/
+https://www.nbcsports.com/draftkit
 https://www.basketball-reference.com/leagues/NBA_2026_totals.html
 https://pr.nba.com/2026-27-nba-regular-season-schedule/

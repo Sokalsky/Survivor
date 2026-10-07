@@ -187,7 +187,7 @@ class PublishedValueIntegrationTests(unittest.TestCase):
     def test_chronological_market_validation_and_explicit_limits(self):
         result = self.result
         for r in result['backtest']:
-            if r['outlook_basis']=='supplied_projection':
+            if r['forecast_dataset_id']:
                 self.assertEqual(r['stats_season'],r['season'])
                 self.assertIsNotNone(r['forecast_dataset_id'])
             else:
@@ -198,9 +198,11 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         v = result['validation']
         self.assertEqual(v['training_rows']+v['excluded_rows'],v['historical_sales'])
         self.assertEqual(v['excluded_rows'],v['unmatched_or_low_sample_rows']+v['preseason_excluded_rows']+v['missing_historical_projection_rows'])
-        self.assertEqual(v['forecast_training_rows'],163)
-        self.assertEqual(v['preseason_excluded_rows'],13)
-        self.assertEqual(v['holdout'][v['selected_model']]['n'],523)
+        self.assertEqual(v['forecast_training_rows'],1203)
+        self.assertEqual(v['forecast_training_by_season']['2025-26'],163)
+        self.assertEqual(len(v['historical_projection_sources']),9)
+        self.assertEqual(v['preseason_excluded_rows'],16)
+        self.assertEqual(v['holdout'][v['selected_model']]['n'],468)
         self.assertLess(v['holdout'][v['selected_model']]['mae'],v['holdout']['mean']['mae'])
         self.assertIn('not independently validated',v['interpretation'])
         self.assertEqual(v['retention_audit']['bands']['top_30'],{'opening':40,'on_same_final_roster':27})
@@ -218,9 +220,12 @@ class PublishedValueIntegrationTests(unittest.TestCase):
             expected = min(200,max(1,market['base_price']+market['comp_adjustment']))
             self.assertAlmostEqual(row['expected_auction_price'],round(expected,2))
             for comp in row['comps']:
-                if comp['outlook_basis']=='supplied_projection':
+                if comp['forecast_dataset_id']:
                     self.assertEqual(comp['stats_season'],comp['season'])
-                    self.assertGreater(comp['projected_games'],0)
+                    if comp['season']>='2024-25':
+                        self.assertGreater(comp['projected_games'],0)
+                    else:
+                        self.assertIsNone(comp['projected_games'])
                 else:
                     self.assertLess(comp['stats_season'],comp['season'])
                 self.assertLess(comp['season'],self.result['season'])
@@ -258,7 +263,7 @@ class PublishedValueIntegrationTests(unittest.TestCase):
 
     def test_supplied_archive_visible_with_no_invented_minutes_positions_or_zero_forecasts(self):
         data=self.client.get('/api/bootstrap').json
-        archive=next(d for d in data['datasets'] if d.get('coverage')=='partial_player_pool')
+        archive=next(d for d in data['datasets'] if d.get('coverage')=='partial_player_pool' and d['season']=='2025-26')
         supplied=self.client.get('/api/projections?dataset='+archive['dataset_id']).json
         self.assertEqual(len(supplied['rows']),200)
         self.assertEqual(supplied['dataset']['date_basis'],'received')
@@ -288,6 +293,35 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         self.assertEqual(row['forecast_dataset_id'],archive['dataset_id'])
         self.assertEqual(sum(o['outlook_basis']=='supplied_projection' for o in observations),163)
         self.assertTrue(all(o['season']!='2025-26' or o['outlook_basis']=='supplied_projection' for o in observations))
+
+    def test_published_forecasts_join_their_auction_season_and_leave_unknown_games_empty(self):
+        from survivor.historical_projections import bundled_archives
+        from survivor.valuation import load_inputs, training_observations
+        archives=bundled_archives()
+        forecasts={a['season']:{'metadata':a,'players':{r['player_id']:r for r in a['records']}} for a in archives}
+        _,actuals,stats,sales,keepers,_=load_inputs(self.db,'2026-27')
+        observations,excluded=training_observations(actuals,stats,sales,keepers,self.result['settings']['league_rules'],settings(),load_context(),forecasts=forecasts)
+        rejected={(a['season'],r['player_id']) for a in archives for r in a.get('rejected_records',[])}
+        self.assertTrue(all((o['season'],o['player_id']) not in rejected for o in observations))
+        for row in observations:
+            if row['season']<'2017-18':
+                self.assertEqual(row['outlook_basis'],'prior_actuals_proxy')
+                continue
+            archive=forecasts[row['season']]
+            source=archive['players'][row['player_id']]
+            self.assertEqual(row['forecast_dataset_id'],archive['metadata']['dataset_id'])
+            self.assertEqual(row['profile']['projected_games'],source['games'])
+            self.assertEqual(row['stats_season'],row['season'])
+            if row['season']<'2024-25':
+                self.assertIsNone(row['stats_games'])
+        for season,count in [('2018-19',154),('2024-25',285)]:
+            result=self.client.get('/api/projections?season='+season).json
+            self.assertEqual(len(result['rows']),count)
+            self.assertEqual(result['dataset']['date_basis'],'published')
+            self.assertTrue(result['dataset']['source_url'].startswith('https://'))
+            self.assertTrue(all(r.get('fair_value') is None for r in result['rows']))
+        per_game=self.client.get('/api/projections?season=2018-19&sort=games&direction=desc').json
+        self.assertTrue(all(r['games'] is None for r in per_game['rows']))
 
     def test_board_sort_filter_and_csv_agree(self):
         for route in ('valuations','projections'):

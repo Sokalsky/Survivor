@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "coverage": "Documented exceptions, not a complete injury or role-change archive. Unlisted players have unreviewed preseason availability, not certified health.",
   "date_basis": "Dated preseason reports. Exact league auction dates were not recorded, so these are preseason evidence checks, not verified auction-day snapshots.",
   "records": [
@@ -15,6 +15,9 @@
     {"season":"2025-26","player_id":"jaysontatum","reported_at":"2025-08-07","status":"extended_rehab","reason":"Achilles rehabilitation expected to cost most or all of the coming season; no invented zero-game forecast.","source_url":"https://www.nba.com/news/celtics-jayson-tatum-rehab-progressing"},
     {"season":"2025-26","player_id":"tyresehaliburton","reported_at":"2025-07-07","status":"season_absence_expected","reason":"Indiana confirmed he would miss the coming season during Achilles rehabilitation.","source_url":"https://www.nba.com/news/pacers-confirm-tyrese-haliburton-will-miss-entire-2025-26-season"},
     {"season":"2025-26","player_id":"damianlillard","reported_at":"2025-07-19","status":"extended_rehab","reason":"Achilles rehabilitation could keep him out for the coming season.","source_url":"https://www.nba.com/news/damian-lillard-to-return-to-trail-blazers"},
-    {"season":"2025-26","player_id":"dejountemurray","reported_at":"2025-09-23","status":"extended_rehab","reason":"Still recovering from an Achilles injury at preseason media day.","source_url":"https://cdn-uat.nba.com/news/zion-williamson-pelicans-media-day"}
+    {"season":"2025-26","player_id":"dejountemurray","reported_at":"2025-09-23","status":"extended_rehab","reason":"Still recovering from an Achilles injury at preseason media day.","source_url":"https://cdn-uat.nba.com/news/zion-williamson-pelicans-media-day"},
+    {"season":"2018-19","player_id":"demarcuscousins","reported_at":"2018-07-02","status":"delayed_start","reason":"Achilles recovery expected to delay his season until at least December.","source_url":"https://www.nba.com/news/nba-free-agency-2018-buzz-july-2-roundup"},
+    {"season":"2020-21","player_id":"kristapsporzingis","reported_at":"2020-12-03","status":"delayed_start","reason":"Expected to miss the start of the season during knee-surgery recovery.","source_url":"https://www.nba.com/news/nba-game-watch-guide-christmas-week-2020"},
+    {"season":"2020-21","player_id":"kembawalker","reported_at":"2020-12-03","status":"delayed_start","reason":"Knee procedure expected to keep him out until January.","source_url":"https://www.nba.com/news/nba-game-watch-guide-christmas-week-2020"}
   ]
 }

@@ -330,7 +330,7 @@ def training_observations(actuals, statistics, auctions, keeper_history, rules, 
         projected = archive['players'].get(sale['player_id']) if archive else None
         if archive and projected is None:
             missing.append({**sale,'stats_season':sale['season'],'reason_code':'missing_historical_projection',
-                            'reason':'Not listed in the supplied partial projection workbook; no prior-actuals fallback or invented zero forecast.'})
+                            'reason':'No usable row in the season\'s partial projection archive; no prior-actuals fallback or invented zero forecast.'})
             continue
         if not projected and (pair is None or pair[0]['games'] < settings['historical_minimum_games']):
             missing.append({**sale,'stats_season':prior,'reason_code':'prior_sample','reason':'No matched prior season or fewer than 10 games'})
@@ -353,7 +353,7 @@ def training_observations(actuals, statistics, auctions, keeper_history, rules, 
         if dollars_per_slot <= 0:
             raise ValueError('Historical keeper costs exceed the assumed auction budget.')
         observations.append({**sale,'stats_season':sale['season'] if projected else prior,'stats_games':player['games'],
-                             'outlook_basis':'supplied_projection' if projected else 'prior_actuals_proxy',
+                             'outlook_basis':('published_projection' if archive['metadata'].get('provider') else 'supplied_projection') if projected else 'prior_actuals_proxy',
                              'forecast_dataset_id':archive['metadata']['dataset_id'] if archive else None,
                              'availability_review':'no_documented_exception',
                              'profile':profile,'scale':dollars_per_slot,'age_source':age_record,
@@ -446,7 +446,7 @@ def evaluate(observations,settings):
                      'model_selection_basis':'Candidate choice uses development-year MAE only. Later seasons have been reviewed during earlier model development and are reused retrospective checks, not fresh independent holdouts.',
                      'holdout_tiers_by_model':{name:{tier:metrics([r for r in records if r['season']>=settings['holdout_first_season'] and price_tier(r['actual'])==tier]) for tier in ('under_10','10_to_30','30_plus')} for name,records in results.items()},
                      'by_season':{s:metrics([r for r in results[selected] if r['season']==s]) for s in seasons if any(r['season']==s for r in results[selected])},
-                     'interpretation':'Older auction seasons use prior-year actuals as proxies. 2025-26 uses the partial user-supplied forecast workbook, whose provider and original date are unverified. Missing forecasts and documented availability exceptions are excluded; this changes the evaluation cohort. Rookies appear only where supplied forecasts exist. Current projection-based estimates are not independently validated.'}, results[selected]
+                     'interpretation':'Seasons with archived forecasts use their preseason stat profiles; other seasons use prior-year actuals as explicit proxies. Published per-game-only archives have unknown projected GP. The 2025-26 user workbook has unverified provider/date. Missing or invalid forecasts and documented availability exceptions are excluded, changing the evaluation cohort. Exact league auction dates are unknown. Current estimates are not independently validated.'}, results[selected]
 
 
 def build_valuations(db, season, settings=None):
@@ -461,9 +461,10 @@ def build_valuations(db, season, settings=None):
         raise ValueError('Invalid roster size or minimum bid.')
     context = load_context()
     evidence,evidence_index = load_preseason_evidence()
-    archive = sync_historical_projections(db)
-    forecasts = {archive['season']:{'metadata':{k:v for k,v in archive.items() if k!='records'},
-                                  'players':{p['player_id']:p for p in archive['records']}}} if archive['season']<season else {}
+    archives = sync_historical_projections(db)
+    forecasts = {archive['season']:{'metadata':{k:v for k,v in archive.items() if k not in ('records','rejected_records')},
+                                  'players':{p['player_id']:p for p in archive['records']}}
+                 for archive in archives if archive['season']<season}
     observations,missing = training_observations(actuals,statistics,auctions,keeper_history,rules,settings,context,evidence_index,forecasts)
     selected,validation,backtest = evaluate(observations,settings)
     rate_profiles,rate_reference = profiles(players,pool_size=settings['reference_pool_size'],weights=settings['category_weights'])
@@ -524,7 +525,7 @@ def build_valuations(db, season, settings=None):
         fair = base[key]
         flags = []
         if prior_games.get(key,0)<settings['historical_minimum_games']:
-            flags.append('Fewer than 10 NBA games in the previous season: rookie/returning or low-sample player; historical forecast coverage for these cases is limited to the supplied partial workbook.')
+            flags.append('Fewer than 10 NBA games in the previous season: rookie/returning or low-sample player; historical forecast coverage for these cases is limited to the archived partial player pools.')
         if nearest[0]['distance'] > 1:
             flags.append('No close historical comparable (nearest combined similarity distance exceeds 1).')
         if not age_record:
@@ -565,7 +566,8 @@ def build_valuations(db, season, settings=None):
                       excluded_rows=len(missing),preseason_excluded_rows=len(excluded_availability),
                       preseason_evidence={**evidence,'excluded_sales':excluded_availability},historical_sales=len(auctions),
                       historical_projection_sources=[v['metadata'] for v in forecasts.values()],
-                      forecast_training_rows=sum(o['outlook_basis']=='supplied_projection' for o in observations),
+                      forecast_training_rows=sum(o['forecast_dataset_id'] is not None for o in observations),
+                      forecast_training_by_season={s:sum(o['season']==s and o['forecast_dataset_id'] is not None for o in observations) for s in forecasts},
                       missing_historical_projection_rows=sum(r['reason_code']=='missing_historical_projection' for r in missing),
                       remaining_budget=draft['remaining_budget'],remaining_slots=slots,projected_players=len(players),
                       neutral_allocation=base_allocation,rate_reference=rate_reference,

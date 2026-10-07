@@ -19,7 +19,8 @@ def load_preseason_evidence(path=None):
         reported = date.fromisoformat(record['reported_at'])
         # Conservative pre-opening bound for the reviewed seasons. This is
         # deliberately NOT presented as the missing league auction date.
-        if not date(year,1,1) <= reported <= date(year,10,15):
+        latest = date(year,12,21) if year==2020 else date(year,10,15)
+        if not date(year,1,1) <= reported <= latest:
             raise ValueError('Availability evidence must precede the season, not use its outcomes.')
         if key in indexed or not record['reason'] or not record['status']:
             raise ValueError('Duplicate or incomplete preseason evidence.')

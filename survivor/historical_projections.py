@@ -1,4 +1,4 @@
-"""Preserve user-supplied historical forecasts without inventing missing fields."""
+"""Preserve historical forecasts and their source evidence without filling gaps."""
 from __future__ import annotations
 
 import argparse
@@ -97,14 +97,23 @@ def load_archive(path=ARCHIVE):
     return payload
 
 
+def bundled_archives():
+    archives = [load_archive(path) for path in sorted(ARCHIVE.parent.glob('preseason-*.json'))]
+    seasons = [a['season'] for a in archives]
+    if len(seasons)!=len(set(seasons)):
+        raise ValueError('Select one bundled historical projection archive per season.')
+    return archives
+
+
 def sync_historical_projections(db):
-    payload = load_archive()
+    archives = bundled_archives()
     with db:
-        db.executemany('INSERT INTO players VALUES (?,?,NULL,?) ON CONFLICT(player_id) DO NOTHING',
-                       [(r['player_id'],r['player'],'User-supplied historical projection; explicit name matching') for r in payload['records']])
-        db.execute('INSERT INTO historical_projection_sets VALUES (?,?,?) ON CONFLICT(dataset_id) DO NOTHING',
-                   (payload['dataset_id'],payload['season'],json.dumps(payload,sort_keys=True,allow_nan=False)))
-    return payload
+        for payload in archives:
+            db.executemany('INSERT INTO players VALUES (?,?,NULL,?) ON CONFLICT(player_id) DO NOTHING',
+                           [(r['player_id'],r['player'],'Historical projection; explicit name matching') for r in payload['records']])
+            db.execute('INSERT INTO historical_projection_sets VALUES (?,?,?) ON CONFLICT(dataset_id) DO NOTHING',
+                       (payload['dataset_id'],payload['season'],json.dumps(payload,sort_keys=True,allow_nan=False)))
+    return archives
 
 
 def stored_archives(db):
@@ -113,9 +122,11 @@ def stored_archives(db):
 
 def archive_metadata(archive):
     return {'dataset_id':archive['dataset_id'],'kind':'projection','season':archive['season'],
-            'source_name':archive['source_name'],'source_url':None,'as_of_date':archive['received_at'][:10],
+            'source_name':archive['source_name'],'source_url':archive.get('source_url'),
+            'as_of_date':archive['published_at'] or archive['received_at'][:10],
             'coverage':archive['coverage'],'notes':archive['season_basis']+' '+archive['notes'],
-            'players':len(archive['records']),'date_basis':'received','published_at':archive['published_at']}
+            'players':len(archive['records']),'date_basis':'published' if archive['published_at'] else 'received',
+            'published_at':archive['published_at'],'rejected_rows':len(archive.get('rejected_records',[]))}
 
 
 if __name__=='__main__':

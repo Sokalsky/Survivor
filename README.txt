@@ -214,12 +214,13 @@ reverse sniper rules are recorded; actual order and claim outcomes are unknown.
 Exact elimination dates, stat resets and lineup constraints remain unresolved.
 Neutral values assume reaching the final, with no manager preferences or punts.
 
-The price model fits 1,965 actual auction purchases. It uses the supplied
-2025-26 forecasts for 163 matched purchases and prior-season actual-stat proxies
-for older years. Thirteen documented preseason availability exceptions are removed
-from fitting and comps, including Tatum 2025-26 and Klay 2019-20. Original prices
-remain in history. Missing names in the partial forecast workbook are excluded,
-not converted to zero forecasts or filled with prior healthy stats.
+The price model fits 1,589 actual auction purchases. It uses dated Razzball
+preseason forecasts for 2017-18 through 2023-24, Rotoworld for 2024-25, and the
+user's 2025-26 workbook: 1,203 matched forecast-based purchases. Only 2015-16 and
+2016-17 still use preceding-season actual-stat proxies. Sixteen documented
+preseason availability exceptions are excluded, including Tatum 2025-26 and Klay
+2019-20. Original prices and keeper budgets remain in history. Missing or invalid
+forecasts in partial archives are excluded, never made into zero forecasts.
 
 The 20 nearest profiles receive inverse-cube distance and recency weights. Half
 the weighted actual-minus-modeled price residual adjusts the regression estimate.
@@ -228,8 +229,8 @@ The available-talent and budget normalization candidate now wins the development
 year selection (market_age_local). Current dollars use the actual keeper budget;
 neutral dollars retain the separate $3,000 no-keeper allocation.
 
-Recent retrospective MAE is $4.58 over 523 purchases; $30+ purchases have $11.18
-error and remain underpriced on average. This cohort changed, so v3/v4 errors are
+Recent retrospective MAE is $4.30 over 468 purchases; $30+ purchases have $10.07
+error and remain underpriced on average. This cohort changed, so version-to-version errors are
 not a like-for-like accuracy comparison. The reused seasons are not independent
 holdouts. Full formulas, provenance and limitations: valuation_design.txt.
 
@@ -239,8 +240,37 @@ Provider and original publication date are unknown. Its received date is labelle
 as such. Missing minutes, teams and positions remain NULL. Explicit source-local
 spelling corrections live in survivor/historical_projections.py. Rebuild with:
   python -m survivor.historical_projections "path/to/2025-26 Player Projections.xlsx"
-The archive is bundled into Docker and imported into historical_projection_sets
+All nine archives are bundled into Docker and imported into historical_projection_sets
 at normal startup; no Railway shell or manual SQL import is needed.
+
+Additional free historical forecasts: 1,367 usable player rows across eight
+seasons. Razzball/Kostas dated articles cover 2017-18 to 2023-24 (1,082 rows).
+NBC Sports/Rotoworld's free October 9, 2024 draft kit supplies 285 usable rows.
+Published dates, source URLs, source hashes, original numeric cells, row/page
+references and explicit name corrections are preserved in preseason-*.json.
+Razzball gives per-game rates and shooting attempts but no GP, minutes, positions
+or teams; those fields stay NULL. Makes = published percentage * attempts.
+Rotoworld supplies GP and rounded per-game makes/attempts; profile sections are
+positions, not league eligibility. No NBA forecasts are generated or blended.
+The archives are partial pools, which limits coverage of cheaper draft purchases.
+Exact league auction dates are unknown, and an early article may precede later
+preseason news. Published projections do not certify a player as healthy.
+
+Five invalid rows are preserved for review and excluded: Harrison Barnes 2018-19
+(scoring components disagree), Kawhi Leonard/Tobias Harris/Kevin Huerter 2022-23
+(impossible FT percentages), and Vince Williams Jr 2024-25 (3PM exceeds FGM).
+The reusable Razzball /projections-preseason/ table was rejected: despite its
+2023-24 heading it contains 2024 rookie projections. Only dated articles are used.
+
+Browse older sets using the Projections selector. An Excel copy of all nine
+historical sets, source metadata and rejected rows is available at:
+  output/stats/historical-projections.xlsx
+Rebuild the published archives (cached raw files remain untracked):
+  python -m pip install pypdf
+  python -m survivor.published_archives --collect --export
+Export only, without fetching or installing the PDF parser:
+  python -m survivor.published_archives --export
+Railway needs no PDF parser and makes no source requests: it reads bundled JSON.
 
 The boards have position filters, sortable columns and ascending/descending
 controls for all categories, projected games/minutes, shooting volume and all
@@ -260,7 +290,7 @@ On deployment, the normal startup computes and saves the run transactionally.
 Identical inputs produce the same run ID; old runs remain available. Public web
 requests cannot write valuations. No manual Railway import is needed. Completion
 is reported in startup logs as:
-  Valuations ready: 2026-27 / 348 players / survivor-8cat-v4
+  Valuations ready: 2026-27 / 348 players / survivor-8cat-v5
 Development checks do not verify that Railway has deployed the update.
 Age context can also be rebuilt offline from verified HTML caches with:
   python -m survivor.market_context
