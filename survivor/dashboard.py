@@ -19,6 +19,7 @@ from survivor.catalog import build_catalog, name_key, rows
 from survivor.database import Postgres, preview_database, railway_database
 from survivor.keepers import annotate_availability, keeper_summary, sync_bundled_keepers
 from survivor.bundled_stats import sync_bundled_stats, sync_bundled_projections
+from survivor.valuation import sync_valuations
 
 ROOT = Path(__file__).resolve().parents[1]
 RULES = json.loads((ROOT / 'config/league.json').read_text(encoding='utf-8'))
@@ -189,7 +190,7 @@ def create_app(preview_db=None):
             history = rows(db, "SELECT season,franchise_sheet,recorded_cost,contract_year_recorded,acquisition_class,finish,source_cell FROM roster_history WHERE player_id=? AND stage='opening' ORDER BY season", (player_id,))
             finals = rows(db, "SELECT season,franchise_sheet,recorded_cost,finish FROM roster_history WHERE player_id=? AND stage='final' ORDER BY season DESC,finish", (player_id,))
             projections = rows(db, "SELECT s.*,d.season,d.source_name,d.source_url,d.as_of_date,d.notes FROM player_stats s JOIN stat_datasets d USING(dataset_id) WHERE s.player_id=? AND d.kind='projection' ORDER BY d.as_of_date DESC,d.imported_at DESC", (player_id,))
-            values = rows(db, 'SELECT v.*,r.model_version,r.created_at,d.season FROM projected_values v JOIN valuation_runs r USING(run_id) JOIN stat_datasets d ON r.projection_dataset_id=d.dataset_id WHERE v.player_id=? ORDER BY r.created_at DESC', (player_id,))
+            values = rows(db, 'SELECT v.*,r.model_version,r.created_at,r.projection_dataset_id,d.season FROM projected_values v JOIN valuation_runs r USING(run_id) JOIN stat_datasets d ON r.projection_dataset_id=d.dataset_id WHERE v.player_id=? ORDER BY r.created_at DESC', (player_id,))
             current = rows(db, 'SELECT season,franchise,keeper_cost FROM keeper_selections WHERE player_id=? AND season=?', (player_id, RULES['target_season']))
         return jsonify(**player[0], history=history, finals=finals, projections=projections, valuations=values,
                        confirmed_keeper=current[0] if current else None)
@@ -207,15 +208,34 @@ def create_app(preview_db=None):
         return jsonify(dataset=metadata[0] if metadata else None, rows=entries)
 
     @app.get('/api/valuations')
+    @app.get('/api/valuations.csv')
     def valuations():
         with database() as db:
             run_id = request.args.get('run')
             if not run_id:
                 latest = db.execute('SELECT r.run_id FROM valuation_runs r JOIN stat_datasets d ON r.projection_dataset_id=d.dataset_id WHERE d.season=? ORDER BY r.created_at DESC LIMIT 1', (request.args.get('season', RULES['target_season']),)).fetchone()
                 run_id = latest[0] if latest else ''
-            metadata = rows(db, 'SELECT r.run_id,r.created_at,r.model_version,r.training_cutoff,r.validation_json,d.season,d.source_name,d.as_of_date FROM valuation_runs r JOIN stat_datasets d ON d.dataset_id=r.projection_dataset_id WHERE run_id=?', (run_id,))
+            metadata = rows(db, 'SELECT r.run_id,r.created_at,r.model_version,r.training_cutoff,r.validation_json,r.league_settings_json,r.notes,d.season,d.source_name,d.as_of_date FROM valuation_runs r JOIN stat_datasets d ON d.dataset_id=r.projection_dataset_id WHERE run_id=?', (run_id,))
             entries = rows(db, 'SELECT v.*,p.display_name AS player FROM projected_values v JOIN players p USING(player_id) WHERE v.run_id=? ORDER BY v.fair_value DESC NULLS LAST,p.display_name', (run_id,))
             entries = available_entries(db, entries, metadata[0]['season'] if metadata else '')
+        if metadata:
+            metadata[0]['validation'] = json.loads(metadata[0]['validation_json'])
+            metadata[0]['settings'] = json.loads(metadata[0]['league_settings_json'])
+        if request.path.endswith('.csv'):
+            stream = io.StringIO(newline='')
+            writer = csv.writer(stream)
+            writer.writerow(['Player','Survivor value score','Expected league price','Neutral auction value',
+                             'Price band low','Price band high','Draft status','Keeper owner','Confirmed keeper cost',
+                             'Neutral faster cuts','Neutral slower cuts','Run ID'])
+            for row in entries:
+                details = json.loads(row['category_values_json'])
+                scenarios = details.get('scenario_values',{})
+                cells = [row['player'],details.get('score'),row['expected_auction_price'],row['fair_value'],
+                         row['lower_estimate'],row['upper_estimate'],row['draft_status'],row['keeper_franchise'],
+                         row['confirmed_keeper_cost'],scenarios.get('faster'),scenarios.get('slower'),run_id]
+                writer.writerow(["'"+v if isinstance(v,str) and v.startswith(('=','+','-','@','\t','\r')) else v for v in cells])
+            return Response('\ufeff'+stream.getvalue(),mimetype='text/csv',
+                            headers={'Content-Disposition':'attachment; filename=survivor-valuations.csv'})
         return jsonify(run=metadata[0] if metadata else None, rows=entries)
 
     @app.get('/api/notes')
@@ -238,6 +258,7 @@ def main():
         sync_bundled_keepers(db)
         sync_bundled_stats(db)
         sync_bundled_projections(db)
+        sync_valuations(db)
         app = create_app(db)
     else:
         # Apply only additive schema/index changes once at startup. History is untouched.
@@ -246,6 +267,7 @@ def main():
             sync_bundled_keepers(db)
             sync_bundled_stats(db)
             sync_bundled_projections(db)
+            sync_valuations(db)
         finally:
             db.close()
         app = create_app()

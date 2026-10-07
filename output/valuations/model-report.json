@@ -1,0 +1,851 @@
+{
+  "run_id": "321a8446c26bbbec061327e602ac889f67d075b84c219b984ad3b4319b0dbe40",
+  "projection_dataset_id": "037a7b616f3a794747ca7d32ced1b18af0c7b6e19b43369efc35849253723edc",
+  "season": "2026-27",
+  "model_version": "survivor-8cat-v1",
+  "settings": {
+    "model_version": "survivor-8cat-v1",
+    "roster_size": 15,
+    "minimum_bid": 1,
+    "minimum_bid_basis": "Working assumption; lowest recorded auction purchase is $1. Formal rule not confirmed.",
+    "reference_pool_size": 225,
+    "historical_minimum_games": 10,
+    "recency_decay": 0.9,
+    "ridge_penalty": 20,
+    "neighbors": 20,
+    "development_first_season": "2018-19",
+    "holdout_first_season": "2023-24",
+    "interval_coverage": 0.8,
+    "category_weights": {
+      "PTS": 1,
+      "REB": 1,
+      "AST": 1,
+      "STL": 1,
+      "BLK": 1,
+      "3PM": 1,
+      "FG%": 1,
+      "FT%": 1
+    },
+    "survivor": {
+      "season_weeks": 24.857142857142858,
+      "season_length_basis": "NBA calendar October 20, 2026 through April 11, 2027 inclusive; assumes the league uses the full regular season.",
+      "calendar_source": "https://pr.nba.com/2026-27-nba-regular-season-schedule/",
+      "scenarios": [
+        {
+          "name": "faster",
+          "first_cut_week": 5,
+          "cut_interval_weeks": 1
+        },
+        {
+          "name": "central",
+          "first_cut_week": 5.5,
+          "cut_interval_weeks": 1.5
+        },
+        {
+          "name": "slower",
+          "first_cut_week": 6,
+          "cut_interval_weeks": 1.5
+        }
+      ],
+      "schedule_basis": "Illustrative elimination schedules, not confirmed dates or probabilities. Thirteen cuts leave two teams; a two-week cadence throughout would exceed this season's length.",
+      "availability_basis": "Published games spread uniformly through the season; dated injuries, NBA game schedules and lineup limits are not available.",
+      "replacement_basis": "Balanced neutral rosters: after each cut, replacement depth follows remaining teams times 15 roster slots. Category scores stay on the original scale. Final two teams imply a top-30 pool; this is a scenario, not guaranteed waiver access.",
+      "moves_basis": "Neutral pool turnover costs 15 / teams_before_cut expected acquisitions per surviving team. Stop improving replacement depth when the 100-move allowance is exhausted. Actual waivers, sniper picks and move usage are not simulated.",
+      "scoring_basis": "Cumulative contribution conditional on reaching the final; no assumed elimination probability or statistics reset."
+    },
+    "horizon": "Per-game category advantage integrated above rising replacement levels, using published availability and a shared 1,000-game pacing limit.",
+    "market_basis": "Historical prices use preceding-season per-game stats. Current estimates use published projected per-game stats. Historical preseason projections are unavailable.",
+    "league_rules": {
+      "teams": 15,
+      "keepers_per_team": 2,
+      "categories": [
+        "PTS",
+        "REB",
+        "AST",
+        "STL",
+        "BLK",
+        "3PM",
+        "FG%",
+        "FT%"
+      ],
+      "category_status": "Standard eight categories inferred from eight-category roto without turnovers; confirm exact categories.",
+      "first_season_start": 2015,
+      "season_mapping_status": "Inferred from 11 consecutive league years and matching 2015-16 through 2025-26 tracking tabs.",
+      "expected_opening_roster_size": 15,
+      "roster_size_status": "Observed in 163 of 165 team-seasons; lineup and bench rules unconfirmed.",
+      "candidate_auction_budget": 200,
+      "auction_budget": 200,
+      "budget_status": "Confirmed by the supplied 2026 keeper summary: keeper costs plus remaining budget equal $200 for all 15 teams.",
+      "target_season": "2026-27",
+      "target_season_status": "2026 keeper summary supplied for the upcoming 2026-27 season.",
+      "minimum_bid": null,
+      "keeper_escalation_rule": null,
+      "elimination_schedule": "First elimination a month and a bit into the season; then every one or two weeks until two teams remain. Exact dates not supplied.",
+      "statistics_reset_rule": null,
+      "eliminated_player_acquisition_rule": "Eliminated rosters enter regular waivers. Unclaimed players enter a sniper draft in reverse original waiver order.",
+      "games_or_start_limits": 1000,
+      "roster_move_limit": 100,
+      "waiver_order_rule": "Order selected before the season. No team repeats an earlier year's position within the 15-year cycle; reset in year 16. Actual orders not supplied.",
+      "historical_manager_identity": "Sheet names identify franchise histories, not necessarily the manager in older seasons. Tracking headers are preserved separately."
+    }
+  },
+  "validation": {
+    "selected_model": "ridge",
+    "development": {
+      "mean": {
+        "n": 890,
+        "mae": 9.59841929316651,
+        "rmse": 13.107643298518683,
+        "bias": -0.02562917349222612
+      },
+      "score_curve": {
+        "n": 890,
+        "mae": 5.33648074018656,
+        "rmse": 7.5940106321531315,
+        "bias": -0.1442348413917061
+      },
+      "ridge": {
+        "n": 890,
+        "mae": 5.096217291850025,
+        "rmse": 7.368621600158118,
+        "bias": -0.12337194295091308
+      },
+      "comps": {
+        "n": 890,
+        "mae": 5.415470372273604,
+        "rmse": 7.7686475279069205,
+        "bias": -1.5652792127713706
+      },
+      "blend": {
+        "n": 890,
+        "mae": 5.0996745221536495,
+        "rmse": 7.275462211310888,
+        "bias": -0.877207725365765
+      }
+    },
+    "holdout": {
+      "mean": {
+        "n": 541,
+        "mae": 10.040315997324106,
+        "rmse": 13.407515729264965,
+        "bias": -0.4028111246530086
+      },
+      "score_curve": {
+        "n": 541,
+        "mae": 5.328003868273209,
+        "rmse": 7.580505846815372,
+        "bias": -0.45329054550982784
+      },
+      "ridge": {
+        "n": 541,
+        "mae": 4.859145014473355,
+        "rmse": 7.0349264301836705,
+        "bias": -0.38320435669355823
+      },
+      "comps": {
+        "n": 541,
+        "mae": 5.122882526938976,
+        "rmse": 7.56404800749542,
+        "bias": -1.4429845459271853
+      },
+      "blend": {
+        "n": 541,
+        "mae": 4.863112348016268,
+        "rmse": 7.06850044896678,
+        "bias": -0.9563043595387438
+      }
+    },
+    "holdout_by_actual_price_tier": {
+      "under_10": {
+        "n": 317,
+        "mae": 3.326276626493885,
+        "rmse": 4.770526407167618,
+        "bias": 2.848509525891948
+      },
+      "10_to_30": {
+        "n": 164,
+        "mae": 4.800086477601358,
+        "rmse": 6.207587343867593,
+        "bias": -2.6743782933254767
+      },
+      "30_plus": {
+        "n": 60,
+        "mae": 13.119226331748344,
+        "rmse": 14.855039729877227,
+        "bias": -11.194883942893073
+      }
+    },
+    "holdout_interval_coverage": 0.7818853974121996,
+    "holdout_first_season": "2023-24",
+    "by_season": {
+      "2018-19": {
+        "n": 177,
+        "mae": 4.984747835599587,
+        "rmse": 7.781949077934537,
+        "bias": -0.300963329401354
+      },
+      "2019-20": {
+        "n": 178,
+        "mae": 5.227935253703241,
+        "rmse": 7.910345201187286,
+        "bias": -0.0707680343999371
+      },
+      "2020-21": {
+        "n": 178,
+        "mae": 4.918243080814305,
+        "rmse": 6.572306076518477,
+        "bias": -0.3100539000755867
+      },
+      "2021-22": {
+        "n": 181,
+        "mae": 5.306203457241668,
+        "rmse": 7.315997256808818,
+        "bias": 0.10325386305449293
+      },
+      "2022-23": {
+        "n": 176,
+        "mae": 5.039150304207561,
+        "rmse": 7.1867986250279365,
+        "bias": -0.04223389090052825
+      },
+      "2023-24": {
+        "n": 183,
+        "mae": 4.614855615602904,
+        "rmse": 6.091942644641435,
+        "bias": -0.13834868917335227
+      },
+      "2024-25": {
+        "n": 178,
+        "mae": 4.765843824134266,
+        "rmse": 7.236972454135158,
+        "bias": -0.5237099186708947
+      },
+      "2025-26": {
+        "n": 180,
+        "mae": 5.199770413771412,
+        "rmse": 7.695672875549834,
+        "bias": -0.4931965629392905
+      }
+    },
+    "interpretation": "Out-of-season price tests use prior-year actuals, not archived preseason projections. Rookies and low-sample players without prior stats are excluded. Current projection-based estimates are not independently validated.",
+    "training_rows": 1991,
+    "unmatched_or_low_sample_rows": 182,
+    "historical_sales": 2173,
+    "remaining_budget": 2210,
+    "remaining_slots": 195,
+    "projected_players": 500,
+    "neutral_allocation": {
+      "replacement_score": 0.0,
+      "slots": 225,
+      "budget": 3000,
+      "exponent": 1,
+      "minimum_bid": 1,
+      "discretionary_budget": 2775.0,
+      "dollars_per_score": 5.09536835577768
+    },
+    "rate_reference": {
+      "pool_size": 225,
+      "selection": "highest minutes per game among eligible players",
+      "fg_baseline": 0.47564996211851723,
+      "ft_baseline": 0.7917368670711469,
+      "means": {
+        "PTS": 13.972489586343935,
+        "REB": 4.872568147696432,
+        "AST": 3.177746564190301,
+        "STL": 0.9009968422036115,
+        "BLK": 0.5400512163200444,
+        "3PM": 1.4935670508780614,
+        "FG%": 1.8257000849391462e-16,
+        "FT%": 1.4679615547821513e-17
+      },
+      "standard_deviations": {
+        "PTS": 5.8337145044574585,
+        "REB": 2.291396157080638,
+        "AST": 1.8471473637878504,
+        "STL": 0.32370058937126694,
+        "BLK": 0.4076006379816578,
+        "3PM": 0.873019566750403,
+        "FG%": 0.5318831649163424,
+        "FT%": 0.2798691223874008
+      }
+    },
+    "survivor_scenarios": {
+      "faster": {
+        "name": "faster",
+        "stages": [
+          {
+            "teams": 15,
+            "start_week": 0,
+            "end_week": 5,
+            "fraction": 0.20114942528735633,
+            "replacement_depth": 225,
+            "replacement_score": -5.239216384451486,
+            "game_utilization": 0.8677642920778906,
+            "neutral_games_per_team": 201.1494252873563,
+            "expected_moves_used": 0.0
+          },
+          {
+            "teams": 14,
+            "start_week": 5,
+            "end_week": 6,
+            "fraction": 0.040229885057471264,
+            "replacement_depth": 210,
+            "replacement_score": -4.652460783185996,
+            "game_utilization": 0.8596498768858569,
+            "neutral_games_per_team": 40.229885057471265,
+            "expected_moves_used": 1.0
+          },
+          {
+            "teams": 13,
+            "start_week": 6,
+            "end_week": 7,
+            "fraction": 0.040229885057471264,
+            "replacement_depth": 195,
+            "replacement_score": -4.1525356212406725,
+            "game_utilization": 0.8604371020478403,
+            "neutral_games_per_team": 40.229885057471265,
+            "expected_moves_used": 2.071428571428571
+          },
+          {
+            "teams": 12,
+            "start_week": 7,
+            "end_week": 8,
+            "fraction": 0.040229885057471264,
+            "replacement_depth": 180,
+            "replacement_score": -3.690989878255584,
+            "game_utilization": 0.8600732495717552,
+            "neutral_games_per_team": 40.229885057471265,
+            "expected_moves_used": 3.225274725274725
+          },
+          {
+            "teams": 11,
+            "start_week": 8,
+            "end_week": 9,
+            "fraction": 0.040229885057471264,
+            "replacement_depth": 165,
+            "replacement_score": -3.0518863453323415,
+            "game_utilization": 0.8608074373762589,
+            "neutral_games_per_team": 40.229885057471265,
+            "expected_moves_used": 4.4752747252747245
+          },
+          {
+            "teams": 10,
+            "start_week": 9,
+            "end_week": 10,
+            "fraction": 0.040229885057471264,
+            "replacement_depth": 150,
+            "replacement_score": -2.2943904371403576,
+            "game_utilization": 0.8612448432965006,
+            "neutral_games_per_team": 40.22988505747126,
+            "expected_moves_used": 5.838911088911088
+          },
+          {
+            "teams": 9,
+            "start_week": 10,
+            "end_week": 11,
+            "fraction": 0.040229885057471264,
+            "replacement_depth": 135,
+            "replacement_score": -1.3223450695082288,
+            "game_utilization": 0.8589835361488904,
+            "neutral_games_per_team": 40.229885057471265,
+            "expected_moves_used": 7.338911088911088
+          },
+          {
+            "teams": 8,
+            "start_week": 11,
+            "end_week": 12,
+            "fraction": 0.040229885057471264,
+            "replacement_depth": 120,
+            "replacement_score": -0.5681033913355757,
+            "game_utilization": 0.8597897813984481,
+            "neutral_games_per_team": 40.22988505747127,
+            "expected_moves_used": 9.005577755577754
+          },
+          {
+            "teams": 7,
+            "start_week": 12,
+            "end_week": 13,
+            "fraction": 0.040229885057471264,
+            "replacement_depth": 105,
+            "replacement_score": -0.07581209338118797,
+            "game_utilization": 0.8612204724409449,
+            "neutral_games_per_team": 40.229885057471265,
+            "expected_moves_used": 10.880577755577754
+          },
+          {
+            "teams": 6,
+            "start_week": 13,
+            "end_week": 14,
+            "fraction": 0.040229885057471264,
+            "replacement_depth": 90,
+            "replacement_score": 0.6666575202592327,
+            "game_utilization": 0.8630361612151549,
+            "neutral_games_per_team": 40.229885057471265,
+            "expected_moves_used": 13.023434898434896
+          },
+          {
+            "teams": 5,
+            "start_week": 14,
+            "end_week": 15,
+            "fraction": 0.040229885057471264,
+            "replacement_depth": 75,
+            "replacement_score": 1.575222678867332,
+            "game_utilization": 0.8604519093427869,
+            "neutral_games_per_team": 40.229885057471265,
+            "expected_moves_used": 15.523434898434896
+          },
+          {
+            "teams": 4,
+            "start_week": 15,
+            "end_week": 16,
+            "fraction": 0.040229885057471264,
+            "replacement_depth": 60,
+            "replacement_score": 2.6354040810077337,
+            "game_utilization": 0.8630175408315175,
+            "neutral_games_per_team": 40.229885057471265,
+            "expected_moves_used": 18.523434898434896
+          },
+          {
+            "teams": 3,
+            "start_week": 16,
+            "end_week": 17,
+            "fraction": 0.040229885057471264,
+            "replacement_depth": 45,
+            "replacement_score": 3.3432528206987167,
+            "game_utilization": 0.8638313801146016,
+            "neutral_games_per_team": 40.229885057471265,
+            "expected_moves_used": 22.273434898434896
+          },
+          {
+            "teams": 2,
+            "start_week": 17,
+            "end_week": 24.857142857142858,
+            "fraction": 0.3160919540229885,
+            "replacement_depth": 30,
+            "replacement_score": 4.466230038629087,
+            "game_utilization": 0.8595126563238643,
+            "neutral_games_per_team": 316.0919540229885,
+            "expected_moves_used": 27.273434898434896
+          }
+        ],
+        "expected_moves_used": 27.273434898434896,
+        "neutral_games_per_team": 1000.0,
+        "conditional_on": "Surviving to the final with neutral access to the improving player pool."
+      },
+      "central": {
+        "name": "central",
+        "stages": [
+          {
+            "teams": 15,
+            "start_week": 0,
+            "end_week": 5.5,
+            "fraction": 0.22126436781609196,
+            "replacement_depth": 225,
+            "replacement_score": -5.239216384451486,
+            "game_utilization": 0.8677642920778906,
+            "neutral_games_per_team": 221.26436781609198,
+            "expected_moves_used": 0.0
+          },
+          {
+            "teams": 14,
+            "start_week": 5.5,
+            "end_week": 7.0,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 210,
+            "replacement_score": -4.652460783185996,
+            "game_utilization": 0.8596498768858569,
+            "neutral_games_per_team": 60.3448275862069,
+            "expected_moves_used": 1.0
+          },
+          {
+            "teams": 13,
+            "start_week": 7.0,
+            "end_week": 8.5,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 195,
+            "replacement_score": -4.1525356212406725,
+            "game_utilization": 0.8604371020478403,
+            "neutral_games_per_team": 60.3448275862069,
+            "expected_moves_used": 2.071428571428571
+          },
+          {
+            "teams": 12,
+            "start_week": 8.5,
+            "end_week": 10.0,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 180,
+            "replacement_score": -3.690989878255584,
+            "game_utilization": 0.8600732495717552,
+            "neutral_games_per_team": 60.34482758620689,
+            "expected_moves_used": 3.225274725274725
+          },
+          {
+            "teams": 11,
+            "start_week": 10.0,
+            "end_week": 11.5,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 165,
+            "replacement_score": -3.0518863453323415,
+            "game_utilization": 0.8608074373762589,
+            "neutral_games_per_team": 60.34482758620689,
+            "expected_moves_used": 4.4752747252747245
+          },
+          {
+            "teams": 10,
+            "start_week": 11.5,
+            "end_week": 13.0,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 150,
+            "replacement_score": -2.2943904371403576,
+            "game_utilization": 0.8612448432965006,
+            "neutral_games_per_team": 60.3448275862069,
+            "expected_moves_used": 5.838911088911088
+          },
+          {
+            "teams": 9,
+            "start_week": 13.0,
+            "end_week": 14.5,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 135,
+            "replacement_score": -1.3223450695082288,
+            "game_utilization": 0.8589835361488904,
+            "neutral_games_per_team": 60.3448275862069,
+            "expected_moves_used": 7.338911088911088
+          },
+          {
+            "teams": 8,
+            "start_week": 14.5,
+            "end_week": 16.0,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 120,
+            "replacement_score": -0.5681033913355757,
+            "game_utilization": 0.8597897813984481,
+            "neutral_games_per_team": 60.34482758620689,
+            "expected_moves_used": 9.005577755577754
+          },
+          {
+            "teams": 7,
+            "start_week": 16.0,
+            "end_week": 17.5,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 105,
+            "replacement_score": -0.07581209338118797,
+            "game_utilization": 0.8612204724409449,
+            "neutral_games_per_team": 60.34482758620689,
+            "expected_moves_used": 10.880577755577754
+          },
+          {
+            "teams": 6,
+            "start_week": 17.5,
+            "end_week": 19.0,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 90,
+            "replacement_score": 0.6666575202592327,
+            "game_utilization": 0.8630361612151549,
+            "neutral_games_per_team": 60.3448275862069,
+            "expected_moves_used": 13.023434898434896
+          },
+          {
+            "teams": 5,
+            "start_week": 19.0,
+            "end_week": 20.5,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 75,
+            "replacement_score": 1.575222678867332,
+            "game_utilization": 0.8604519093427869,
+            "neutral_games_per_team": 60.3448275862069,
+            "expected_moves_used": 15.523434898434896
+          },
+          {
+            "teams": 4,
+            "start_week": 20.5,
+            "end_week": 22.0,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 60,
+            "replacement_score": 2.6354040810077337,
+            "game_utilization": 0.8630175408315175,
+            "neutral_games_per_team": 60.3448275862069,
+            "expected_moves_used": 18.523434898434896
+          },
+          {
+            "teams": 3,
+            "start_week": 22.0,
+            "end_week": 23.5,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 45,
+            "replacement_score": 3.3432528206987167,
+            "game_utilization": 0.8638313801146016,
+            "neutral_games_per_team": 60.3448275862069,
+            "expected_moves_used": 22.273434898434896
+          },
+          {
+            "teams": 2,
+            "start_week": 23.5,
+            "end_week": 24.857142857142858,
+            "fraction": 0.054597701149425304,
+            "replacement_depth": 30,
+            "replacement_score": 4.466230038629087,
+            "game_utilization": 0.8595126563238643,
+            "neutral_games_per_team": 54.597701149425305,
+            "expected_moves_used": 27.273434898434896
+          }
+        ],
+        "expected_moves_used": 27.273434898434896,
+        "neutral_games_per_team": 1000.0,
+        "conditional_on": "Surviving to the final with neutral access to the improving player pool."
+      },
+      "slower": {
+        "name": "slower",
+        "stages": [
+          {
+            "teams": 15,
+            "start_week": 0,
+            "end_week": 6.0,
+            "fraction": 0.24137931034482757,
+            "replacement_depth": 225,
+            "replacement_score": -5.239216384451486,
+            "game_utilization": 0.8677642920778906,
+            "neutral_games_per_team": 241.37931034482756,
+            "expected_moves_used": 0.0
+          },
+          {
+            "teams": 14,
+            "start_week": 6.0,
+            "end_week": 7.5,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 210,
+            "replacement_score": -4.652460783185996,
+            "game_utilization": 0.8596498768858569,
+            "neutral_games_per_team": 60.3448275862069,
+            "expected_moves_used": 1.0
+          },
+          {
+            "teams": 13,
+            "start_week": 7.5,
+            "end_week": 9.0,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 195,
+            "replacement_score": -4.1525356212406725,
+            "game_utilization": 0.8604371020478403,
+            "neutral_games_per_team": 60.3448275862069,
+            "expected_moves_used": 2.071428571428571
+          },
+          {
+            "teams": 12,
+            "start_week": 9.0,
+            "end_week": 10.5,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 180,
+            "replacement_score": -3.690989878255584,
+            "game_utilization": 0.8600732495717552,
+            "neutral_games_per_team": 60.34482758620689,
+            "expected_moves_used": 3.225274725274725
+          },
+          {
+            "teams": 11,
+            "start_week": 10.5,
+            "end_week": 12.0,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 165,
+            "replacement_score": -3.0518863453323415,
+            "game_utilization": 0.8608074373762589,
+            "neutral_games_per_team": 60.34482758620689,
+            "expected_moves_used": 4.4752747252747245
+          },
+          {
+            "teams": 10,
+            "start_week": 12.0,
+            "end_week": 13.5,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 150,
+            "replacement_score": -2.2943904371403576,
+            "game_utilization": 0.8612448432965006,
+            "neutral_games_per_team": 60.3448275862069,
+            "expected_moves_used": 5.838911088911088
+          },
+          {
+            "teams": 9,
+            "start_week": 13.5,
+            "end_week": 15.0,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 135,
+            "replacement_score": -1.3223450695082288,
+            "game_utilization": 0.8589835361488904,
+            "neutral_games_per_team": 60.3448275862069,
+            "expected_moves_used": 7.338911088911088
+          },
+          {
+            "teams": 8,
+            "start_week": 15.0,
+            "end_week": 16.5,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 120,
+            "replacement_score": -0.5681033913355757,
+            "game_utilization": 0.8597897813984481,
+            "neutral_games_per_team": 60.34482758620689,
+            "expected_moves_used": 9.005577755577754
+          },
+          {
+            "teams": 7,
+            "start_week": 16.5,
+            "end_week": 18.0,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 105,
+            "replacement_score": -0.07581209338118797,
+            "game_utilization": 0.8612204724409449,
+            "neutral_games_per_team": 60.34482758620689,
+            "expected_moves_used": 10.880577755577754
+          },
+          {
+            "teams": 6,
+            "start_week": 18.0,
+            "end_week": 19.5,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 90,
+            "replacement_score": 0.6666575202592327,
+            "game_utilization": 0.8630361612151549,
+            "neutral_games_per_team": 60.3448275862069,
+            "expected_moves_used": 13.023434898434896
+          },
+          {
+            "teams": 5,
+            "start_week": 19.5,
+            "end_week": 21.0,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 75,
+            "replacement_score": 1.575222678867332,
+            "game_utilization": 0.8604519093427869,
+            "neutral_games_per_team": 60.3448275862069,
+            "expected_moves_used": 15.523434898434896
+          },
+          {
+            "teams": 4,
+            "start_week": 21.0,
+            "end_week": 22.5,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 60,
+            "replacement_score": 2.6354040810077337,
+            "game_utilization": 0.8630175408315175,
+            "neutral_games_per_team": 60.3448275862069,
+            "expected_moves_used": 18.523434898434896
+          },
+          {
+            "teams": 3,
+            "start_week": 22.5,
+            "end_week": 24.0,
+            "fraction": 0.06034482758620689,
+            "replacement_depth": 45,
+            "replacement_score": 3.3432528206987167,
+            "game_utilization": 0.8638313801146016,
+            "neutral_games_per_team": 60.3448275862069,
+            "expected_moves_used": 22.273434898434896
+          },
+          {
+            "teams": 2,
+            "start_week": 24.0,
+            "end_week": 24.857142857142858,
+            "fraction": 0.034482758620689676,
+            "replacement_depth": 30,
+            "replacement_score": 4.466230038629087,
+            "game_utilization": 0.8595126563238643,
+            "neutral_games_per_team": 34.48275862068967,
+            "expected_moves_used": 27.273434898434896
+          }
+        ],
+        "expected_moves_used": 27.273434898434896,
+        "neutral_games_per_team": 1000.0,
+        "conditional_on": "Surviving to the final with neutral access to the improving player pool."
+      }
+    },
+    "retention_audit": {
+      "bands": {
+        "top_30": {
+          "opening": 40,
+          "on_same_final_roster": 27
+        },
+        "31_to_100": {
+          "opening": 98,
+          "on_same_final_roster": 32
+        },
+        "101_plus": {
+          "opening": 145,
+          "on_same_final_roster": 6
+        },
+        "no_prior_sample": {
+          "opening": 17,
+          "on_same_final_roster": 3
+        }
+      },
+      "seasons": [
+        "2015-16",
+        "2017-18",
+        "2018-19",
+        "2019-20",
+        "2020-21",
+        "2021-22",
+        "2022-23",
+        "2023-24",
+        "2024-25",
+        "2025-26"
+      ],
+      "excluded_seasons": [
+        "2016-17"
+      ],
+      "interpretation": "Only finalists, classified by preceding-season per-game rank. Matching opening and final snapshots does not prove continuous ownership. This descriptive audit is not used to fit replacement dates or prices."
+    },
+    "neutral_value_basis": "Equal category weights; linear allocation of positive survivor value above replacement. No historical price fitting, star multiplier or category punt. Scenario estimate, not an empirically validated optimum.",
+    "market_price_basis": "Conditional on selection at auction; current keeper-adjusted discretionary dollars per slot. Individual estimates are not a simultaneous $2,210 auction allocation.",
+    "interval": {
+      "nominal": 0.8,
+      "basis": "Absolute normalized out-of-season price errors, grouped by predicted price tier; descriptive error band, not a guaranteed confidence interval."
+    },
+    "market_coefficients": {
+      "features": [
+        "PTS",
+        "REB",
+        "AST",
+        "STL",
+        "BLK",
+        "3PM",
+        "FG%",
+        "FT%",
+        "positive_score_squared/8"
+      ],
+      "standardized_coefficients": [
+        1.0090738470913028,
+        0.45811286184323663,
+        0.14684819277611544,
+        0.21600921587865723,
+        0.070755695619077,
+        0.20602415861736179,
+        0.06593034716958983,
+        0.23287539685560585,
+        0.14639263233116484,
+        0.34127325136471426
+      ],
+      "feature_means": [
+        -0.15228722560165572,
+        -0.001381364517105849,
+        -0.12565175704448853,
+        -0.123982954812269,
+        0.04224494047307529,
+        -0.14610875951333668,
+        0.08145818581683832,
+        -0.08401204413258472,
+        0.7620329870460772
+      ],
+      "feature_scales": [
+        0.9268657587417846,
+        0.9641280176879982,
+        0.9821508563350209,
+        1.0231726259775173,
+        0.961335395070226,
+        1.0472013987235307,
+        0.9850413056696046,
+        0.9731604220012477,
+        2.595596664117721
+      ]
+    }
+  },
+  "training_cutoff": "2025-26"
+}

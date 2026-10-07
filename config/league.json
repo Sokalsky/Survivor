@@ -14,9 +14,11 @@
   "target_season_status": "2026 keeper summary supplied for the upcoming 2026-27 season.",
   "minimum_bid": null,
   "keeper_escalation_rule": null,
-  "elimination_schedule": null,
+  "elimination_schedule": "First elimination a month and a bit into the season; then every one or two weeks until two teams remain. Exact dates not supplied.",
   "statistics_reset_rule": null,
-  "eliminated_player_acquisition_rule": null,
-  "games_or_start_limits": null,
+  "eliminated_player_acquisition_rule": "Eliminated rosters enter regular waivers. Unclaimed players enter a sniper draft in reverse original waiver order.",
+  "games_or_start_limits": 1000,
+  "roster_move_limit": 100,
+  "waiver_order_rule": "Order selected before the season. No team repeats an earlier year's position within the 15-year cycle; reset in year 16. Actual orders not supplied.",
   "historical_manager_identity": "Sheet names identify franchise histories, not necessarily the manager in older seasons. Tracking headers are preserved separately."
 }

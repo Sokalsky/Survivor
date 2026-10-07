@@ -68,7 +68,35 @@ def main():
         page.screenshot(path=str(output/'projections-mobile.png'),full_page=False,animations='disabled')
         page.set_viewport_size({'width':1440,'height':1050})
         page.locator('[data-view="valuations"]').click()
-        expect(page.locator('.empty-state')).to_contain_text('No calculated valuations')
+        expect(page.locator('#data-count')).to_have_text('470')
+        expect(page.locator('#data-table thead')).to_contain_text('SURVIVOR VALUE')
+        expect(page.locator('#data-table thead')).to_contain_text('EXPECTED LEAGUE PRICE')
+        expect(page.locator('#data-table thead')).to_contain_text('NEUTRAL AUCTION VALUE')
+        expect(page.locator('#data-table')).not_to_contain_text('Nikola Jokic')
+        page.screenshot(path=str(output/'valuations-desktop.png'),full_page=False)
+        page.locator('#valuation-method summary').click()
+        expect(page.locator('#valuation-method')).to_contain_text('541 purchases')
+        expect(page.locator('#valuation-method')).to_contain_text('stars were underpriced')
+        page.locator('#valuation-method summary').click()
+        page.locator('#draft-filter').select_option('kept')
+        expect(page.locator('#data-count')).to_have_text('30')
+        with page.expect_download() as download:
+            page.locator('#values-export').click()
+        download.value.save_as(str(output/'browser-valuations.csv'))
+        page.locator('#data-search').fill('Jokic')
+        expect(page.locator('#data-count')).to_have_text('1')
+        page.locator('#data-table .player-button').click()
+        expect(page.locator('.category-row')).to_have_count(8)
+        expect(page.locator('.comps-table tbody tr')).to_have_count(5)
+        expect(page.locator('.scenario-grid .projection-stat')).to_have_count(3)
+        expect(page.locator('#player-content')).to_contain_text('Hypothetical price if available')
+        page.screenshot(path=str(output/'valuation-player.png'),full_page=True)
+        page.keyboard.press('Escape')
+        page.set_viewport_size({'width':390,'height':844})
+        expect(page.locator('#sidebar')).to_have_css('transform','matrix(1, 0, 0, 1, -244, 0)')
+        assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'), 'Valuations overflow mobile'
+        page.screenshot(path=str(output/'valuations-mobile.png'),full_page=False,animations='disabled')
+        page.set_viewport_size({'width':1440,'height':1050})
         page.locator('[data-view="rosters"]').click()
         page.locator('#season-select').select_option('2025-26')
         page.locator('#team-filter').select_option('Max')
@@ -119,7 +147,7 @@ def main():
         bootstrap['runs']=[run]
         projection={'player_id':'nikolajokic','player':'Nikola Jokic','nba_team':'TEST','positions':'C','games':65,'minutes_pg':30,'pts_pg':20,'reb_pg':10,'ast_pg':3,'stl_pg':1,'blk_pg':2,'fg3m_pg':1,'fgm_pg':8,'fga_pg':15,'ftm_pg':3,'fta_pg':4,'draft_status':'kept','keeper_franchise':'Max','confirmed_keeper_cost':88}
         available_projection={**projection,'player_id':'giannisantetokounmpo','player':'Giannis Antetokounmpo','draft_status':'available','keeper_franchise':None,'confirmed_keeper_cost':None}
-        valuation={'player_id':'nikolajokic','player':'Nikola Jokic','fair_value':90,'expected_auction_price':88,'recommended_bid_ceiling':89,'lower_estimate':80,'upper_estimate':95,'keeper_cost':85,'keeper_surplus':5,'draft_status':'kept','keeper_franchise':'Max','confirmed_keeper_cost':88}
+        valuation={'run_id':'browser-run','player_id':'nikolajokic','player':'Nikola Jokic','fair_value':90,'expected_auction_price':88,'recommended_bid_ceiling':None,'lower_estimate':80,'upper_estimate':95,'keeper_cost':85,'keeper_surplus':5,'draft_status':'kept','keeper_franchise':'Max','confirmed_keeper_cost':88,'category_values_json':'{"score":12.34}'}
         available_value={**valuation,'player_id':'giannisantetokounmpo','player':'Giannis Antetokounmpo','draft_status':'available','keeper_franchise':None,'confirmed_keeper_cost':None,'fair_value':65,'recommended_bid_ceiling':68}
         page.route('**/api/bootstrap',lambda route:route.fulfill(json=bootstrap))
         page.route('**/api/projections?*',lambda route:route.fulfill(json={'dataset':dataset,'rows':[projection,available_projection]}))
@@ -141,19 +169,21 @@ def main():
         page.locator('[data-view="valuations"]').click()
         expect(page.locator('#draft-filter')).to_have_value('available')
         expect(page.locator('#data-table')).not_to_contain_text('Nikola Jokic')
-        expect(page.locator('#data-table')).to_contain_text('$68')
+        expect(page.locator('#data-table')).to_contain_text('$65')
         page.locator('#draft-filter').select_option('kept')
         expect(page.locator('#data-table')).to_contain_text('$90')
         expect(page.locator('#data-table')).to_contain_text('$88')
-        expect(page.locator('#data-table tbody td').nth(3)).to_have_text('—')
-        expect(page.locator('#data-table tbody td').nth(6)).to_have_text('$2')
+        expect(page.locator('#data-table tbody td').nth(1)).to_contain_text('12.34')
+        expect(page.locator('#data-table tbody td').nth(3)).to_contain_text('$90')
         expect(page.locator('#dataset-select')).to_have_value('browser-run')
         player=page.request.get(args.url+'/api/players/nikolajokic').json()
         player['valuations']=[{**valuation,'season':'2026-27','risk_notes':'Synthetic browser test only'}]
         page.route('**/api/players/nikolajokic',lambda route:route.fulfill(json=player))
         page.locator('#data-table .player-button').click()
         expect(page.locator('#player-name')).to_have_text('Nikola Jokic')
-        expect(page.locator('.drawer-metrics').nth(1).locator('strong').nth(2)).to_have_text('—')
+        expect(page.locator('.valuation-metrics strong').nth(0)).to_have_text('12.34')
+        expect(page.locator('.valuation-metrics strong').nth(2)).to_have_text('$90')
+        expect(page.locator('#player-content')).to_contain_text('Neutral keeper surplus: $2')
         page.locator('#close-player').click()
         older={**dataset,'dataset_id':'older-browser-test','season':'2025-26'}
         unknown_projection={**projection,'draft_status':'unknown','keeper_franchise':None,'confirmed_keeper_cost':None}
@@ -163,7 +193,7 @@ def main():
         expect(page.locator('.availability-note')).to_contain_text('2025–26')
         expect(page.locator('#data-table')).to_contain_text('Keeper list not supplied')
         assert not errors, errors
-        print('PASS: desktop/mobile layouts, history filters, player drawer, CSV, pagination, empty/populated boards, keeper ownership and budgets, availability filters, season isolation, rosters and notes. No browser errors.')
+        print('PASS: desktop/mobile layouts, history, three valuation outputs, formula notes, category bars, real comps, scenarios, CSV downloads, synthetic fixtures, keeper budgets, availability, season isolation. No browser errors.')
         browser.close()
 
 

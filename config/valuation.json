@@ -1,0 +1,32 @@
+{
+  "model_version": "survivor-8cat-v1",
+  "roster_size": 15,
+  "minimum_bid": 1,
+  "minimum_bid_basis": "Working assumption; lowest recorded auction purchase is $1. Formal rule not confirmed.",
+  "reference_pool_size": 225,
+  "historical_minimum_games": 10,
+  "recency_decay": 0.9,
+  "ridge_penalty": 20,
+  "neighbors": 20,
+  "development_first_season": "2018-19",
+  "holdout_first_season": "2023-24",
+  "interval_coverage": 0.8,
+  "category_weights": {"PTS":1,"REB":1,"AST":1,"STL":1,"BLK":1,"3PM":1,"FG%":1,"FT%":1},
+  "survivor": {
+    "season_weeks": 24.857142857142858,
+    "season_length_basis": "NBA calendar October 20, 2026 through April 11, 2027 inclusive; assumes the league uses the full regular season.",
+    "calendar_source": "https://pr.nba.com/2026-27-nba-regular-season-schedule/",
+    "scenarios": [
+      {"name":"faster","first_cut_week":5,"cut_interval_weeks":1},
+      {"name":"central","first_cut_week":5.5,"cut_interval_weeks":1.5},
+      {"name":"slower","first_cut_week":6,"cut_interval_weeks":1.5}
+    ],
+    "schedule_basis": "Illustrative elimination schedules, not confirmed dates or probabilities. Thirteen cuts leave two teams; a two-week cadence throughout would exceed this season's length.",
+    "availability_basis": "Published games spread uniformly through the season; dated injuries, NBA game schedules and lineup limits are not available.",
+    "replacement_basis": "Balanced neutral rosters: after each cut, replacement depth follows remaining teams times 15 roster slots. Category scores stay on the original scale. Final two teams imply a top-30 pool; this is a scenario, not guaranteed waiver access.",
+    "moves_basis": "Neutral pool turnover costs 15 / teams_before_cut expected acquisitions per surviving team. Stop improving replacement depth when the 100-move allowance is exhausted. Actual waivers, sniper picks and move usage are not simulated.",
+    "scoring_basis": "Cumulative contribution conditional on reaching the final; no assumed elimination probability or statistics reset."
+  },
+  "horizon": "Per-game category advantage integrated above rising replacement levels, using published availability and a shared 1,000-game pacing limit.",
+  "market_basis": "Historical prices use preceding-season per-game stats. Current estimates use published projected per-game stats. Historical preseason projections are unavailable."
+}
