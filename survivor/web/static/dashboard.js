@@ -11,7 +11,7 @@ const seasonLabel = value => String(value ?? "").replace("-", "–");
 const dateLabel = value => value ? new Date(value).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric",timeZone:"UTC"}) : "—";
 const initials = name => String(name).split(/\s+/).filter(Boolean).map(s => s[0]).slice(0,2).join("");
 const badge = type => `<span class="tag ${type === 'keeper' ? 'keeper' : type === 'auction' ? 'auction' : 'final'}">${type === 'keeper' ? 'Keeper' : type === 'auction' ? 'Auction' : 'Final roster'}</span>`;
-const state = {view:"history", season:"", team:"", kind:"all", q:"", sort:"price_desc", page:1, bootstrap:null, history:null, dataset:"", run:"", dataRows:[], dataSort:"", sequence:0, tableSequence:0, playerSequence:0};
+const state = {view:"history", season:"", team:"", kind:"all", q:"", sort:"price", direction:"desc", position:"", page:1, bootstrap:null, history:null, dataset:"", run:"", dataRows:[], dataSort:"", sequence:0, tableSequence:0, playerSequence:0};
 const views = {
   history:{title:"Price history",eyebrow:"THE LEAGUE ARCHIVE",description:"Know what the room pays. Find where the value lives."},
   projections:{title:"Player projections",eyebrow:"THE SEASON AHEAD",description:"Eight categories. A clearer picture of what comes next."},
@@ -45,7 +45,7 @@ function playerButton(row) {
   const type=row.acquisition_class;
   const status=row.draft_status;
   const availability=status ? `<small class="draft-status ${status==='kept'?'keeper-text':''}">${status==='kept'?`Kept · ${esc(row.keeper_franchise)} · ${money(row.confirmed_keeper_cost)}`:status==='available'?'Available to draft':'Keeper list not supplied'}</small>` : '';
-  return `<button class="player-button" data-player="${esc(row.player_id)}"><span class="player-initials">${esc(initials(row.player))}</span><span>${esc(row.player)}${availability}${type?`<small class="mobile-entry-type ${type==='keeper'?'keeper-text':''}">${type==='keeper'?'Keeper':type==='auction'?'Auction':'Final roster'}</small>`:''}</span></button>`;
+  return `<button class="player-button" data-player="${esc(row.player_id)}"><span class="player-initials">${esc(initials(row.player))}</span><span>${esc(row.player)}${row.positions?`<small class="player-position">${esc(row.positions.replaceAll(","," / "))}${row.nba_team?" · "+esc(row.nba_team):""}</small>`:""}${availability}${type?`<small class="mobile-entry-type ${type==='keeper'?'keeper-text':''}">${type==='keeper'?'Keeper':type==='auction'?'Auction':'Final roster'}</small>`:''}</span></button>`;
 }
 
 function setNavigation() {
@@ -53,8 +53,6 @@ function setNavigation() {
   document.title = `${view.title} · Survivor`;
   $("#page-title").innerHTML = `${view.title}<span>.</span>`;
   $("#breadcrumb-view").textContent = view.title;
-  $("#page-description").textContent = view.description;
-  $("#page-eyebrow").textContent = view.eyebrow;
   document.querySelectorAll("[data-view]").forEach(link => {
     link.classList.toggle("active", link.dataset.view === state.view);
     if (link.dataset.view === state.view) link.setAttribute("aria-current", "page");
@@ -92,32 +90,58 @@ function overviewHTML(data) {
     <div class="stat"><div class="stat-label">Highest auction bid ${icon('history')}</div><div class="stat-value">${money(data.top_bid)}</div><div class="stat-note">${esc(data.leaders[0]?.player || 'No auction records')}</div></div>
   </section>
   <div class="insights-grid">
-    <section class="panel"><div class="panel-heading"><div><h2 class="panel-title">Where the money goes</h2><p class="panel-subtitle">Players bought at each price point</p></div><span class="mini-label">${esc(title)}</span></div><div class="price-chart">${distributionChart(data)}</div><div class="chart-caption"><span>Every price tier has a role to play.</span><span>Auction purchases only</span></div></section>
-    <section class="panel"><div class="panel-heading"><div><h2 class="panel-title">The biggest bids</h2><p class="panel-subtitle">The room paid a premium for these players</p></div>${icon('arrow')}</div><div class="leader-list">${data.leaders.map((row,i) => `<button class="leader" data-player="${esc(row.player_id)}"><span class="leader-number">0${i+1}</span><span class="player-initials">${esc(initials(row.player))}</span><span class="leader-name">${esc(row.player)}<span class="leader-team">${esc(row.franchise_sheet)}${data.season==='all' ? ' · '+esc(seasonLabel(row.season)) : ''}</span></span><span class="leader-price">${money(row.recorded_cost)}</span>${icon('chevron')}</button>`).join('') || '<div class="no-results">No auction records for this season.</div>'}</div></section>
+    <section class="panel"><div class="panel-heading"><div><h2 class="panel-title">Where the money goes</h2></div><span class="mini-label">${esc(title)}</span></div><div class="price-chart">${distributionChart(data)}</div><div class="chart-caption"><span>Every price tier has a role to play.</span><span>Auction purchases only</span></div></section>
+    <section class="panel"><div class="panel-heading"><div><h2 class="panel-title">The biggest bids</h2></div>${icon('arrow')}</div><div class="leader-list">${data.leaders.map((row,i) => `<button class="leader" data-player="${esc(row.player_id)}"><span class="leader-number">0${i+1}</span><span class="player-initials">${esc(initials(row.player))}</span><span class="leader-name">${esc(row.player)}<span class="leader-team">${esc(row.franchise_sheet)}${data.season==='all' ? ' · '+esc(seasonLabel(row.season)) : ''}</span></span><span class="leader-price">${money(row.recorded_cost)}</span>${icon('chevron')}</button>`).join('') || '<div class="no-results">No auction records for this season.</div>'}</div></section>
   </div>`;
 }
 
+
+const tableColumns = [
+  ['player','Player','text'],['positions','Position','text'],['nba_team','Team','text'],
+  ['survivor_score','Survivor value','score'],['expected_auction_price','Expected league price','money'],
+  ['fair_value','Neutral auction value','money'],['confirmed_keeper_surplus','Keeper surplus','money'],
+  ['games','GP','integer'],['minutes_pg','MIN','number'],['pts_pg','PTS','number'],['reb_pg','REB','number'],
+  ['ast_pg','AST','number'],['stl_pg','STL','number'],['blk_pg','BLK','number'],['fg3m_pg','3PM','number'],
+  ['fg_pct','FG%','percent'],['ft_pct','FT%','percent'],['fgm_pg','FGM','number'],['fga_pg','FGA','number'],
+  ['ftm_pg','FTM','number'],['fta_pg','FTA','number']
+];
+const normalizedName = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+function positionOptions(selected='') {
+  return [['','All positions'],['PG','PG'],['SG','SG'],['SF','SF'],['PF','PF'],['C','C'],['G','All guards'],['F','All forwards'],['unknown','Position unavailable']].map(([key,label])=>`<option value="${key}" ${key===selected?'selected':''}>${label}</option>`).join('');
+}
+function hasPosition(value, selected) {
+  if (!selected) return true;
+  const tokens=String(value || '').toUpperCase().match(/[A-Z]+/g) || [];
+  if (selected==='unknown') return !tokens.length;
+  return tokens.some(t=>(selected==='G'?['G','PG','SG']:selected==='F'?['F','SF','PF']:[selected]).includes(t));
+}
+function sortHeader(key,label,sort,direction,scope='data',numeric=true) {
+  const active=sort===key;
+  return `<th ${numeric?'class="right"':''} aria-sort="${active?(direction==='asc'?'ascending':'descending'):'none'}"><button class="column-sort" data-sort-scope="${scope}" data-sort-key="${key}">${esc(label.toUpperCase())}<span aria-hidden="true">${active?(direction==='asc'?' ↑':' ↓'):' ↕'}</span></button></th>`;
+}
+
 function filtersHTML() {
-  const roster = state.view === 'rosters';
-  const options = roster ? [['all','Opening rosters'],['final','Final rosters']] : [['all','All prices'],['auction','Auction'],['keeper','Keepers']];
+  const roster=state.view==='rosters';
+  const options=roster?[['all','Opening rosters'],['final','Final rosters']]:[['all','All prices'],['auction','Auction'],['keeper','Keepers']];
   return `<div class="filter-row"><label class="search-box">${icon('search')}<input id="player-search" type="search" placeholder="Search players…" aria-label="Search players" value="${esc(state.q)}"></label>
-    <div class="segmented" aria-label="Entry type">${options.map(([value,label]) => `<button data-kind="${value}" class="${state.kind===value?'active':''}" aria-pressed="${state.kind===value}">${label}</button>`).join('')}</div>
-    <select class="select-filter" id="team-filter" aria-label="Franchise"><option value="">All franchises</option>${state.bootstrap.teams.map(team => `<option ${state.team===team?'selected':''} value="${esc(team)}">${esc(team)}</option>`).join('')}</select>
-    <select class="select-filter sort-filter" id="sort-filter" aria-label="Sort prices">${[['price_desc','Price: high to low'],['price_asc','Price: low to high'],['player','Player: A–Z'],['season','Most recent'],['team','Franchise: A–Z']].map(([value,label]) => `<option value="${value}" ${state.sort===value?'selected':''}>${label}</option>`).join('')}</select></div>`;
+    <div class="segmented" aria-label="Entry type">${options.map(([value,label])=>`<button data-kind="${value}" class="${state.kind===value?'active':''}" aria-pressed="${state.kind===value}">${label}</button>`).join('')}</div>
+    <select class="select-filter" id="history-position" aria-label="Position">${positionOptions(state.position)}</select>
+    <select class="select-filter" id="team-filter" aria-label="Franchise"><option value="">All franchises</option>${state.bootstrap.teams.map(t=>`<option value="${esc(t)}" ${state.team===t?'selected':''}>${esc(t)}</option>`).join('')}</select>
+    <select class="select-filter" id="sort-filter" aria-label="Sort prices">${[['price','Price'],['player','Player'],['position','Position'],['season','Season'],['team','Franchise'],['type','Entry type'],['contract','Contract year']].map(([key,label])=>`<option value="${key}" ${state.sort===key?'selected':''}>${label}</option>`).join('')}</select>
+    <select class="select-filter direction-filter" id="history-direction" aria-label="Sort direction"><option value="desc" ${state.direction==='desc'?'selected':''}>Descending</option><option value="asc" ${state.direction==='asc'?'selected':''}>Ascending</option></select></div>`;
 }
 
 function historyPanelHTML() {
-  return `<section class="panel history-panel"><div class="table-title-row"><h2 class="table-heading">${state.view==='rosters'?'The roster book':'The price book'} <span id="results-count" class="count-badge">—</span></h2><a id="export-link" class="text-button" href="/api/history.csv">${icon('download')} Export CSV</a></div>${filtersHTML()}<div id="history-table">${loading()}</div></section>
-    <p class="table-note">${icon('note')} ${state.view==='rosters' ? 'Franchise labels follow the current workbook sheets. Final rosters are snapshots at elimination or the league win.' : 'Auction prices are winning bids. Keeper costs are retained salaries. Click any player to see the full history.'}</p>`;
+  return `<section class="panel history-panel"><div class="table-title-row"><h2 class="table-heading">${state.view==='rosters'?'Rosters':'Prices'} <span id="results-count" class="count-badge">—</span></h2><a id="export-link" class="text-button" href="/api/history.csv">${icon('download')} Export CSV</a></div>${filtersHTML()}<div id="history-table">${loading()}</div></section>`;
 }
 
 function queryString() {
-  return new URLSearchParams({season:state.season,team:state.team,kind:state.kind,q:state.q,sort:state.sort,page:state.page,limit:30}).toString();
+  return new URLSearchParams({season:state.season,team:state.team,kind:state.kind,q:state.q,sort:state.sort,direction:state.direction,position:state.position,page:state.page,limit:30}).toString();
 }
 
 function historyTableHTML(data) {
   const start = data.total ? (data.page-1)*data.limit+1 : 0;
-  return `<div class="table-scroll"><table class="price-table"><thead><tr><th>PLAYER</th><th>SEASON</th><th>FRANCHISE</th><th>ENTRY TYPE</th><th class="right">PRICE PAID</th><th class="right">CONTRACT YEAR</th><th aria-label="Details"></th></tr></thead><tbody>${data.rows.map(row => `<tr><td class="player-cell">${playerButton(row)}</td><td>${esc(seasonLabel(row.season))}</td><td>${esc(row.franchise_sheet)}</td><td>${badge(row.acquisition_class)}</td><td class="money-cell">${money(row.recorded_cost)}</td><td class="right">${number(row.contract_year_recorded)}</td><td><button class="text-button" data-player="${esc(row.player_id)}" aria-label="View ${esc(row.player)} history">${icon('arrow')}</button></td></tr>`).join('') || '<tr><td colspan="7"><div class="no-results">No players match these filters. Try another name or season.</div></td></tr>'}</tbody></table></div><div class="table-foot"><span>Showing ${number(start)}–${number(Math.min(data.page*data.limit,data.total))} of ${number(data.total)} records</span><div class="pager"><button data-page="${data.page-1}" ${data.page<=1?'disabled':''}>← Previous</button><span>${data.page} / ${Math.max(1,Math.ceil(data.total/data.limit))}</span><button data-page="${data.page+1}" ${data.page*data.limit>=data.total?'disabled':''}>Next →</button></div></div>`;
+  return `<div class="table-scroll"><table class="price-table"><thead><tr>${[["player","Player"],["season","Season"],["team","Franchise"],["type","Entry type"],["price","Price paid"],["contract","Contract year"]].map(([key,label],i)=>sortHeader(key,label,state.sort,state.direction,"history",i>3)).join("")}<th aria-label="Details"></th></tr></thead><tbody>${data.rows.map(row => `<tr><td class="player-cell">${playerButton(row)}</td><td>${esc(seasonLabel(row.season))}</td><td>${esc(row.franchise_sheet)}</td><td>${badge(row.acquisition_class)}</td><td class="money-cell">${money(row.recorded_cost)}</td><td class="right">${number(row.contract_year_recorded)}</td><td><button class="text-button" data-player="${esc(row.player_id)}" aria-label="View ${esc(row.player)} history">${icon('arrow')}</button></td></tr>`).join('') || '<tr><td colspan="7"><div class="no-results">No players match these filters. Try another name or season.</div></td></tr>'}</tbody></table></div><div class="table-foot"><span>Showing ${number(start)}–${number(Math.min(data.page*data.limit,data.total))} of ${number(data.total)} records</span><div class="pager"><button data-page="${data.page-1}" ${data.page<=1?'disabled':''}>← Previous</button><span>${data.page} / ${Math.max(1,Math.ceil(data.total/data.limit))}</span><button data-page="${data.page+1}" ${data.page*data.limit>=data.total?'disabled':''}>Next →</button></div></div>`;
 }
 
 async function loadHistoryTable() {
@@ -162,115 +186,94 @@ function keepersHTML(data) {
     <div class="stat"><div class="stat-label">Auction money ${icon('chart')}</div><div class="stat-value">${money(data.remaining_budget)}</div><div class="stat-note">Remaining across ${data.team_count} teams</div></div>
     <div class="stat"><div class="stat-label">Starting budget ${icon('users')}</div><div class="stat-value">${money(data.budget_per_team)}</div><div class="stat-note">Per team, including keeper costs</div></div>
   </section>
-  <div class="status-banner">${icon('check')}<span>All ${data.team_count} teams have their ${data.keepers_per_team} keepers. These ${data.keeper_count} players are excluded when viewing available players on the ${esc(seasonLabel(data.season))} projection and valuation boards.</span></div>
   <section class="panel keeper-toolbar"><div class="filter-row"><label class="search-box">${icon('search')}<input id="keeper-search" type="search" placeholder="Find a team or player…" aria-label="Search keepers"></label><span class="subtle-count" id="keeper-team-count"></span><select id="keeper-sort" class="select-filter" aria-label="Sort keeper teams"><option value="budget">Most money remaining</option><option value="spend">Highest keeper spend</option><option value="team">Team: A–Z</option></select></div></section>
   <div class="keeper-grid" id="keeper-grid"></div>`;
 }
 
 function emptyHTML(kind) {
-  const valuation = kind === 'valuations';
-  const season = seasonLabel(state.bootstrap.target_season);
-  return `${state.bootstrap.draft?`<a class="status-banner" href="#keepers">${icon('check')}<span>${state.bootstrap.draft.keeper_count} keepers confirmed · ${money(state.bootstrap.draft.remaining_budget)} left for the auction. View keepers & budgets ${icon('arrow')}</span></a>`:''}<section class="empty-state"><div class="empty-icon">${icon(valuation?'target':'chart')}</div><div class="eyebrow">${season} · ${valuation?'VALUATIONS':'PROJECTIONS'}</div><h2>${valuation?'The next edge is still taking shape.':'A new season needs a fresh forecast.'}</h2><p>${valuation?'No calculated valuations have been loaded yet. Once the model has results, compare survivor value, expected league price and neutral auction value here.':'No projection set has been loaded for this season yet. Once added, you’ll see each player’s expected games, minutes, and all eight categories here.'}</p><a class="solid-button" href="#history">Explore the price history ${icon('arrow')}</a></section>
-    <div class="info-grid">${(valuation ? [['01','Survivor value','What a player’s projected contribution is worth across your eight categories.'],['02','Expected auction price','What similar player profiles have cost in your league’s auction room.'],['03','Neutral auction value','A fresh draft with 15 teams, $200 each, no keepers and no category punts.']] : [['01','All eight categories','Points, rebounds, assists, steals, blocks, threes, field goals and free throws.'],['02','Shooting volume matters','Makes and attempts give shooting percentages the context they need.'],['03','Always know the source','Compare dated projection sets and keep track of whose forecast you’re using.']]).map(([n,title,description]) => `<section class="info-tile"><span>${n} /</span><h3>${title}</h3><p>${description}</p></section>`).join('')}</div>`;
+  return `<section class="empty-state"><h2>No ${esc(kind)} for ${esc(seasonLabel(state.bootstrap.target_season))}.</h2></section>`;
 }
 
 function statsToolbar(kind) {
-  const valuations = kind === 'valuations';
-  const sorts = valuations ? [['survivor_score','Survivor value'],['expected_auction_price','Expected league price'],['fair_value','Neutral auction value'],['confirmed_keeper_surplus','Neutral keeper surplus']] : [['pts_pg','Points'],['reb_pg','Rebounds'],['ast_pg','Assists'],['stl_pg','Steals'],['blk_pg','Blocks'],['fg3m_pg','Threes'],['games','Games played']];
-  const known = state.dataRows.length ? state.dataRows.every(row=>row.draft_status && row.draft_status!=='unknown') : state.bootstrap.draft?.season===state.dataSeason;
-  return `<div class="table-title-row"><h2 class="table-heading">${valuations?'The value board':'The projection board'} <span class="count-badge" id="data-count">${number(state.dataRows.length)}</span></h2>${valuations?`<a id="values-export" class="text-button" href="/api/valuations.csv?run=${encodeURIComponent(state.activeRun)}">${icon('download')} Export CSV</a>`:'<span class="subtle-count">Per game · except GP</span>'}</div>
+  const values=kind==='valuations';
+  const known=state.dataRows.length?state.dataRows.every(r=>r.draft_status && r.draft_status!=='unknown'):state.bootstrap.draft?.season===state.dataSeason;
+  const sort=values?'survivor_score':'pts_pg';
+  return `<div class="table-title-row"><h2 class="table-heading">${values?'Values':'Projections'} <span class="count-badge" id="data-count"></span></h2><a id="values-export" class="text-button" href="#">${icon('download')} Export CSV</a></div>
     <div class="filter-row"><label class="search-box">${icon('search')}<input id="data-search" type="search" placeholder="Search players…" aria-label="Search ${kind}"></label>
+    <select id="data-position" class="select-filter" aria-label="Position">${positionOptions()}</select>
     <select id="draft-filter" class="select-filter" aria-label="Draft availability"><option value="available" ${known?'selected':''}>Available to draft</option><option value="all" ${known?'':'selected'}>All players</option><option value="kept">Keepers only</option></select>
-    <select id="data-sort" class="select-filter" aria-label="Sort ${kind}">${sorts.map(([key,label])=>`<option value="${key}">${label}: high to low</option>`).join('')}</select></div>
-    ${known?'':`<p class="availability-note">No confirmed keeper list is available for ${esc(seasonLabel(state.dataSeason))}. Draft availability is unknown.</p>`}`;
+    <select id="data-columns" class="select-filter" aria-label="Table columns"><option value="values" ${values?'selected':''}>Values</option><option value="projections" ${values?'':'selected'}>Projections · per game</option><option value="all">Values + projections</option></select>
+    <select id="data-sort" class="select-filter" aria-label="Sort ${kind}">${tableColumns.map(([key,label])=>`<option value="${key}" ${key===sort?'selected':''}>${label}</option>`).join('')}</select>
+    <select id="data-direction" class="select-filter direction-filter" aria-label="Sort direction"><option value="desc">Descending</option><option value="asc">Ascending</option></select></div>`;
 }
 
 function datasetHeading(metadata,kind) {
-  const valuations = kind === 'valuations';
-  const options = valuations ? state.bootstrap.runs : state.bootstrap.datasets.filter(d=>d.kind==='projection');
-  const key = valuations ? 'run_id' : 'dataset_id';
-  const available = options.some(d=>d[key]===metadata[key]) ? options : [metadata,...options];
-  const sourceLink = /^https:\/\//.test(metadata.source_url || '') ? ` · <a href="${esc(metadata.source_url)}" target="_blank" rel="noopener noreferrer">View source</a>` : '';
-  return `<div class="dataset-header"><div><strong>${esc(seasonLabel(metadata.season))} · ${esc(metadata.source_name)}</strong><small>${valuations ? 'Valuation run: '+dateLabel(metadata.created_at) : 'Snapshot: '+dateLabel(metadata.as_of_date)+' · '+esc(metadata.coverage.replaceAll('_',' '))}${sourceLink}</small></div><select class="select-filter" id="dataset-select" aria-label="${valuations?'Valuation run':'Projection set'}">${available.map(d=>`<option value="${esc(d[key])}" ${d[key]===metadata[key]?'selected':''}>${esc(seasonLabel(d.season))} · ${esc(valuations?d.model_version:d.source_name)} · ${dateLabel(valuations?d.created_at:d.as_of_date)}</option>`).join('')}</select></div>${!valuations && metadata.notes ? `<p class="table-note" id="projection-source-note">${icon('note')}${esc(metadata.notes)}</p>` : ''}`;
+  const values=kind==='valuations';
+  const options=values?state.bootstrap.runs:state.bootstrap.datasets.filter(d=>d.kind==='projection');
+  const key=values?'run_id':'dataset_id';
+  const available=options.some(d=>d[key]===metadata[key])?options:[metadata,...options];
+  return `<div class="dataset-header"><div><strong>${esc(seasonLabel(metadata.season))} · ${esc(metadata.source_name)}</strong><small>${metadata.date_basis==='received'?'Received: ':''}${dateLabel(values?metadata.created_at:metadata.as_of_date)}${metadata.coverage==='partial_player_pool'?' · Partial pool':''}${/^https:\/\//.test(metadata.source_url || '')?` · <a href="${esc(metadata.source_url)}" target="_blank" rel="noopener noreferrer">Source</a>`:''}</small></div><select class="select-filter" id="dataset-select" aria-label="${values?'Valuation run':'Projection set'}">${available.map(d=>`<option value="${esc(d[key])}" ${d[key]===metadata[key]?'selected':''}>${esc(seasonLabel(d.season))} · ${esc(values?d.model_version:d.source_name)} · ${dateLabel(values?d.created_at:d.as_of_date)}</option>`).join('')}</select></div>`;
 }
 
-function auctionMarket(validation) {
-  const markets=validation.auction_contexts;
-  if (!markets?.length) return '';
-  const current=markets.at(-1);
-  return `<details class="panel model-details" id="auction-market"><summary>Auction room: ${preciseMoney(current.average_team_budget)} per team · ${current.available_top_counts['30']} of the top 30 available</summary>
-    <p>${money(current.remaining_budget)} is available for ${current.open_slots} roster slots. Team budgets range from ${money(current.minimum_team_budget)} to ${money(current.maximum_team_budget)}. Top-player counts use eight-category per-game strength.</p>
-    <p>${validation.supply_adjustment_selected?'The price model adjusts historical purchases for both available money and available talent.':'Prices adjust for money left after keepers. An additional available-talent adjustment was tested but did not beat the selected model on development years, so it is not applied to the displayed prices.'} Budget distribution is shown for context; individual bidding behavior is not simulated.</p>
-    <div class="table-scroll"><table><thead><tr><th>SEASON / PLAYERS</th><th class="right">AVG BUDGET</th><th class="right">RANGE</th><th class="right">TOP 10 AVAILABLE</th><th class="right">TOP 30 AVAILABLE</th></tr></thead><tbody>${[...markets].reverse().map(m=>`<tr><td><details><summary>${esc(seasonLabel(m.season))}</summary><p>${esc(m.basis)}</p><p>Available from the top 30: ${m.available_top_players.map(p=>esc(p.player)).join(', ') || 'None'}.</p><p>${m.teams.map(t=>`${esc(t.franchise)} ${money(t.remaining_budget)}`).join(' · ')}</p>${m.unmatched_keeper_ids.length?`<p>${m.unmatched_keeper_ids.length} keepers lack a qualifying prior-season statistical profile.</p>`:''}</details></td><td class="right">${preciseMoney(m.average_team_budget)}</td><td class="right">${money(m.minimum_team_budget)}–${money(m.maximum_team_budget)}</td><td class="right">${m.available_top_counts['10']}</td><td class="right">${m.available_top_counts['30']}</td></tr>`).join('')}</tbody></table></div>
-    <p>Historical budgets assume the same $200 cap. Historical talent uses the preceding season's stats and recorded keeper exclusions; it cannot reconstruct offseason changes or rookie expectations.</p>
-  </details>`;
-}
 
-function valuationMethod(metadata) {
-  const v=metadata.validation;
-  if (!v?.neutral_allocation) return '';
-  const settings=metadata.settings;
-  const test=v.holdout[v.selected_model];
-  const central=v.survivor_scenarios.central;
-  const cards=[['01','Survivor value','Eight-category strength per game, multiplied by useful games above an improving replacement pool. Higher is better.'],
-    ['02','Expected league price','Learned from your actual auction purchases. The band reflects historical pricing errors; keeper prices are hypothetical.'],
-    ['03','Neutral auction value',`${money(v.neutral_allocation.budget)} across ${v.neutral_allocation.slots} roster slots. Fifteen equal-budget teams, no keepers and no category punts.`]];
-  return `<div class="info-grid valuation-guide">${cards.map(([n,title,description])=>`<section class="info-tile"><span>${n} /</span><h3>${title}</h3><p>${description}</p></section>`).join('')}</div>
-    ${auctionMarket(v)}<details class="panel model-details" id="valuation-method"><summary>Formula, assumptions & historical checks</summary>
-      <p><strong>Survivor value</strong> = sum across stages of positive per-game advantage over replacement × useful games ÷ 82. Percentages use makes minus pool percentage × attempts; all eight categories receive equal weight after standardization.</p>
-      <p><strong>Neutral dollars</strong> reserve ${money(v.neutral_allocation.minimum_bid)} per roster slot, then divide ${money(v.neutral_allocation.discretionary_budget)} in proportion to survivor value. These dollars are independent of historical bidding habits. The $1 floor is an assumption based on recorded purchases.</p>
-      <p><strong>Elimination scenario:</strong> first cut at week 5.5, then every 1.5 weeks until two teams remain. The rosterable pool shrinks from 225 to 30 players. Published games are spread uniformly and paced to the 1,000-game cap. Neutral turnover uses about ${number(central.expected_moves_used,1)} of 100 moves. Regular waivers and the reverse-order sniper draft are recorded rules; actual winners and the 15-year order cycle are not simulated without order history.</p>
-      <p>This assumes reaching the final and cumulative stats. Exact cut dates, category resets, positions, lineup constraints and dated injury returns are unresolved. Faster/slower schedules appear in each player’s detail; they are scenarios, not confidence intervals.</p>
-      <p><strong>Historical price check:</strong> ${number(test.n)} purchases in the last three seasons; average absolute error ${money(test.mae)} versus ${money(v.holdout.mean.mae)} for a league-average baseline. For $30+ purchases the error was ${money(v.holdout_by_actual_price_tier['30_plus'].mae)}; stars were underpriced on average. The nominal 80% price band covered ${number(v.holdout_interval_coverage*100,1)}% of held-out purchases.</p>
-      ${v.market_context?`<p><strong>Comparable pricing:</strong> ${settings.neighbors} similar historical purchases adjust the overall auction estimate. Weight = recency ÷ (distance + ${settings.comp_distance_offset})<sup>${settings.comp_distance_power}</sup>. Distance includes all eight categories and recorded season age where available. Half of the weighted difference between actual and modeled comp prices is applied to the target player. Age is learned from auction history; it does not impose a youth premium or predict future keeper savings.</p><p>Recorded age context covers ${v.current_age_coverage} of ${v.projected_players} projected players. Missing ages use the statistics-only counterpart. The earlier auction model’s average error was ${money(v.holdout.ridge.mae)} on these same seasons. Candidate selection uses older development years; these recent seasons have been reviewed before and are reused comparisons, not fresh independent validation.</p>`:''}
-      <p>${number(v.training_rows)} matched purchases used for the current fit; ${number(v.unmatched_or_low_sample_rows)} lack a sufficient prior-year sample. Each historical test uses only earlier auctions and preceding-season actuals. These checks do not validate the provider’s current projections, rookies, or the neutral survivor formula.</p>
-      <p>Current draft context: ${money(v.remaining_budget)} left for ${v.remaining_slots} open slots. Expected prices are individual conditional estimates and do not sum to an auction allocation. Neutral dollars always use the clean slate.</p>
-      <p class="model-source">${esc(metadata.model_version)} · ${esc(settings.survivor?.season_length_basis || '')}</p>
-    </details>`;
-}
+
+
 
 function valuationDetail(valuation, keeper) {
-  const c=object(valuation.category_values_json);
-  const comps=object(valuation.comps_json);
-  const z=c.rate_z || {};
+  const c=object(valuation.category_values_json),comps=object(valuation.comps_json),z=c.rate_z || {};
   const max=Math.max(1,...Object.values(z).map(Math.abs));
-  return `<div class="drawer-metrics valuation-metrics"><div><small>SURVIVOR VALUE</small><strong>${number(c.score,2)}</strong></div><div><small>EXPECTED LEAGUE PRICE</small><strong>${money(valuation.expected_auction_price)}</strong></div><div><small>NEUTRAL AUCTION VALUE</small><strong>${money(valuation.fair_value)}</strong></div></div>
-    <p class="drawer-muted">Historical price band: ${money(valuation.lower_estimate)}–${money(valuation.upper_estimate)}${keeper && keeper.season===valuation.season?' · Hypothetical price if available':''}. Neutral value: 15 teams, $200 each, no keepers.${keeper && keeper.season===valuation.season?` Neutral keeper surplus: ${money(valuation.fair_value-keeper.keeper_cost)}.`:''}</p>
+  const kept=keeper && keeper.season===valuation.season;
+  return `<div class="drawer-metrics valuation-metrics"><div><small>SURVIVOR VALUE</small><strong>${number(c.score,2)}</strong></div><div><small>EXPECTED LEAGUE PRICE${kept?' · IF AVAILABLE':''}</small><strong>${money(valuation.expected_auction_price)}</strong></div><div><small>NEUTRAL AUCTION VALUE</small><strong>${money(valuation.fair_value)}</strong></div></div>
+    <div class="detail-facts"><span>Price band ${money(valuation.lower_estimate)}–${money(valuation.upper_estimate)}</span>${kept?`<span>Keeper surplus ${money(valuation.fair_value-keeper.keeper_cost)}</span>`:''}${c.useful_games!=null?`<span>Useful GP ${number(c.useful_games,1)} / ${number(c.games)}</span>`:''}</div>
     ${Array.isArray(comps)&&comps.length?comparableDetail(comps,c.market):''}
-    ${c.useful_games!=null?`<p class="drawer-muted">${number(c.useful_games,1)} useful games above replacement in the central scenario, from ${number(c.games,1)} published games. Useful for ${number(c.useful_season_fraction*100,0)}% of the modeled season; this is a scenario, not a retention probability.</p>`:''}
-    ${Object.keys(z).length?`<h3 class="drawer-section-title">Eight-category contribution per game</h3><div class="category-bars" role="img" aria-label="Standardized category contributions; positive is above the reference pool average">${Object.entries(z).map(([cat,value])=>`<div class="category-row"><span>${esc(cat)}</span><div class="category-track"><i class="${value<0?'negative':''}" style="left:${value<0?50-Math.abs(value)/max*50:50}%;width:${Math.abs(value)/max*50}%"></i></div><strong>${value>0?'+':''}${number(value,2)}</strong></div>`).join('')}</div><p class="note-title">Volume-weighted shooting impact · Same reference scale for every category</p>`:''}
-    ${c.scenario_values?`<h3 class="drawer-section-title">Elimination schedule sensitivity</h3><div class="projection-grid scenario-grid">${Object.entries(c.scenario_values).map(([name,value])=>`<div class="projection-stat"><small>${esc(name.toUpperCase())} CUTS</small><strong>${money(value)}</strong></div>`).join('')}</div><p class="note-title">Neutral dollars under three illustrative schedules; not a statistical error band.</p>`:''}
-    ${valuation.risk_notes?`<p class="drawer-muted">${esc(valuation.risk_notes)}</p>`:''}`;
+    ${Object.keys(z).length?`<h3 class="drawer-section-title">Category contributions</h3><div class="category-bars" role="img" aria-label="Standardized category contributions">${Object.entries(z).map(([cat,value])=>`<div class="category-row"><span>${esc(cat)}</span><div class="category-track"><i class="${value<0?'negative':''}" style="left:${value<0?50-Math.abs(value)/max*50:50}%;width:${Math.abs(value)/max*50}%"></i></div><strong>${value>0?'+':''}${number(value,2)}</strong></div>`).join('')}</div>`:''}
+    ${c.scenario_values?`<h3 class="drawer-section-title">Neutral value by cut schedule</h3><div class="projection-grid scenario-grid">${Object.entries(c.scenario_values).map(([name,value])=>`<div class="projection-stat"><small>${esc(name.toUpperCase())}</small><strong>${money(value)}</strong></div>`).join('')}</div>`:''}`;
 }
 
-function comparableDetail(comps,market) {
-  if (!market) return `<h3 class="drawer-section-title">Closest historical profiles</h3><p class="drawer-muted">Saved comparisons from an earlier model; individual weights were not recorded.</p>${comparableTable(comps,false)}`;
-  const ordered=[...comps].sort((a,b)=>(b.weight || 0)-(a.weight || 0));
-  const weighted=market.comp_adjustment!=null;
-  const age=market.age_source;
+function comparableDetail(comps,market,sort='weight',direction='desc') {
+  state.drawerComps={comps,market,sort,direction};
+  const ordered=[...comps].sort((a,b)=>{
+    if(a[sort]==null || b[sort]==null)return a[sort]==null?(b[sort]==null?0:1):-1;
+    const comparison=['player','season'].includes(sort)?a[sort].localeCompare(b[sort]):a[sort]-b[sort];
+    return comparison*(direction==='asc'?1:-1) || a.player.localeCompare(b.player);
+  });
   const first=ordered.slice(0,5),rest=ordered.slice(5);
-  return `<h3 class="drawer-section-title" id="player-comps" tabindex="-1">How the comps affect this price</h3>
-    ${weighted?`<div class="comp-price-breakdown"><span>Overall auction estimate <strong>${preciseMoney(market.base_price)}</strong></span><span>Weighted comp adjustment <strong>${market.comp_adjustment>=0?'+':''}${preciseMoney(market.comp_adjustment)}</strong></span></div><p class="drawer-muted">The model applies ${number(market.correction_share*100)}% of the weighted difference between each comp’s actual and modeled price, after adjusting for that auction’s budget${market.supply_adjusted?' and available talent':''}. The final estimate respects the $1–$200 bounds.</p>`:'<p class="drawer-muted">These profiles explain similarity; the selected model does not use a local price adjustment.</p>'}
-    <p class="drawer-muted">Closer matches receive more weight, and recent auctions also count more. ${market.age_in_model?`Similarity includes recorded season age; this player’s target-season age is ${number(age?.target_season_age)}, advanced from ${esc(seasonLabel(age?.season))} source data.`:'This comparison uses statistics only; no missing age is guessed.'} ${market.comp_count} comps carry the weight of approximately ${number(market.effective_comps,1)} equally weighted records. Repeated seasons of the same player are not independent evidence.</p>
-    <p class="drawer-muted">Shown by weight. Paid = original winning bid. Adjustment = that comp’s contribution to the final price adjustment. Shares total 100% across all ${market.comp_count} comps.</p>
-    ${comparableTable(first,true)}
-    ${rest.length?`<details class="remaining-comps"><summary class="drawer-section-title">Show ${rest.length} more comps (${number(rest.reduce((sum,c)=>sum+c.weight,0)*100,1)}% of weight)</summary>${comparableTable(rest,true)}</details>`:''}`;
+  return `<div id="comparable-content"><h3 class="drawer-section-title" id="player-comps" tabindex="-1">Historical comps</h3>
+    ${market?.comp_adjustment!=null?`<div class="comp-price-breakdown"><span>Base estimate <strong>${preciseMoney(market.base_price)}</strong></span><span>Weighted comp adjustment <strong>${market.comp_adjustment>=0?'+':''}${preciseMoney(market.comp_adjustment)}</strong></span></div>`:''}
+    ${comparableTable(first,!!market,sort,direction)}
+    ${rest.length?`<details class="remaining-comps"><summary class="drawer-section-title">${rest.length} more comps · ${number(rest.reduce((sum,c)=>sum+(c.weight || 0),0)*100,1)}% weight</summary>${comparableTable(rest,!!market,sort,direction)}</details>`:''}</div>`;
 }
 
-function comparableTable(comps,weighted) {
-  return `<div class="panel table-scroll"><table class="comps-table"><thead><tr><th>PLAYER / STATS</th><th>AUCTION</th><th class="right">PAID</th><th class="right">DISTANCE</th>${weighted?'<th class="right">WEIGHT</th><th class="right">ADJUSTMENT</th>':''}</tr></thead><tbody>${comps.map(comp=>`<tr><td>${playerButton(comp)}<small>${esc(seasonLabel(comp.stats_season))} stats${comp.target_season_age!=null?' · age '+number(comp.target_season_age)+' at auction':''}</small></td><td>${esc(seasonLabel(comp.season))}<small>${esc(comp.franchise)}</small>${comp.average_team_budget!=null?`<small>Avg budget ${preciseMoney(comp.average_team_budget)} · ${comp.available_top_30}/30 available</small>`:''}</td><td class="money-cell">${money(comp.actual_price)}</td><td class="right" title="Combined profile distance; smaller is closer">${number(comp.distance,2)}</td>${weighted?`<td class="right comp-weight">${number(comp.weight*100,1)}%</td><td class="right" title="Original bid adjusted to the selected market basis: ${preciseMoney(comp.budget_adjusted_price)}; model price for that profile: ${preciseMoney(comp.model_price)}">${comp.price_adjustment>0?'+':''}${preciseMoney(comp.price_adjustment)}</td>`:''}</tr>`).join('')}</tbody></table></div>`;
+function comparableTable(comps,weighted,sort,direction) {
+  return `<div class="panel table-scroll"><table class="comps-table"><thead><tr>${[["player","Player / stats"],["season","Auction"],["actual_price","Paid"],["distance","Distance"],...(weighted?[["weight","Weight"],["price_adjustment","Adjustment"]]:[])].map(([key,label],i)=>sortHeader(key,label,sort,direction,"comps",i>1)).join("")}</tr></thead><tbody>${comps.map(comp=>`<tr><td>${playerButton(comp)}<small>${esc(seasonLabel(comp.stats_season))} ${comp.outlook_basis==='supplied_projection'?'projection · GP '+number(comp.projected_games):'prior stats proxy'}${comp.target_season_age!=null?' · age '+number(comp.target_season_age)+' at auction':''}</small></td><td>${esc(seasonLabel(comp.season))}<small>${esc(comp.franchise)}</small>${comp.average_team_budget!=null?`<small>Avg budget ${preciseMoney(comp.average_team_budget)} · ${comp.available_top_30}/30 available</small>`:''}</td><td class="money-cell">${money(comp.actual_price)}</td><td class="right" title="Combined profile distance; smaller is closer">${number(comp.distance,2)}</td>${weighted?`<td class="right comp-weight">${number(comp.weight*100,1)}%</td><td class="right" title="Original bid adjusted to the selected market basis: ${preciseMoney(comp.budget_adjusted_price)}; model price for that profile: ${preciseMoney(comp.model_price)}">${comp.price_adjustment>0?'+':''}${preciseMoney(comp.price_adjustment)}</td>`:''}</tr>`).join('')}</tbody></table></div>`;
 }
 
 function renderStatsTable() {
-  const valuations = state.view==='valuations';
-  const q = ($('#data-search')?.value || '').toLowerCase();
-  const sort = $('#data-sort')?.value || (valuations?'fair_value':'pts_pg');
-  const availability = $('#draft-filter')?.value || 'all';
-  const data = state.dataRows.filter(row => row.player.toLowerCase().includes(q) && (availability==='all' || row.draft_status===availability)).sort((a,b)=>(b[sort]??-Infinity)-(a[sort]??-Infinity) || a.player.localeCompare(b.player));
-  $('#data-count').textContent = number(data.length);
-  const headings = valuations ? ['PLAYER','SURVIVOR VALUE','EXPECTED LEAGUE PRICE','NEUTRAL AUCTION VALUE'] : ['PLAYER','TEAM','POS','GP','MIN','PTS','REB','AST','STL','BLK','3PM','FG%','FT%'];
-  if (valuations) $('#values-export').href = `/api/valuations.csv?run=${encodeURIComponent(state.activeRun)}&availability=${encodeURIComponent(availability)}`;
-  $('#data-table').innerHTML = `<div class="table-scroll"><table class="${valuations?'value-table':''}"><thead><tr>${headings.map((h,i)=>`<th ${i>0?'class="right"':''}>${h}</th>`).join('')}</tr></thead><tbody>${data.map(row=>`<tr><td class="player-cell">${playerButton(row)}</td>${valuations ? `<td class="money-cell" data-label="Survivor value">${number(row.survivor_score,2)}<small>value score</small></td><td class="money-cell" data-label="League price"><button class="price-comps-button" data-player="${esc(row.player_id)}" data-focus="comps" aria-label="View price comps for ${esc(row.player)}">${money(row.expected_auction_price)}<span>View comps</span></button><small>${money(row.lower_estimate)}–${money(row.upper_estimate)} price band${row.draft_status==='kept'?' · if available':''}</small></td><td class="money-cell" data-label="Neutral value">${money(row.fair_value)}<small>15 teams · no keepers</small></td>` : `<td class="right">${esc(row.nba_team || '—')}</td><td class="right">${esc(row.positions || '—')}</td>${['games','minutes_pg','pts_pg','reb_pg','ast_pg','stl_pg','blk_pg','fg3m_pg'].map(k=>`<td class="right">${number(row[k],k==='games'?0:1)}</td>`).join('')}<td class="right" title="${number(row.fgm_pg,1)} makes / ${number(row.fga_pg,1)} attempts">${row.fga_pg ? number(row.fgm_pg/row.fga_pg*100,1)+'%' : '—'}</td><td class="right" title="${number(row.ftm_pg,1)} makes / ${number(row.fta_pg,1)} attempts">${row.fta_pg ? number(row.ftm_pg/row.fta_pg*100,1)+'%' : '—'}</td>`}</tr>`).join('') || `<tr><td colspan="${headings.length}"><div class="no-results">No matching players.</div></td></tr>`}</tbody></table></div>`;
+  const sort=$('#data-sort').value,direction=$('#data-direction').value;
+  const availability=$('#draft-filter').value,position=$('#data-position').value;
+  const q=$('#data-search').value,mode=$('#data-columns').value;
+  const data=state.dataRows.filter(r=>normalizedName(r.player).includes(normalizedName(q)) && hasPosition(r.positions,position) && (availability==='all' || r.draft_status===availability));
+  data.sort((a,b)=>{
+    const av=a[sort],bv=b[sort];
+    if(av==null || bv==null) return av==null && bv==null?a.player.localeCompare(b.player):av==null?1:-1;
+    const comparison=['player','positions','nba_team'].includes(sort)?String(av).localeCompare(String(bv)):Number(av)-Number(bv);
+    return comparison*(direction==='asc'?1:-1) || a.player.localeCompare(b.player);
+  });
+  const valueKeys=['survivor_score','expected_auction_price','fair_value'];
+  const statKeys=['nba_team','positions','games','minutes_pg','pts_pg','reb_pg','ast_pg','stl_pg','blk_pg','fg3m_pg','fg_pct','ft_pct'];
+  const keys=['player',...(mode==='values'?valueKeys:mode==='projections'?statKeys:[...valueKeys,...statKeys])];
+  if(!keys.includes(sort))keys.push(sort);
+  const columns=keys.map(k=>tableColumns.find(c=>c[0]===k));
+  $('#data-count').textContent=number(data.length);
+  const parameters=new URLSearchParams({[state.view==='valuations'?'run':'dataset']:state.view==='valuations'?state.activeRun:state.activeDataset,q,position,availability,sort,direction});
+  $('#values-export').href=`/api/${state.view}.csv?${parameters}`;
+  const cell=(r,[key,label,type])=>{
+    if(key==='player')return `<td class="player-cell">${playerButton(r)}</td>`;
+    const v=r[key];
+    const formatted=type==='text'?esc(v || '—'):type==='money'?money(v):type==='percent'?(v==null?'—':number(v*100,1)+'%'):number(v,type==='score'?2:type==='integer'?0:1);
+    return `<td class="${type==='money'||type==='score'?'money-cell':'right'}" data-label="${esc(label)}" data-value="${esc(v)}">${key==='expected_auction_price'&&v!=null?`<button class="price-comps-button" data-player="${esc(r.player_id)}" data-focus="comps" aria-label="View price comps for ${esc(r.player)}">${formatted}<span>View comps</span></button>`:formatted}</td>`;
+  };
+  $('#data-table').innerHTML=`<div class="table-scroll"><table class="${mode==='values'&&keys.length===4?'value-table':'stat-table'}"><thead><tr>${columns.map(([k,l,t])=>sortHeader(k,l,sort,direction,'data',t!=='text')).join('')}</tr></thead><tbody>${data.map(r=>`<tr>${columns.map(c=>cell(r,c)).join('')}</tr>`).join('') || `<tr><td colspan="${keys.length}"><div class="no-results">No matching players.</div></td></tr>`}</tbody></table></div>`;
 }
 
 function historicalStatsStatus() {
@@ -298,7 +301,7 @@ async function loadView() {
         const overview = await api(`/api/overview?season=${encodeURIComponent(state.season)}`);
         if (token!==state.sequence) return;
         heading = overviewHTML(overview);
-      } else heading = `<div class="status-banner roster-note">${icon('users')}<span>Opening rosters show draft-day purchases and keepers. Final rosters show who each franchise held when its season ended.</span></div>`;
+      }
       $('#view-content').innerHTML = heading + historyPanelHTML();
       await loadHistoryTable();
     } else if (state.view==='keepers') {
@@ -320,11 +323,11 @@ async function loadView() {
         const picker = available.length ? `<div class="dataset-header"><span>Browse an earlier ${valuations?'valuation run':'projection set'}</span><select class="select-filter" id="dataset-select" aria-label="Earlier data"><option value="">Choose a saved set</option>${available.map(d=>`<option value="${esc(d[valuations?'run_id':'dataset_id'])}">${esc(seasonLabel(d.season))} · ${esc(d.source_name)} · ${dateLabel(valuations?d.created_at:d.as_of_date)}</option>`).join('')}</select></div>` : '';
         $('#view-content').innerHTML = picker + emptyHTML(state.view);
       } else {
-        state.dataRows = data.rows.map(row=>({...row,survivor_score:object(row.category_values_json).score,confirmed_keeper_surplus:row.confirmed_keeper_cost!=null && row.fair_value!=null ? row.fair_value-row.confirmed_keeper_cost : null}));
+        state.dataRows = data.rows.map(row=>({...row,fg_pct:row.fga_pg?row.fgm_pg/row.fga_pg:null,ft_pct:row.fta_pg?row.ftm_pg/row.fta_pg:null,survivor_score:object(row.category_values_json).score,confirmed_keeper_surplus:row.confirmed_keeper_cost!=null && row.fair_value!=null ? row.fair_value-row.confirmed_keeper_cost : null}));
         state.dataSeason = metadata.season;
         if (valuations) state.activeRun=metadata.run_id;
         else state.activeDataset=metadata.dataset_id;
-        $('#view-content').innerHTML = datasetHeading(metadata,state.view)+(valuations?valuationMethod(metadata):'')+`<section class="panel history-panel">${statsToolbar(state.view)}<div id="data-table"></div></section>`+`<p class="table-note">${icon('note')}${valuations?'Click a player for category strengths, actual historical comps, schedule sensitivity and keeper surplus. Neutral dollars are a model estimate, not a personalized bid ceiling.':'FG% and FT% are calculated from projected makes and attempts. Hover a percentage to see its shooting volume.'}</p>`;
+        $('#view-content').innerHTML = datasetHeading(metadata,state.view)+`<section class="panel history-panel">${statsToolbar(state.view)}<div id="data-table"></div></section>`;
         renderStatsTable();
       }
     } else {
@@ -361,19 +364,24 @@ async function openPlayer(id,section) {
     const auctions=data.history.filter(row=>row.acquisition_class==='auction');
     const last=data.history.at(-1);
     const peak=auctions.length ? Math.max(...auctions.map(row=>row.recorded_cost)) : null;
-    const valuation=state.view==='valuations' && state.activeRun ? data.valuations.find(v=>v.run_id===state.activeRun) : data.valuations[0];
+    const valuation=state.view==='valuations' && state.activeRun ? data.valuations.find(v=>v.run_id===state.activeRun) : state.view==='projections'?data.valuations.find(v=>v.projection_dataset_id===state.activeDataset):data.valuations[0];
     const projectionID=state.view==='projections'?state.activeDataset:valuation?.projection_dataset_id;
     const projection=projectionID ? data.projections.find(p=>p.dataset_id===projectionID) : data.projections[0];
     const keeper=data.confirmed_keeper;
     $('#player-content').innerHTML=`<div class="player-title"><span class="player-initials">${esc(initials(data.display_name))}</span><div><h2 id="player-name">${esc(data.display_name)}</h2><p>${number(data.history.length)} recorded opening seasons · ${number(auctions.length)} auction purchases</p></div></div>
-      ${keeper?`<div class="status-banner confirmed-keeper">${icon('check')}<span><strong>${esc(seasonLabel(keeper.season))} keeper · ${esc(keeper.franchise)} · ${money(keeper.keeper_cost)}</strong><br>Unavailable to draft this season.</span></div>`:''}
-      <h3 class="drawer-section-title">${valuation?esc(seasonLabel(valuation.season))+' ':''}Valuation</h3>${valuation ? valuationDetail(valuation,keeper) : '<div class="drawer-muted">No calculated valuation is available yet. Historical costs above are recorded prices, not forecasts.</div>'}
+      ${keeper?`<div class="status-banner confirmed-keeper">${icon('check')}<span><strong>${esc(seasonLabel(keeper.season))} keeper · ${esc(keeper.franchise)} · ${money(keeper.keeper_cost)}</strong></span></div>`:''}
+      <h3 class="drawer-section-title">${valuation?esc(seasonLabel(valuation.season))+' ':''}Valuation</h3>${valuation ? valuationDetail(valuation,keeper) : '<div class="drawer-muted">No valuation for this projection set.</div>'}
       <div class="drawer-metrics"><div><small>LAST RECORDED COST</small><strong>${money(last?.recorded_cost)}</strong></div><div><small>HIGHEST AUCTION BID</small><strong>${money(peak)}</strong></div><div><small>LATEST ENTRY</small><strong style="font-size:18px;margin-top:10px">${last ? esc(seasonLabel(last.season)) : '—'}</strong></div></div>
       <section class="panel drawer-chart"><div class="panel-heading"><h3 class="panel-title">A history in dollars</h3><div class="legend"><span><i></i> Auction</span><span><i class="keeper"></i> Keeper</span></div></div>${playerChart(data.history)}</section>
       <h3 class="drawer-section-title">Opening price history</h3><div class="panel table-scroll"><table class="drawer-table"><thead><tr><th>SEASON</th><th>FRANCHISE</th><th>TYPE</th><th class="right">COST</th></tr></thead><tbody>${[...data.history].reverse().map(row=>`<tr><td>${esc(seasonLabel(row.season))}</td><td>${esc(row.franchise_sheet)}</td><td>${badge(row.acquisition_class)}</td><td class="money-cell">${money(row.recorded_cost)}</td></tr>`).join('') || '<tr><td colspan="4">No opening history recorded.</td></tr>'}</tbody></table></div>
       <h3 class="drawer-section-title">${projection ? esc(seasonLabel(projection.season)) : esc(seasonLabel(state.bootstrap.target_season))} projections</h3>
-      ${projection ? `<div class="projection-grid">${[['PTS',projection.pts_pg],['REB',projection.reb_pg],['AST',projection.ast_pg],['STL',projection.stl_pg],['BLK',projection.blk_pg],['3PM',projection.fg3m_pg],['FG%',projection.fga_pg ? projection.fgm_pg/projection.fga_pg*100 : null],['FT%',projection.fta_pg ? projection.ftm_pg/projection.fta_pg*100 : null]].map(([label,value])=>`<div class="projection-stat"><small>${label}</small><strong>${number(value,1)}${label.includes('%')&&value!=null?'%':''}</strong></div>`).join('')}</div><p class="note-title">${esc(projection.source_name)} · ${dateLabel(projection.as_of_date)} · Per game</p>` : '<div class="drawer-muted">No projections have been loaded for this player yet.</div>'}
+      ${projection ? `<div class="projection-grid">${[['PTS',projection.pts_pg],['REB',projection.reb_pg],['AST',projection.ast_pg],['STL',projection.stl_pg],['BLK',projection.blk_pg],['3PM',projection.fg3m_pg],['FG%',projection.fga_pg ? projection.fgm_pg/projection.fga_pg*100 : null],['FT%',projection.fta_pg ? projection.ftm_pg/projection.fta_pg*100 : null]].map(([label,value])=>`<div class="projection-stat"><small>${label}</small><strong>${number(value,1)}${label.includes('%')&&value!=null?'%':''}</strong></div>`).join('')}</div><p class="note-title">${esc(projection.source_name)} · ${dateLabel(projection.as_of_date)} · Per game${projection.date_basis==='received'?' · Received date':''}</p>` : '<div class="drawer-muted">No projection recorded.</div>'}
       ${data.finals.length?`<details><summary class="drawer-section-title">Final roster appearances (${data.finals.length})</summary><div class="panel table-scroll"><table class="drawer-table"><thead><tr><th>SEASON</th><th>FRANCHISE</th><th class="right">FINISH</th><th class="right">RECORDED COST</th></tr></thead><tbody>${data.finals.map(row=>`<tr><td>${esc(seasonLabel(row.season))}</td><td>${esc(row.franchise_sheet)}</td><td class="right">${row.finish}</td><td class="money-cell">${money(row.recorded_cost)}</td></tr>`).join('')}</tbody></table></div></details>`:''}`;
+    document.querySelectorAll('.drawer-table thead th').forEach((th,i)=>{
+      const index=Array.from(th.parentElement.children).indexOf(th);
+      th.setAttribute('aria-sort','none');
+      th.innerHTML=`<button class="column-sort" data-detail-column="${index}" data-numeric="${th.classList.contains('right')}">${esc(th.textContent)} <span aria-hidden="true">↕</span></button>`;
+    });
     if(section==='comps') { $('#player-comps')?.scrollIntoView({block:'start'}); $('#player-comps')?.focus({preventScroll:true}); }
     else dialog.scrollTop=0;
     const url=new URL(location.href);url.searchParams.set('player',id);window.history.replaceState(null,'',url);
@@ -386,6 +394,37 @@ function mobileNav(open) {
 
 document.addEventListener('click',event=>{
   if(event.target.closest('[data-view]'))mobileNav(false);
+  const detailHeader=event.target.closest('[data-detail-column]');
+  if(detailHeader){
+    const th=detailHeader.parentElement,table=th.closest('table'),index=Number(detailHeader.dataset.detailColumn);
+    const direction=th.getAttribute('aria-sort')==='ascending'?'descending':'ascending';
+    table.querySelectorAll('th').forEach(h=>h.setAttribute('aria-sort',h===th?direction:'none'));
+    const entries=Array.from(table.tBodies[0].rows);
+    const value=row=>row.cells[index]?.textContent.trim() || '';
+    entries.sort((a,b)=>{
+      const av=value(a),bv=value(b);
+      return (detailHeader.dataset.numeric==='true'?Number(av.replace(/[$,%\s]/g,''))-Number(bv.replace(/[$,%\s]/g,'')):av.localeCompare(bv))*(direction==='ascending'?1:-1);
+    });
+    entries.forEach(row=>table.tBodies[0].append(row));
+    return;
+  }
+  const header=event.target.closest('[data-sort-key]');
+  if(header){
+    const key=header.dataset.sortKey;
+    if(header.dataset.sortScope==='history'){
+      state.direction=state.sort===key?(state.direction==='asc'?'desc':'asc'):['player','position','team','type'].includes(key)?'asc':'desc';
+      state.sort=key;state.page=1;$('#sort-filter').value=key;$('#history-direction').value=state.direction;loadHistoryTable();
+    } else if(header.dataset.sortScope==='comps'){
+      const c=state.drawerComps,expanded=$('.remaining-comps')?.open;
+      const direction=c.sort===key?(c.direction==='asc'?'desc':'asc'):['player','season','distance'].includes(key)?'asc':'desc';
+      $('#comparable-content').outerHTML=comparableDetail(c.comps,c.market,key,direction);
+      if(expanded && $('.remaining-comps'))$('.remaining-comps').open=true;
+    } else {
+      $('#data-direction').value=$('#data-sort').value===key?($('#data-direction').value==='asc'?'desc':'asc'):['player','positions','nba_team'].includes(key)?'asc':'desc';
+      $('#data-sort').value=key;renderStatsTable();
+    }
+    return;
+  }
   const player=event.target.closest('[data-player]');if(player){openPlayer(player.dataset.player,player.dataset.focus);return;}
   const kind=event.target.closest('[data-kind]');if(kind){state.kind=kind.dataset.kind;state.page=1;document.querySelectorAll('[data-kind]').forEach(button=>{button.classList.toggle('active',button===kind);button.setAttribute('aria-pressed',String(button===kind));});loadHistoryTable();return;}
   const page=event.target.closest('[data-page]');if(page&&!page.disabled){state.page=Number(page.dataset.page);loadHistoryTable();return;}
@@ -401,7 +440,9 @@ document.addEventListener('change',event=>{
   if(event.target.id==='season-select'){state.season=value;state.page=1;loadView();}
   if(event.target.id==='team-filter'){state.team=value;state.page=1;loadHistoryTable();}
   if(event.target.id==='sort-filter'){state.sort=value;state.page=1;loadHistoryTable();}
-  if(event.target.id==='data-sort' || event.target.id==='draft-filter')renderStatsTable();
+  if(['data-sort','draft-filter','data-position','data-direction','data-columns'].includes(event.target.id))renderStatsTable();
+  if(event.target.id==='history-position'){state.position=value;state.page=1;loadHistoryTable();}
+  if(event.target.id==='history-direction'){state.direction=value;state.page=1;loadHistoryTable();}
   if(event.target.id==='keeper-sort')keeperCards();
   if(event.target.id==='dataset-select'){if(state.view==='valuations')state.run=value;else state.dataset=value;loadView();}
 });

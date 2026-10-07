@@ -1,5 +1,5 @@
 {
-  "model_version": "survivor-8cat-v3",
+  "model_version": "survivor-8cat-v4",
   "roster_size": 15,
   "minimum_bid": 1,
   "minimum_bid_basis": "Working assumption; lowest recorded auction purchase is $1. Formal rule not confirmed.",
@@ -13,6 +13,7 @@
   "comp_correction_share": 0.5,
   "comp_blend_share": 0.25,
   "age_distance_years": 5,
+  "projection_games_distance_scale": 20,
   "market_age_basis": "Recorded historical season age advanced to the auction season. Missing ages use the corresponding statistics-only model; no age is guessed. Age is a pricing feature, not a predetermined youth or keeper premium.",
   "development_first_season": "2018-19",
   "holdout_first_season": "2023-24",
@@ -34,5 +35,5 @@
     "scoring_basis": "Cumulative contribution conditional on reaching the final; no assumed elimination probability or statistics reset."
   },
   "horizon": "Per-game category advantage integrated above rising replacement levels, using published availability and a shared 1,000-game pacing limit.",
-  "market_basis": "Historical prices use preceding-season per-game stats. Current estimates use published projected per-game stats. Historical preseason projections are unavailable."
+  "market_basis": "2025-26 uses user-supplied projected rates and games; original provider and publication date are unverified. Missing players in that partial workbook are excluded, not replaced with healthy prior-year stats. Older years use prior-year actuals as a proxy. Documented preseason availability exceptions are excluded from fitting and comparisons. Similarity also uses projected games when both sides have forecasts, with a working 20-game distance scale. Exact league auction dates are unknown."
 }

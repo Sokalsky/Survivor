@@ -1,4 +1,4 @@
-SURVIVOR VALUATION v3
+SURVIVOR VALUATION v4
 
 THREE DISTINCT OUTPUTS
 
@@ -88,129 +88,94 @@ of future keeper escalation, which is not yet specified.
 
 MARKET PRICE MODEL AND COMPARABLES
 
-For auction year Y, join prices only to regular-season statistics from Y-1.
-Use a per-game reference pool with at least 10 games. There are 1,991 matches;
-182 unmatched or low-sample purchases are exported with reasons. This excludes
-rookies from validation, so their present-day price estimates are extrapolations.
-Using Y's realized statistics to predict Y's preseason auction would leak future
-information; those statistics never enter that auction's training features.
+Historical outlooks have two explicit bases. For 2025-26, use the user's
+200-player projection workbook, preserved in output/stats/preseason-2025-26.json.
+163 of 195 purchases match after explicit spelling corrections. Four documented
+availability exceptions and 28 absent names are excluded. Absence in the partial
+file is not a zero forecast and never triggers a healthy-prior-stats fallback.
+Source totals reconcile exactly with scoring totals; rates divide by source GP.
+Original cells, names, row numbers and workbook SHA-256 survive in the archive.
+The user identified the season. Provider and original publication date are unknown;
+received_at is a receipt date, never a claimed preseason publication date.
+Minutes, NBA teams and positions are absent and remain NULL. Rank columns and
+supplied ages are retained for audit but are not used as predictive features.
 
-Features: eight per-game category z scores plus positive total score squared / 8.
-Age-aware candidates add (target-season age - 27) / 5 and its interaction with
-positive category score / 8. Age associations are fitted to actual auction prices;
-there is no predetermined youth bonus or estimate of future keeper savings.
-Normalize historical paid dollars above $1 by that season's discretionary league
-budget per open slot, after keeper costs. This assumes the current $200 budget
-throughout history; incomplete roster entries and historical unspent dollars can
-affect calibration. Feature centers/scales are fitted on training rows only.
-Ridge regularization = 20; annual recency weight = 0.9. Role changes and dated
-injury news are not invented. Current category features use published ESPN stats.
+For older auctions, use preceding-season actual rates as a proxy, with at least
+10 games. Never use the auction season's realized stats. All forecast and actual
+profiles for a historical year use the same prior-year reference distribution:
+225 highest-minutes eligible players, fixed category means, shooting baselines
+and standard deviations. The partial 200-player workbook does not define a
+new reference pool; missing forecast minutes are not filled from actual minutes.
 
-Draft market context is now saved for 2015-16 through 2026-27. For each season,
-rebuild every franchise's capital as $200 minus its opening keeper salaries.
-Record open slots and maximum opening bid after reserving $1 for other slots.
-Display budget average, median, range and dispersion; this does not simulate how
-specific managers allocate their funds or which needs their keepers already fill.
+config/preseason_availability.json documents 13 season-specific availability
+exceptions. They are excluded before both regression fitting and comp selection.
+This includes Tatum 2025-26 and Klay 2019-20. The original purchase records and
+keeper budgets remain untouched. Each exclusion includes a dated NBA source,
+status and reason. Dates are checked against preseason, not unavailable league
+auction dates. The list is incomplete; unlisted does not mean verified healthy.
+It covers major rehabilitation, delayed starts and Wall's planned nonparticipation;
+no actual games played later in the season determine an exclusion. No replacement
+healthy price, zero projection, future return date or medical probability is made up.
 
-Build the historical available pool from prior-season NBA players with at least
-10 games, excluding the recorded keepers. Do not use auction winners to decide
-the talent pool and do not use the current season's realized stats. Missing
-rookies and offseason retirements/injuries remain limitations of this proxy.
-Current available talent instead uses the complete published projection set.
-Top-10/20/30/50/100 counts and the names of available top-30 players are recorded.
+Current fit: 1,965 purchases; 167 lack a prior sample, 13 have documented outlook
+exceptions, and 28 are absent from the partial forecast file: 2,173 total.
+Exclusions are exported with reasons and source links.
 
-For an optional supply adjustment, compute total positive per-game advantage
-above replacement for the best available N players (N = open slots), and the
-equivalent no-keeper strength for 225 slots. Then:
-  supply_ratio = (full_strength / 225) / (available_strength / N)
-  market_scale = discretionary_dollars_per_slot * supply_ratio
-Convert historical bids above $1 into these market units before fitting, and
-convert predictions into today's units afterward. This accounts for the money
-competing for comparable available talent without assigning a manual star bonus.
-Two additional candidates (market_local, market_age_local) test this normalization.
+Features: eight category z scores, positive score squared / 8; age-aware models
+also use (season age - 27) / 5 and its interaction with positive score / 8.
+Recorded ages come from prior-season Basketball Reference data only. 1,954 fitted
+observations have age context. 332/348 current players have prior ages; the other
+16 use the statistics-only counterpart. No ages or youth premium are assigned.
+Ridge penalty is 20; recency weight is 0.9 per elapsed year. Model feature scaling
+is fitted only on training observations. Current rates and GP are published ESPN
+projections, not blended with the user workbook or altered to force player prices.
 
-The added adjustment did not win the predetermined development-year selection:
-market_age_local MAE $4.653494 vs age_local $4.651833. Reused recent-year MAE was
-$4.576304 vs $4.584639. Differences are tiny; do not present them as evidence of
-improved accuracy. age_local remains selected, so live prices still normalize
-by budget per slot. The draft-pool context is displayed in the UI and retained
-in exports, but the extra talent multiplier is not applied to current prices.
+Each auction's budget is 15 * $200 minus that year's keeper costs. Reserve $1
+per open roster slot; normalize bids above $1 by discretionary dollars per slot.
+The available-talent candidate also multiplies this scale by:
+  supply_ratio = (full-pool strength / 225) / (available strength / open slots)
+Strength is positive per-game advantage above each pool's replacement. Historical
+supply still uses prior-year actual players minus known keepers; the partial
+forecast file cannot establish the full 225-player pool. Rookies, offseason role
+changes, retirements and unavailable players limit this proxy. Today's supply
+uses the complete ESPN set. Team budget dispersion is recorded, not simulated.
 
-ESPN replaces CBS as the active statistical source. Original projection totals
-are preserved; sparse zero-count keys are decoded within nonempty projections.
-No player without a positive-games forecast is assigned invented statistics.
-The smaller 348-player set changes the reference distribution and allocations;
-it is not a forced correction to Edwards, Harden or Acuff. All keepers and the
-225-player roster depth are covered. No historical test establishes ESPN as
-more accurate than CBS. Earlier CBS CSVs and existing DB runs are preserved.
+Selected model: market_age_local. Selection is repeated on development years
+2018-19 to 2022-23 after applying the availability evidence. Development MAE is
+$4.4733. Selection changed from v3's age_local; available-talent normalization is
+now applied. Do not claim this small candidate difference establishes accuracy.
+Each historical test uses only earlier auctions, and selection stays fixed for
+the later three seasons. All candidates and settings are in model-report.json.
 
-Recorded ages come from the already collected Basketball Reference HTML, checked
-against source hashes and exported to output/stats/market-context.json. This is
-6,460 player-season ages with source IDs, URLs, retrieval times and an integrity
-hash. Ages already existed in the source Excel; NBA projection rows are unchanged.
-For each auction, only records from earlier seasons are eligible. Advance the
-latest recorded season age by elapsed seasons to get target-season age. This is
-a season-age convention, not exact age on draft day. All 1,991 training rows have
-age context. 332/348 projected players have an earlier age; the other 16 use the
-corresponding statistics-only model. No rookie birthdays or ages are guessed.
+Compare 20 nearest profiles by RMS distance across eight category z scores, plus
+age difference / 5 where both ages are known. If both records have projections,
+add (projected GP difference / 20) as another component. Older proxy rows have no
+invented projected GP. The 20-game scale is an explicit working model choice,
+not a fitted claim about the cost of injury. GP affects comp similarity; it is not
+a separately validated availability-price curve or a dated return model.
 
-Compare mean-price, simple total-score curve, ridge category model, and several
-20-neighbor estimates: equal-similarity weights, inverse-square weights, stronger
-inverse-cube weights, a 50/50 blend using inverse-square weights, a 25% comp blend
-using inverse-cube weights, and a local residual correction. Test the same
-variants with age included (except redundant mean and score-only baselines).
-Select by MAE during 2018-19 to 2022-23,
-then lock that choice for expanding-window tests in 2023-24 through 2025-26.
-Every test year uses only earlier auction prices; earlier held-out years can be
-included when fitting a later year, but do not reselect the model. The historical
-comps use RMS distance across all eight z scores. For age-aware comparisons, add
-one component: age difference / 5 years, then use the RMS of nine components.
+  raw weight = 0.9^(years since auction - 1) / (distance + 0.25)^3
+  share = raw weight / sum(raw weights)
+  residual = normalized actual price - regression price for that comp's profile
+  adjustment = 0.5 * sum(share * residual) * current market scale
+  final price = clamp(regression price + adjustment, $1, $200)
 
-Selected model: age_local. The price is an age-aware regression estimate plus
-half the similarity-weighted average historical residual. Each residual is the
-actual normalized purchase price minus the regression prediction for that same
-historical profile. Regression fits and residuals use only the training years.
-This uses what close matches sold above/below their own expected price, rather
-than assuming a different player's raw price should directly price the target.
+Closer profiles receive more weight; recency can outweigh a small distance gap.
+The offset keeps exact matches finite. All 20 shares sum to 100%. Effective comp
+count is 1 / sum(share squared). Repeated player-seasons are correlated evidence.
+Comps display forecast versus prior-stat-proxy basis, projected GP when supplied,
+original price, budget context, distance, weight and individual dollar adjustment.
+Sorting comps changes their display only, not their statistical weights.
 
-For the 20 nearest observations:
-  unnormalized_weight = 0.9^(years since auction - 1) / (distance + 0.25)^3;
-  share = unnormalized_weight / sum(unnormalized_weights);
-  adjustment = 0.5 * sum(share * residual) * current discretionary dollars/slot;
-  final price = clamp(overall regression price + adjustment, $1, $200).
-
-Equal-age, equally recent distances 0.2 versus 0.8 give about 12.7 times as much
-weight to the closer match (5.4 times with the old inverse-square formula).
-The 0.25 offset keeps an exact match finite. Recency can allow a newer, slightly
-less similar profile to outweigh an older one. No single comp is treated as
-certainty. Effective sample size = 1 / sum(share^2); below three is flagged.
-Repeated player-seasons are correlated evidence, not independent samples.
-
-Player details show the five largest weights and an expandable remaining 15.
-All 20 weights sum to 100%; rounded displayed percentages may differ slightly.
-Paid prices remain original bids. Dollar adjustments and budget-normalized comp
-prices are separate fields, with an explicit regression-plus-adjustment breakdown.
-The Excel export retains all 20 comps, their shares and individual adjustments.
-
-Development MAE: $4.65 versus $5.10 for the previous ridge model. Last three years:
-541 matched purchases, MAE $4.58 versus $4.86 for the previous ridge model, $5.33
-for a simple score curve and $10.04 for the mean-price baseline. Purchases costing
-$30+ have MAE $11.91 (previously $13.12) and mean error -$9.55: stars remain
-underpriced. Do not hide this behind the overall error. The nominal 80% price
-band achieved 77.4% chronological coverage. Bands use normalized absolute past
-prediction errors by predicted price tier, falling back to all errors below 30
-samples. Current price estimates and bands use the $2,210/195 auction context.
-
-The later three seasons have already been reviewed in earlier model work. They
-are reused retrospective comparisons, not fresh independent validation. Candidate
-selection still uses only development-year MAE. Hyperparameters are explicit
-model choices, not a guarantee of future accuracy. A truly fresh future auction
-or archived preseason forecasts would strengthen evaluation.
-
-This is a price backtest using prior-year actuals, NOT a backtest of provider forecasts,
-this year's rookies or the survivor value formula. Archived historical preseason
-projections and dated league standings/transactions would improve those tests.
-Scenario dollar ranges are distinct from empirical market-price error bands.
+Recent retrospective checks: 523 purchases, MAE $4.58, versus $10.13 for the
+mean-price baseline. $30+ purchases have MAE $11.18 and bias -$8.29; stars are still
+underpriced on average. Nominal 80% bands cover 76.1%. Bands use earlier normalized
+absolute errors by price tier, falling back to all errors when samples are sparse.
+These seasons have been reviewed before; they are not fresh independent holdouts.
+The evaluated cohort differs from v3, so before/after MAEs are not an apples-to-
+apples accuracy comparison. The 2025-26 projection date is user-asserted, not
+independently dated. Earlier tests still use actual-stat proxies. No test proves
+the current provider, rookie estimates, or neutral survivor formula is accurate.
 
 DESCRIPTIVE ROSTER CHECK
 
@@ -240,10 +205,16 @@ contributions, actual comps, chronological tests, exclusions, scenarios and meth
 CSV files and model-report.json include model comparisons and allow independent
 review. Valuation exports are not
 runtime imports. Railway computes the same run from its stored inputs on startup.
-The website displays the saved model, assumptions, category bars, comps and price
-bands and provides a valuation CSV download with availability filtering.
+The website keeps the numeric outputs, category bars, comps and price bands.
+Explanatory panels were removed at the user's request. Formula and source audits
+remain here and in the model report. Board and CSV filters agree for search,
+position, availability, metric and direction; missing numbers always sort last.
+The supplied partial forecast is selectable on the projections page. Its JSON
+archive is imported into historical_projection_sets on normal Railway startup.
 
 SOURCE REFERENCES
-https://www.cbssports.com/fantasy/basketball/projections/
+https://fantasy.espn.com/basketball/players/projections
+Dated availability sources: config/preseason_availability.json
+Historical forecast source: user-supplied 2025-26 Player Projections.xlsx
 https://www.basketball-reference.com/leagues/NBA_2026_totals.html
 https://pr.nba.com/2026-27-nba-regular-season-schedule/

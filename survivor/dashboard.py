@@ -9,6 +9,7 @@ import io
 import json
 import logging
 import os
+import re
 from pathlib import Path
 import threading
 
@@ -20,9 +21,33 @@ from survivor.database import Postgres, preview_database, railway_database
 from survivor.keepers import annotate_availability, keeper_summary, sync_bundled_keepers
 from survivor.bundled_stats import sync_bundled_stats, sync_bundled_projections
 from survivor.valuation import sync_valuations
+from survivor.historical_projections import archive_metadata, stored_archives
 
 ROOT = Path(__file__).resolve().parents[1]
 RULES = json.loads((ROOT / 'config/league.json').read_text(encoding='utf-8'))
+STAT_COLUMNS = ('games','minutes_pg','pts_pg','reb_pg','ast_pg','stl_pg','blk_pg','fg3m_pg','fgm_pg','fga_pg','ftm_pg','fta_pg')
+TABLE_SORTS = {'player','positions','nba_team','survivor_score','expected_auction_price','fair_value',
+               'confirmed_keeper_surplus','fg_pct','ft_pct',*STAT_COLUMNS}
+POSITIONS = {'PG','SG','SF','PF','C','G','F','unknown'}
+
+
+def position_matches(positions, selected):
+    tokens = set(re.findall(r'[A-Z]+', (positions or '').upper()))
+    if not selected:
+        return True
+    if selected=='unknown':
+        return not tokens
+    return bool(tokens & ({'G','PG','SG'} if selected=='G' else {'F','SF','PF'} if selected=='F' else {selected}))
+
+
+def table_metrics(entries):
+    for row in entries:
+        details = json.loads(row.get('category_values_json') or '{}')
+        row['survivor_score'] = details.get('score')
+        row['confirmed_keeper_surplus'] = row['fair_value']-row['confirmed_keeper_cost'] if row.get('fair_value') is not None and row.get('confirmed_keeper_cost') is not None else None
+        row['fg_pct'] = row['fgm_pg']/row['fga_pg'] if row.get('fga_pg') else None
+        row['ft_pct'] = row['ftm_pg']/row['fta_pg'] if row.get('fta_pg') else None
+    return entries
 
 
 def create_app(preview_db=None):
@@ -77,6 +102,7 @@ def create_app(preview_db=None):
             seasons = rows(db, 'SELECT season,league_year FROM seasons ORDER BY start_year DESC')
             teams = [r[0] for r in db.execute('SELECT DISTINCT franchise_sheet FROM team_seasons ORDER BY franchise_sheet')]
             datasets = rows(db, "SELECT d.dataset_id,d.kind,d.season,d.source_name,d.source_url,d.as_of_date,d.coverage,COUNT(p.player_id) AS players FROM stat_datasets d LEFT JOIN player_stats p USING(dataset_id) GROUP BY d.dataset_id ORDER BY d.as_of_date DESC,d.imported_at DESC")
+            datasets += [archive_metadata(a) for a in stored_archives(db)]
             runs = rows(db, "SELECT r.run_id,r.created_at,r.model_version,r.projection_dataset_id,d.season,d.source_name,COUNT(v.player_id) AS players FROM valuation_runs r JOIN stat_datasets d ON d.dataset_id=r.projection_dataset_id LEFT JOIN projected_values v USING(run_id) GROUP BY r.run_id,d.season,d.source_name ORDER BY r.created_at DESC")
             imported = db.execute('SELECT MAX(imported_at) FROM source_workbooks').fetchone()[0]
             player_count = db.execute('SELECT COUNT(*) FROM players').fetchone()[0]
@@ -99,6 +125,22 @@ def create_app(preview_db=None):
             raise BadRequest('Unknown draft availability filter.')
         annotate_availability(db, entries, season)
         return entries if availability == 'all' else [row for row in entries if row['draft_status'] == availability]
+
+    def table_entries(entries, default_sort):
+        position = request.args.get('position','')
+        if position and position not in POSITIONS:
+            raise BadRequest('Unknown position filter.')
+        sort = request.args.get('sort',default_sort)
+        direction = request.args.get('direction','desc')
+        if sort not in TABLE_SORTS or direction not in ('asc','desc'):
+            raise BadRequest('Unknown table sort.')
+        query = name_key(request.args.get('q','')[:100])
+        entries = [r for r in table_metrics(entries) if position_matches(r.get('positions'),position)
+                   and (not query or query in name_key(r['player']))]
+        # Keep absent statistics/values last in both directions.
+        present = sorted((r for r in entries if r.get(sort) is not None),key=lambda r:r['player'])
+        present.sort(key=lambda r:r[sort].casefold() if isinstance(r[sort],str) else r[sort],reverse=direction=='desc')
+        return present+sorted((r for r in entries if r.get(sort) is None),key=lambda r:r['player'])
 
     def selected_season(db):
         season = request.args.get('season')
@@ -125,6 +167,11 @@ def create_app(preview_db=None):
         if kind not in ('all', 'auction', 'keeper', 'final'):
             raise ValueError('Invalid entry type')
         table = 'auction_sales' if kind == 'auction' else 'roster_history'
+        # Same-season recorded NBA positions; never use today's eligibility for old rosters.
+        table = f'''(SELECT h.*,s.positions FROM {table} h
+            LEFT JOIN player_stats s ON s.player_id=h.player_id AND s.dataset_id=(
+                SELECT dataset_id FROM stat_datasets WHERE kind='actual' AND season=h.season
+                ORDER BY as_of_date DESC,imported_at DESC,dataset_id LIMIT 1)) history_rows'''
         conditions, parameters = [], []
         if kind != 'auction':
             conditions.append("stage='final'" if kind == 'final' else "stage='opening'")
@@ -141,10 +188,27 @@ def create_app(preview_db=None):
         if query:
             conditions.append('player_id LIKE ?')
             parameters.append('%' + query + '%')
+        position = request.args.get('position','')
+        if position and position not in POSITIONS:
+            raise BadRequest('Unknown position filter.')
+        if position=='unknown':
+            conditions.append("COALESCE(positions,'')=''")
+        elif position:
+            tokens = ('G','PG','SG') if position=='G' else ('F','SF','PF') if position=='F' else (position,)
+            normalized = "(',' || REPLACE(REPLACE(REPLACE(COALESCE(positions,''),'-',','),'/',','),' ','') || ',')"
+            conditions.append('('+' OR '.join(normalized+' LIKE ?' for _ in tokens)+')')
+            parameters.extend('%,'+token+',%' for token in tokens)
         order = {'price_desc': 'recorded_cost DESC,player,season DESC',
                  'price_asc': 'recorded_cost ASC,player,season DESC',
                  'player': 'player,season DESC', 'season': 'season DESC,recorded_cost DESC,player',
                  'team': 'franchise_sheet,recorded_cost DESC,player'}.get(request.args.get('sort'), 'recorded_cost DESC,player,season DESC')
+        column = {'player':'player','season':'season','team':'franchise_sheet','position':'positions',
+                  'type':'acquisition_class','price':'recorded_cost','contract':'contract_year_recorded'}.get(request.args.get('sort'))
+        if column:
+            direction = request.args.get('direction','asc' if column in ('player','franchise_sheet','positions','acquisition_class') else 'desc')
+            if direction not in ('asc','desc'):
+                raise BadRequest('Unknown table sort direction.')
+            order = f'{column} {direction} NULLS LAST,player,season DESC'
         where = ' AND '.join(conditions) or '1=1'
         return table, where, parameters, order
 
@@ -162,7 +226,7 @@ def create_app(preview_db=None):
                 return jsonify(error='Unknown entry type.'), 400
             count = db.execute(f'SELECT COUNT(*) FROM {table} WHERE {where}', parameters).fetchone()[0]
             page = min(page, max(1, (count + limit - 1) // limit))
-            entries = rows(db, f'SELECT season,player,player_id,franchise_sheet,recorded_cost,contract_year_recorded,acquisition_class,finish,source_cell FROM {table} WHERE {where} ORDER BY {order} LIMIT ? OFFSET ?', (*parameters, limit, (page-1)*limit))
+            entries = rows(db, f'SELECT season,player,player_id,positions,franchise_sheet,recorded_cost,contract_year_recorded,acquisition_class,finish,source_cell FROM {table} WHERE {where} ORDER BY {order} LIMIT ? OFFSET ?', (*parameters, limit, (page-1)*limit))
         return jsonify(rows=entries, total=count, page=page, limit=limit)
 
     @app.get('/api/history.csv')
@@ -172,10 +236,10 @@ def create_app(preview_db=None):
                 table, where, parameters, order = history_query(db)
             except ValueError:
                 return jsonify(error='Unknown entry type.'), 400
-            entries = rows(db, f'SELECT season,player,franchise_sheet,recorded_cost,acquisition_class,contract_year_recorded,source_cell FROM {table} WHERE {where} ORDER BY {order}', parameters)
+            entries = rows(db, f'SELECT season,player,franchise_sheet,recorded_cost,acquisition_class,contract_year_recorded,source_cell,positions FROM {table} WHERE {where} ORDER BY {order}', parameters)
         stream = io.StringIO(newline='')
         writer = csv.writer(stream)
-        writer.writerow(['Season','Player','Franchise','Recorded cost','Entry type','Contract year','Source cell'])
+        writer.writerow(['Season','Player','Franchise','Recorded cost','Entry type','Contract year','Source cell','Position'])
         for row in entries:
             # Prevent spreadsheet programs from executing source text as formulas.
             writer.writerow(["'"+v if isinstance(v,str) and v.startswith(('=','+','-','@','\t','\r')) else v for v in row.values()])
@@ -190,12 +254,15 @@ def create_app(preview_db=None):
             history = rows(db, "SELECT season,franchise_sheet,recorded_cost,contract_year_recorded,acquisition_class,finish,source_cell FROM roster_history WHERE player_id=? AND stage='opening' ORDER BY season", (player_id,))
             finals = rows(db, "SELECT season,franchise_sheet,recorded_cost,finish FROM roster_history WHERE player_id=? AND stage='final' ORDER BY season DESC,finish", (player_id,))
             projections = rows(db, "SELECT s.*,d.season,d.source_name,d.source_url,d.as_of_date,d.notes FROM player_stats s JOIN stat_datasets d USING(dataset_id) WHERE s.player_id=? AND d.kind='projection' ORDER BY d.as_of_date DESC,d.imported_at DESC", (player_id,))
+            for archive in stored_archives(db):
+                projections += [{**p,**archive_metadata(archive)} for p in archive['records'] if p['player_id']==player_id]
             values = rows(db, 'SELECT v.*,r.model_version,r.created_at,r.projection_dataset_id,d.season FROM projected_values v JOIN valuation_runs r USING(run_id) JOIN stat_datasets d ON r.projection_dataset_id=d.dataset_id WHERE v.player_id=? ORDER BY r.created_at DESC', (player_id,))
             current = rows(db, 'SELECT season,franchise,keeper_cost FROM keeper_selections WHERE player_id=? AND season=?', (player_id, RULES['target_season']))
         return jsonify(**player[0], history=history, finals=finals, projections=projections, valuations=values,
                        confirmed_keeper=current[0] if current else None)
 
     @app.get('/api/projections')
+    @app.get('/api/projections.csv')
     def projections():
         with database() as db:
             dataset_id = request.args.get('dataset')
@@ -204,7 +271,30 @@ def create_app(preview_db=None):
                 dataset_id = latest[0] if latest else ''
             metadata = rows(db, "SELECT dataset_id,season,source_name,source_url,as_of_date,coverage,notes FROM stat_datasets WHERE kind='projection' AND dataset_id=?", (dataset_id,))
             entries = rows(db, "SELECT s.*,p.display_name AS player FROM player_stats s JOIN players p USING(player_id) JOIN stat_datasets d USING(dataset_id) WHERE s.dataset_id=? AND d.kind='projection' ORDER BY s.pts_pg DESC,p.display_name", (dataset_id,))
+            if not metadata:
+                archive = next((a for a in stored_archives(db) if a['dataset_id']==dataset_id or
+                                (not dataset_id and a['season']==request.args.get('season'))),None)
+                if archive:
+                    dataset_id = archive['dataset_id']
+                    metadata = [archive_metadata(archive)]
+                    entries = [{k:v for k,v in p.items() if k!='original'} | {'dataset_id':dataset_id} for p in archive['records']]
+            matching = rows(db, '''SELECT v.player_id,v.run_id,v.fair_value,v.expected_auction_price,v.category_values_json
+                FROM projected_values v WHERE v.run_id=(SELECT run_id FROM valuation_runs
+                WHERE projection_dataset_id=? ORDER BY created_at DESC,run_id LIMIT 1)''',(dataset_id,))
+            matching = {v['player_id']:v for v in matching}
+            for entry in entries:
+                entry.update(matching.get(entry['player_id'],{}))
             entries = available_entries(db, entries, metadata[0]['season'] if metadata else '')
+            entries = table_entries(entries,'pts_pg')
+        if request.path.endswith('.csv'):
+            stream = io.StringIO(newline='')
+            writer = csv.writer(stream)
+            fields = ['player','positions','nba_team',*STAT_COLUMNS,'fg_pct','ft_pct','survivor_score',
+                      'expected_auction_price','fair_value','draft_status','dataset_id','run_id']
+            writer.writerow(fields)
+            for row in entries:
+                writer.writerow(["'"+v if isinstance(v,str) and v.startswith(('=','+','-','@','\t','\r')) else v for v in [row.get(k) for k in fields]])
+            return Response('\ufeff'+stream.getvalue(),mimetype='text/csv',headers={'Content-Disposition':'attachment; filename=survivor-projections.csv'})
         return jsonify(dataset=metadata[0] if metadata else None, rows=entries)
 
     @app.get('/api/valuations')
@@ -218,8 +308,13 @@ def create_app(preview_db=None):
             metadata = rows(db, 'SELECT r.run_id,r.created_at,r.model_version,r.training_cutoff,r.validation_json,r.league_settings_json,r.notes,d.season,d.source_name,d.as_of_date FROM valuation_runs r JOIN stat_datasets d ON d.dataset_id=r.projection_dataset_id WHERE run_id=?', (run_id,))
             # Detailed comparisons are fetched for one player in the drawer,
             # rather than sending 10,000 comparable records with every board.
-            entries = rows(db, 'SELECT v.run_id,v.player_id,v.fair_value,v.expected_auction_price,v.recommended_bid_ceiling,v.lower_estimate,v.upper_estimate,v.keeper_cost,v.keeper_surplus,v.category_values_json,v.risk_notes,p.display_name AS player FROM projected_values v JOIN players p USING(player_id) WHERE v.run_id=? ORDER BY v.fair_value DESC NULLS LAST,p.display_name', (run_id,))
+            entries = rows(db, '''SELECT v.run_id,v.player_id,v.fair_value,v.expected_auction_price,v.recommended_bid_ceiling,v.lower_estimate,v.upper_estimate,v.keeper_cost,v.keeper_surplus,v.category_values_json,v.risk_notes,p.display_name AS player,
+                s.positions,s.nba_team,'''+','.join('s.'+k for k in STAT_COLUMNS)+'''
+                FROM projected_values v JOIN players p USING(player_id) JOIN valuation_runs r USING(run_id)
+                LEFT JOIN player_stats s ON s.dataset_id=r.projection_dataset_id AND s.player_id=v.player_id
+                WHERE v.run_id=? ORDER BY v.fair_value DESC NULLS LAST,p.display_name''', (run_id,))
             entries = available_entries(db, entries, metadata[0]['season'] if metadata else '')
+            entries = table_entries(entries,'fair_value')
         if metadata:
             metadata[0]['validation'] = json.loads(metadata[0]['validation_json'])
             metadata[0]['settings'] = json.loads(metadata[0]['league_settings_json'])
@@ -228,7 +323,8 @@ def create_app(preview_db=None):
             writer = csv.writer(stream)
             writer.writerow(['Player','Survivor value score','Expected league price','Neutral auction value',
                              'Price band low','Price band high','Draft status','Keeper owner','Confirmed keeper cost',
-                             'Neutral faster cuts','Neutral slower cuts','Run ID','Market season age','Price before comps','Comp adjustment'])
+                             'Neutral faster cuts','Neutral slower cuts','Run ID','Market season age','Price before comps','Comp adjustment',
+                             'Position','NBA team',*STAT_COLUMNS,'FG%','FT%'])
             for row in entries:
                 details = json.loads(row['category_values_json'])
                 scenarios = details.get('scenario_values',{})
@@ -236,7 +332,8 @@ def create_app(preview_db=None):
                 cells = [row['player'],details.get('score'),row['expected_auction_price'],row['fair_value'],
                          row['lower_estimate'],row['upper_estimate'],row['draft_status'],row['keeper_franchise'],
                          row['confirmed_keeper_cost'],scenarios.get('faster'),scenarios.get('slower'),run_id,
-                         (market.get('age_source') or {}).get('target_season_age'),market.get('base_price'),market.get('comp_adjustment')]
+                         (market.get('age_source') or {}).get('target_season_age'),market.get('base_price'),market.get('comp_adjustment'),
+                         row.get('positions'),row.get('nba_team'),*[row.get(k) for k in STAT_COLUMNS],row['fg_pct'],row['ft_pct']]
                 writer.writerow(["'"+v if isinstance(v,str) and v.startswith(('=','+','-','@','\t','\r')) else v for v in cells])
             return Response('\ufeff'+stream.getvalue(),mimetype='text/csv',
                             headers={'Content-Disposition':'attachment; filename=survivor-valuations.csv'})

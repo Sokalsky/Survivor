@@ -82,6 +82,9 @@ CREATE TABLE IF NOT EXISTS player_stats (
     ftm_pg REAL NOT NULL CHECK(ftm_pg >= 0), fta_pg REAL NOT NULL CHECK(fta_pg >= ftm_pg),
     CHECK(fg3m_pg <= fgm_pg), PRIMARY KEY(dataset_id, player_id)
 );
+CREATE TABLE IF NOT EXISTS historical_projection_sets (
+    dataset_id TEXT PRIMARY KEY, season TEXT NOT NULL, payload_json TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS valuation_runs (
     run_id TEXT PRIMARY KEY, projection_dataset_id TEXT NOT NULL REFERENCES stat_datasets,
     created_at TEXT NOT NULL, model_version TEXT NOT NULL,

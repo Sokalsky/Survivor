@@ -14,6 +14,8 @@ from survivor.database import preview_database, railway_database
 from survivor.keepers import keeper_summary, sync_bundled_keepers
 from survivor.bundled_stats import sync_bundled_stats, sync_bundled_projections
 from survivor.market_context import load_context
+from survivor.preseason import load_preseason_evidence
+from survivor.historical_projections import sync_historical_projections
 from survivor.auction_context import auction_context, historical_contexts, market_observations
 
 CATEGORIES = ('PTS','REB','AST','STL','BLK','3PM','FG%','FT%')
@@ -229,7 +231,12 @@ class PriceModel:
             squared = sum((a-b)**2 for a,b in zip(z,other))
             if self.age:
                 squared += ((profile['age']-self.observations[index]['profile']['age'])/self.settings['age_distance_years'])**2
-            distance = math.sqrt(squared/(9 if self.age else 8))
+            dimensions = 9 if self.age else 8
+            other_games = self.observations[index]['profile'].get('projected_games')
+            if other_games is not None and profile.get('projected_games') is not None:
+                squared += ((profile['projected_games']-other_games)/self.settings['projection_games_distance_scale'])**2
+                dimensions += 1
+            distance = math.sqrt(squared/dimensions)
             distances.append((distance,index))
         return sorted(distances)[:count or self.settings['neighbors']]
 
@@ -297,22 +304,46 @@ def historical_keeper_groups(keeper_history):
     return groups
 
 
-def training_observations(actuals, statistics, auctions, keeper_history, rules, settings, context=None):
+def training_observations(actuals, statistics, auctions, keeper_history, rules, settings, context=None, availability=None, forecasts=None):
+    availability = load_preseason_evidence()[1] if availability is None else availability
+    forecasts = forecasts or {}
     historical = {}
+    references = {}
     for season,dataset in actuals.items():
         players = statistics[dataset['dataset_id']]
-        scored,_ = profiles(players,pool_size=settings['reference_pool_size'],minimum_games=settings['historical_minimum_games'])
+        scored,reference = profiles(players,pool_size=settings['reference_pool_size'],minimum_games=settings['historical_minimum_games'])
+        references[season] = reference
         historical[season] = {p['player_id']:(p,scored[p['player_id']]) for p in players}
     keepers = historical_keeper_groups(keeper_history)
     markets = historical_contexts(actuals,statistics,auctions,keeper_history,rules,settings,profiles)
     observations, missing = [], []
     for sale in auctions:
         prior = season_name(int(sale['season'][:4])-1)
-        pair = historical.get(prior,{}).get(sale['player_id'])
-        if pair is None or pair[0]['games'] < settings['historical_minimum_games']:
-            missing.append({**sale,'stats_season':prior,'reason':'No matched prior season or fewer than 10 games'})
+        evidence = availability.get((sale['season'],sale['player_id']))
+        if evidence:
+            missing.append({**sale,'stats_season':prior,'reason_code':'preseason_availability',
+                            'reason':evidence['reason'],'reported_at':evidence['reported_at'],
+                            'availability_status':evidence['status'],'source_url':evidence['source_url']})
             continue
-        player,profile = pair
+        pair = historical.get(prior,{}).get(sale['player_id'])
+        archive = forecasts.get(sale['season'])
+        projected = archive['players'].get(sale['player_id']) if archive else None
+        if archive and projected is None:
+            missing.append({**sale,'stats_season':sale['season'],'reason_code':'missing_historical_projection',
+                            'reason':'Not listed in the supplied partial projection workbook; no prior-actuals fallback or invented zero forecast.'})
+            continue
+        if not projected and (pair is None or pair[0]['games'] < settings['historical_minimum_games']):
+            missing.append({**sale,'stats_season':prior,'reason_code':'prior_sample','reason':'No matched prior season or fewer than 10 games'})
+            continue
+        if projected:
+            player = projected
+            ref = references[prior]
+            contributions = dict(zip(CATEGORIES,[player[k] for k in COUNT_FIELDS]+[
+                player['fgm_pg']-ref['fg_baseline']*player['fga_pg'],player['ftm_pg']-ref['ft_baseline']*player['fta_pg']]))
+            z = {cat:(contributions[cat]-ref['means'][cat])/ref['standard_deviations'][cat] for cat in CATEGORIES}
+            profile = {'z':z,'score':sum(z.values()),'projected_games':player['games']}
+        else:
+            player,profile = pair
         age_record = context.before(sale['player_id'],sale['season']) if context else None
         profile = {**profile,'age':age_record['target_season_age'] if age_record else None}
         keeper = keepers.get(sale['season'],{'keepers':0,'cost':0})
@@ -321,7 +352,10 @@ def training_observations(actuals, statistics, auctions, keeper_history, rules, 
         dollars_per_slot = (budget-slots*settings['minimum_bid'])/slots
         if dollars_per_slot <= 0:
             raise ValueError('Historical keeper costs exceed the assumed auction budget.')
-        observations.append({**sale,'stats_season':prior,'stats_games':player['games'],
+        observations.append({**sale,'stats_season':sale['season'] if projected else prior,'stats_games':player['games'],
+                             'outlook_basis':'supplied_projection' if projected else 'prior_actuals_proxy',
+                             'forecast_dataset_id':archive['metadata']['dataset_id'] if archive else None,
+                             'availability_review':'no_documented_exception',
                              'profile':profile,'scale':dollars_per_slot,'age_source':age_record,
                              'auction_context':markets[sale['season']],
                              'target':max(0,(sale['recorded_cost']-settings['minimum_bid'])/dollars_per_slot)})
@@ -392,6 +426,7 @@ def evaluate(observations,settings):
                                           'available_top_30':item['auction_context']['available_top_counts']['30'],
                                           'supply_ratio':item['auction_context']['supply_ratio'],
                                           'stats_season':item['stats_season'],'training_last_season':max(o['season'] for o in train),
+                                          'outlook_basis':item['outlook_basis'],'forecast_dataset_id':item['forecast_dataset_id'],
                                           'target_season_age':item['profile'].get('age'),
                                           'age_source_season':item['age_source']['season'] if item.get('age_source') else None})
     if selected is None:
@@ -411,7 +446,7 @@ def evaluate(observations,settings):
                      'model_selection_basis':'Candidate choice uses development-year MAE only. Later seasons have been reviewed during earlier model development and are reused retrospective checks, not fresh independent holdouts.',
                      'holdout_tiers_by_model':{name:{tier:metrics([r for r in records if r['season']>=settings['holdout_first_season'] and price_tier(r['actual'])==tier]) for tier in ('under_10','10_to_30','30_plus')} for name,records in results.items()},
                      'by_season':{s:metrics([r for r in results[selected] if r['season']==s]) for s in seasons if any(r['season']==s for r in results[selected])},
-                     'interpretation':'Out-of-season price tests use prior-year actuals, not archived preseason projections. Rookies and low-sample players without prior stats are excluded. Current projection-based estimates are not independently validated.'}, results[selected]
+                     'interpretation':'Older auction seasons use prior-year actuals as proxies. 2025-26 uses the partial user-supplied forecast workbook, whose provider and original date are unverified. Missing forecasts and documented availability exceptions are excluded; this changes the evaluation cohort. Rookies appear only where supplied forecasts exist. Current projection-based estimates are not independently validated.'}, results[selected]
 
 
 def build_valuations(db, season, settings=None):
@@ -425,7 +460,11 @@ def build_valuations(db, season, settings=None):
     if settings['minimum_bid'] <= 0 or settings['roster_size'] <= rules['keepers_per_team']:
         raise ValueError('Invalid roster size or minimum bid.')
     context = load_context()
-    observations,missing = training_observations(actuals,statistics,auctions,keeper_history,rules,settings,context)
+    evidence,evidence_index = load_preseason_evidence()
+    archive = sync_historical_projections(db)
+    forecasts = {archive['season']:{'metadata':{k:v for k,v in archive.items() if k!='records'},
+                                  'players':{p['player_id']:p for p in archive['records']}}} if archive['season']<season else {}
+    observations,missing = training_observations(actuals,statistics,auctions,keeper_history,rules,settings,context,evidence_index,forecasts)
     selected,validation,backtest = evaluate(observations,settings)
     rate_profiles,rate_reference = profiles(players,pool_size=settings['reference_pool_size'],weights=settings['category_weights'])
     scenarios = {}
@@ -454,7 +493,7 @@ def build_valuations(db, season, settings=None):
     for p in players:
         key = p['player_id']
         age_record = context.before(key,season)
-        profile = {**rate_profiles[key],'age':age_record['target_season_age'] if age_record else None}
+        profile = {**rate_profiles[key],'age':age_record['target_season_age'] if age_record else None,'projected_games':p['games']}
         player_model = model if age_record or not model.age else fallback
         prediction_key = 'ridge' if method=='score_curve' else method.removeprefix('age_')
         expected = min(200,max(settings['minimum_bid'],settings['minimum_bid']+player_model.predictions(profile)[prediction_key]*scale))
@@ -471,6 +510,8 @@ def build_valuations(db, season, settings=None):
             adjusted_price = settings['minimum_bid']+comp['target']*scale
             comps.append({'player':comp['player'],'player_id':comp['player_id'],'season':comp['season'],
                           'stats_season':comp['stats_season'],'actual_price':comp['recorded_cost'],
+                          'outlook_basis':comp['outlook_basis'],'availability_review':comp['availability_review'],
+                          'projected_games':comp['profile'].get('projected_games'),'forecast_dataset_id':comp['forecast_dataset_id'],
                           'franchise':comp['franchise_sheet'],'distance':round(distance,4),
                           'weight':weighted['weight'],'target_season_age':comp['profile'].get('age'),
                           'average_team_budget':comp['auction_context']['average_team_budget'],
@@ -483,7 +524,7 @@ def build_valuations(db, season, settings=None):
         fair = base[key]
         flags = []
         if prior_games.get(key,0)<settings['historical_minimum_games']:
-            flags.append('Fewer than 10 NBA games in the previous season: rookie/returning or low-sample player; market-price validation does not cover this case.')
+            flags.append('Fewer than 10 NBA games in the previous season: rookie/returning or low-sample player; historical forecast coverage for these cases is limited to the supplied partial workbook.')
         if nearest[0]['distance'] > 1:
             flags.append('No close historical comparable (nearest combined similarity distance exceeds 1).')
         if not age_record:
@@ -519,7 +560,13 @@ def build_valuations(db, season, settings=None):
                                                     'correction_share':settings['comp_correction_share']},
                                           'scenario_values':{name:s['dollars'][key] for name,s in scenarios.items()}},
                        'comps':comps,'risk_notes':' '.join(flags)})
-    validation.update(training_rows=len(observations),unmatched_or_low_sample_rows=len(missing),historical_sales=len(auctions),
+    excluded_availability = [r for r in missing if r['reason_code']=='preseason_availability']
+    validation.update(training_rows=len(observations),unmatched_or_low_sample_rows=sum(r['reason_code']=='prior_sample' for r in missing),
+                      excluded_rows=len(missing),preseason_excluded_rows=len(excluded_availability),
+                      preseason_evidence={**evidence,'excluded_sales':excluded_availability},historical_sales=len(auctions),
+                      historical_projection_sources=[v['metadata'] for v in forecasts.values()],
+                      forecast_training_rows=sum(o['outlook_basis']=='supplied_projection' for o in observations),
+                      missing_historical_projection_rows=sum(r['reason_code']=='missing_historical_projection' for r in missing),
                       remaining_budget=draft['remaining_budget'],remaining_slots=slots,projected_players=len(players),
                       neutral_allocation=base_allocation,rate_reference=rate_reference,
                       market_context=context.metadata,
@@ -603,7 +650,9 @@ def export_results(result, folder):
     add_sheet(workbook,'Backtest',result['backtest'],list(result['backtest'][0]))
     model_checks = [{'model':name,'split':split,**metrics} for split in ('development','holdout') for name,metrics in result['validation'][split].items()]
     add_sheet(workbook,'Model comparison',model_checks,list(model_checks[0]))
-    add_sheet(workbook,'Excluded history',result['excluded'],list(result['excluded'][0]))
+    excluded_fields = list(dict.fromkeys(k for row in result['excluded'] for k in row))
+    add_sheet(workbook,'Excluded history',result['excluded'],excluded_fields)
+    write_csv(folder/'excluded-history.csv',result['excluded'],excluded_fields)
     stage_rows = [{'scenario':name,**stage} for name,scenario in result['validation']['survivor_scenarios'].items() for stage in scenario['stages']]
     add_sheet(workbook,'Elimination scenarios',stage_rows,list(stage_rows[0]))
     add_sheet(workbook,'Method',[{'item':key,'value':canonical(value)} for key,value in result['settings'].items()],['item','value'])

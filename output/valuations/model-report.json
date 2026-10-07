@@ -1,10 +1,10 @@
 {
-  "run_id": "0c171d4941cd7473b57e99ae6cf9ad79c52df6186ed53cdcd8a76ce0d8dd39cd",
+  "run_id": "713b7d903b010bed5954691cf0abdceeca181f75afd5098a0308a4011176064b",
   "projection_dataset_id": "8512725602d60917be54e9dac88175045afbe9157138db58b85e6affc9379fba",
   "season": "2026-27",
-  "model_version": "survivor-8cat-v3",
+  "model_version": "survivor-8cat-v4",
   "settings": {
-    "model_version": "survivor-8cat-v3",
+    "model_version": "survivor-8cat-v4",
     "roster_size": 15,
     "minimum_bid": 1,
     "minimum_bid_basis": "Working assumption; lowest recorded auction purchase is $1. Formal rule not confirmed.",
@@ -18,6 +18,7 @@
     "comp_correction_share": 0.5,
     "comp_blend_share": 0.25,
     "age_distance_years": 5,
+    "projection_games_distance_scale": 20,
     "market_age_basis": "Recorded historical season age advanced to the auction season. Missing ages use the corresponding statistics-only model; no age is guessed. Age is a pricing feature, not a predetermined youth or keeper premium.",
     "development_first_season": "2018-19",
     "holdout_first_season": "2023-24",
@@ -60,7 +61,7 @@
       "scoring_basis": "Cumulative contribution conditional on reaching the final; no assumed elimination probability or statistics reset."
     },
     "horizon": "Per-game category advantage integrated above rising replacement levels, using published availability and a shared 1,000-game pacing limit.",
-    "market_basis": "Historical prices use preceding-season per-game stats. Current estimates use published projected per-game stats. Historical preseason projections are unavailable.",
+    "market_basis": "2025-26 uses user-supplied projected rates and games; original provider and publication date are unverified. Missing players in that partial workbook are excluded, not replaced with healthy prior-year stats. Older years use prior-year actuals as a proxy. Documented preseason availability exceptions are excluded from fitting and comparisons. Similarity also uses projected games when both sides have forecasts, with a working 20-game distance scale. Exact league auction dates are unknown.",
     "league_rules": {
       "teams": 15,
       "keepers_per_team": 2,
@@ -96,666 +97,967 @@
     }
   },
   "validation": {
-    "selected_model": "age_local",
+    "selected_model": "market_age_local",
     "development": {
       "score_curve": {
-        "n": 890,
-        "mae": 5.33648074018656,
-        "rmse": 7.5940106321531315,
-        "bias": -0.1442348413917061
+        "n": 882,
+        "mae": 5.182553890021838,
+        "rmse": 7.308602482307267,
+        "bias": -0.26272574491393236
       },
       "mean": {
-        "n": 890,
-        "mae": 9.59841929316651,
-        "rmse": 13.107643298518683,
-        "bias": -0.02562917349222612
+        "n": 882,
+        "mae": 9.63171159567361,
+        "rmse": 13.146954588612411,
+        "bias": -0.054746446425350134
       },
       "ridge": {
-        "n": 890,
-        "mae": 5.096217291850025,
-        "rmse": 7.368621600158118,
-        "bias": -0.12337194295091308
+        "n": 882,
+        "mae": 4.9329733573238626,
+        "rmse": 7.06356348681187,
+        "bias": -0.23525168189696483
       },
       "comps": {
-        "n": 890,
-        "mae": 5.415470372273604,
-        "rmse": 7.7686475279069205,
-        "bias": -1.5652792127713706
+        "n": 882,
+        "mae": 5.302494644836189,
+        "rmse": 7.594740974673247,
+        "bias": -1.7024591213063918
       },
       "blend": {
-        "n": 890,
-        "mae": 5.0996745221536495,
-        "rmse": 7.275462211310888,
-        "bias": -0.877207725365765
+        "n": 882,
+        "mae": 4.953834112582319,
+        "rmse": 7.021563468612481,
+        "bias": -1.002937769431347
       },
       "uniform_comps": {
-        "n": 890,
-        "mae": 5.575435555799222,
-        "rmse": 8.021544115223618,
-        "bias": -1.786721423815805
+        "n": 882,
+        "mae": 5.473774942729256,
+        "rmse": 7.882033661983603,
+        "bias": -1.9168094347147113
       },
       "weighted_comps": {
-        "n": 890,
-        "mae": 5.332983984700972,
-        "rmse": 7.651977607723798,
-        "bias": -1.4224198086980198
+        "n": 882,
+        "mae": 5.213279389794553,
+        "rmse": 7.453660875604528,
+        "bias": -1.563585436201615
       },
       "weighted_blend": {
-        "n": 890,
-        "mae": 5.050493348808029,
-        "rmse": 7.230396634558016,
-        "bias": -0.4693537030820448
+        "n": 882,
+        "mae": 4.892264949137531,
+        "rmse": 6.939652791839938,
+        "bias": -0.5891342384084334
       },
       "local": {
-        "n": 890,
-        "mae": 4.910985147370378,
-        "rmse": 7.247630022597874,
-        "bias": -0.20459084341453862
+        "n": 882,
+        "mae": 4.741851685534661,
+        "rmse": 6.919242955943423,
+        "bias": -0.33866175913697194
       },
       "age_ridge": {
-        "n": 890,
-        "mae": 4.845303869388146,
-        "rmse": 7.159439210455131,
-        "bias": 0.009935682700730645
+        "n": 882,
+        "mae": 4.674041826041002,
+        "rmse": 6.8258647296323405,
+        "bias": -0.08743636633003793
       },
       "age_comps": {
-        "n": 890,
-        "mae": 5.2740053241334115,
-        "rmse": 7.629791371763349,
-        "bias": -1.5023643638960285
+        "n": 882,
+        "mae": 5.160635922566439,
+        "rmse": 7.448748641394219,
+        "bias": -1.6416126764356966
       },
       "age_blend": {
-        "n": 890,
-        "mae": 4.855267873529171,
-        "rmse": 7.05466213349321,
-        "bias": -0.7868560990832808
+        "n": 882,
+        "mae": 4.702335240691797,
+        "rmse": 6.778784059510499,
+        "bias": -0.9066555248114677
       },
       "age_uniform_comps": {
-        "n": 890,
-        "mae": 5.45748703845961,
-        "rmse": 7.904149085996706,
-        "bias": -1.7416581596742093
+        "n": 882,
+        "mae": 5.357374495282691,
+        "rmse": 7.760202807518449,
+        "bias": -1.8756125134488335
       },
       "age_weighted_comps": {
-        "n": 890,
-        "mae": 5.179838543417798,
-        "rmse": 7.500646978587642,
-        "bias": -1.3469430343150868
+        "n": 882,
+        "mae": 5.058187362139789,
+        "rmse": 7.293599429568003,
+        "bias": -1.4891250273208894
       },
       "age_weighted_blend": {
-        "n": 890,
-        "mae": 4.798835887247197,
-        "rmse": 7.005084503426787,
-        "bias": -0.35740212395867965
+        "n": 882,
+        "mae": 4.634235467851516,
+        "rmse": 6.687782563029076,
+        "bias": -0.46728760333103647
       },
       "age_local": {
-        "n": 890,
-        "mae": 4.651832861469602,
-        "rmse": 7.050843796079924,
-        "bias": -0.09636386607002417
+        "n": 882,
+        "mae": 4.477113141552349,
+        "rmse": 6.6952783054909295,
+        "bias": -0.21463500550298842
       },
       "market_local": {
-        "n": 890,
-        "mae": 4.909286855020377,
-        "rmse": 7.3484519284753045,
-        "bias": 0.04398152136603513
+        "n": 882,
+        "mae": 4.734662431380371,
+        "rmse": 7.003853916653068,
+        "bias": -0.09263758102327475
       },
       "market_age_local": {
-        "n": 890,
-        "mae": 4.653493901090974,
-        "rmse": 7.14755960097564,
-        "bias": 0.10112282540491509
+        "n": 882,
+        "mae": 4.473304381929042,
+        "rmse": 6.781212928506815,
+        "bias": -0.018398216879712583
       }
     },
     "holdout": {
       "score_curve": {
-        "n": 541,
-        "mae": 5.328003868273209,
-        "rmse": 7.580505846815372,
-        "bias": -0.45329054550982784
+        "n": 523,
+        "mae": 5.213262319690881,
+        "rmse": 7.246354498241086,
+        "bias": -0.30954607478258905
       },
       "mean": {
-        "n": 541,
-        "mae": 10.040315997324106,
-        "rmse": 13.407515729264965,
-        "bias": -0.4028111246530086
+        "n": 523,
+        "mae": 10.126032144477811,
+        "rmse": 13.575293236318224,
+        "bias": -0.6836174043357991
       },
       "ridge": {
-        "n": 541,
-        "mae": 4.859145014473355,
-        "rmse": 7.0349264301836705,
-        "bias": -0.38320435669355823
+        "n": 523,
+        "mae": 4.768747267120389,
+        "rmse": 6.666265104030652,
+        "bias": -0.22024157232253735
       },
       "comps": {
-        "n": 541,
-        "mae": 5.122882526938976,
-        "rmse": 7.56404800749542,
-        "bias": -1.4429845459271853
+        "n": 523,
+        "mae": 5.031868563956318,
+        "rmse": 7.234501313680489,
+        "bias": -1.5497794067356294
       },
       "blend": {
-        "n": 541,
-        "mae": 4.863112348016268,
-        "rmse": 7.06850044896678,
-        "bias": -0.9563043595387438
+        "n": 523,
+        "mae": 4.759301331014655,
+        "rmse": 6.6954587236219805,
+        "bias": -0.9134341729369554
       },
       "uniform_comps": {
-        "n": 541,
-        "mae": 5.248086796961367,
-        "rmse": 7.810986570081294,
-        "bias": -1.6133268778478873
+        "n": 523,
+        "mae": 5.184949917480345,
+        "rmse": 7.560578896528524,
+        "bias": -1.740898495067085
       },
       "weighted_comps": {
-        "n": 541,
-        "mae": 5.050214439759226,
-        "rmse": 7.427272137656924,
-        "bias": -1.335353579729567
+        "n": 523,
+        "mae": 4.944675124591979,
+        "rmse": 7.064971132526804,
+        "bias": -1.4299554257794016
       },
       "weighted_blend": {
-        "n": 541,
-        "mae": 4.817838597356324,
-        "rmse": 6.96813201525835,
-        "bias": -0.6478481569969547
+        "n": 523,
+        "mae": 4.710388825674763,
+        "rmse": 6.582145768277558,
+        "bias": -0.5408767301511628
       },
       "local": {
-        "n": 541,
-        "mae": 4.680565179796796,
-        "rmse": 6.847829083681376,
-        "bias": -0.438394355208474
+        "n": 523,
+        "mae": 4.557752852110094,
+        "rmse": 6.394680749451612,
+        "bias": -0.33747996574469796
       },
       "age_ridge": {
-        "n": 541,
-        "mae": 4.788624775547166,
-        "rmse": 6.932102267506936,
-        "bias": -0.25623620489999893
+        "n": 523,
+        "mae": 4.826679231578184,
+        "rmse": 6.662499194323845,
+        "bias": -0.06545914574783286
       },
       "age_comps": {
-        "n": 541,
-        "mae": 5.021550403490732,
-        "rmse": 7.408571513087586,
-        "bias": -1.3670251569917784
+        "n": 523,
+        "mae": 5.023438864539606,
+        "rmse": 7.167534531210509,
+        "bias": -1.4472818398602088
       },
       "age_blend": {
-        "n": 541,
-        "mae": 4.742538393234325,
-        "rmse": 6.931801814236514,
-        "bias": -0.8677640579920458
+        "n": 523,
+        "mae": 4.765107804366651,
+        "rmse": 6.652854591821692,
+        "bias": -0.8014894922923309
       },
       "age_uniform_comps": {
-        "n": 541,
-        "mae": 5.147989298000357,
-        "rmse": 7.669764005028118,
-        "bias": -1.5512383916264652
+        "n": 523,
+        "mae": 5.185271595058523,
+        "rmse": 7.498026448347128,
+        "bias": -1.6546853889984283
       },
       "age_weighted_comps": {
-        "n": 541,
-        "mae": 4.947470664293347,
-        "rmse": 7.265455153179542,
-        "bias": -1.2479205884395967
+        "n": 523,
+        "mae": 4.936936242083623,
+        "rmse": 6.996972933903386,
+        "bias": -1.3141662155827099
       },
       "age_weighted_blend": {
-        "n": 541,
-        "mae": 4.715379472912685,
-        "rmse": 6.84372931663685,
-        "bias": -0.5427743107946681
+        "n": 523,
+        "mae": 4.740172791393171,
+        "rmse": 6.556428776412501,
+        "bias": -0.40990492507461607
       },
       "age_local": {
-        "n": 541,
-        "mae": 4.584638530407806,
-        "rmse": 6.746784852270791,
-        "bias": -0.35508410110085864
+        "n": 523,
+        "mae": 4.595338560303433,
+        "rmse": 6.409177729498055,
+        "bias": -0.22319090685598506
       },
       "market_local": {
-        "n": 541,
-        "mae": 4.67142713492652,
-        "rmse": 6.833565710125334,
-        "bias": -0.23796887907896305
+        "n": 523,
+        "mae": 4.547685580348458,
+        "rmse": 6.352522969761704,
+        "bias": -0.12665777709325632
       },
       "market_age_local": {
-        "n": 541,
-        "mae": 4.576303897639179,
-        "rmse": 6.728832609739469,
-        "bias": -0.17661588720721905
+        "n": 523,
+        "mae": 4.583813214816159,
+        "rmse": 6.372332959777115,
+        "bias": -0.02717325062020249
       }
     },
     "holdout_by_actual_price_tier": {
       "under_10": {
-        "n": 317,
-        "mae": 3.0603371087704327,
-        "rmse": 4.695502795019885,
-        "bias": 2.469354114139183
+        "n": 301,
+        "mae": 3.3903969892050774,
+        "rmse": 4.4693947006263635,
+        "bias": 2.852750309643985
       },
       "10_to_30": {
-        "n": 164,
-        "mae": 4.8511873171207895,
-        "rmse": 6.230981506484352,
-        "bias": -2.4517019202745343
+        "n": 161,
+        "mae": 4.31428390965895,
+        "rmse": 5.415071152511498,
+        "bias": -2.2789205545427826
       },
       "30_plus": {
-        "n": 60,
-        "mae": 11.909464357709767,
-        "rmse": 13.704852676754205,
-        "bias": -9.546777299211032
+        "n": 61,
+        "mae": 11.184018166279214,
+        "rmse": 13.122150981171393,
+        "bias": -8.294807278619956
       }
     },
-    "holdout_interval_coverage": 0.7744916820702403,
+    "holdout_interval_coverage": 0.7609942638623327,
     "holdout_first_season": "2023-24",
     "model_selection_basis": "Candidate choice uses development-year MAE only. Later seasons have been reviewed during earlier model development and are reused retrospective checks, not fresh independent holdouts.",
     "holdout_tiers_by_model": {
       "score_curve": {
         "under_10": {
-          "n": 317,
-          "mae": 3.850161522739234,
-          "rmse": 5.262061246824908,
-          "bias": 3.2805173382338118
+          "n": 301,
+          "mae": 4.003271511308797,
+          "rmse": 4.99177764773837,
+          "bias": 3.5746898009304786
         },
         "10_to_30": {
-          "n": 164,
-          "mae": 5.077053066669554,
-          "rmse": 6.593311115597562,
-          "bias": -3.268877138279652
+          "n": 161,
+          "mae": 4.375671496850591,
+          "rmse": 5.7688005647099025,
+          "bias": -3.181529080476123
         },
         "30_plus": {
-          "n": 60,
-          "mae": 13.821869784894364,
-          "rmse": 15.906596931058093,
-          "bias": -12.484305511051204
+          "n": 61,
+          "mae": 13.394563234449796,
+          "rmse": 15.473059117500704,
+          "bias": -11.895869594011677
         }
       },
       "mean": {
         "under_10": {
-          "n": 317,
-          "mae": 8.171604245402555,
-          "rmse": 8.54664846400042,
-          "bias": 8.171604245402555
+          "n": 301,
+          "mae": 8.146747033148822,
+          "rmse": 8.531466864150383,
+          "bias": 8.146747033148822
         },
         "10_to_30": {
-          "n": 164,
-          "mae": 6.215383519880318,
-          "rmse": 8.000169796363258,
-          "bias": -6.013596662991027
+          "n": 161,
+          "mae": 6.19074931617956,
+          "rmse": 7.985531037110862,
+          "bias": -5.979313321529365
         },
         "30_plus": {
-          "n": 60,
-          "mae": 30.36815852498932,
-          "rmse": 32.55743275979276,
-          "bias": -30.36815852498932
+          "n": 61,
+          "mae": 30.279234666871975,
+          "rmse": 32.44354619553155,
+          "bias": -30.279234666871975
         }
       },
       "ridge": {
         "under_10": {
-          "n": 317,
-          "mae": 3.326276626493885,
-          "rmse": 4.770526407167618,
-          "bias": 2.848509525891948
+          "n": 301,
+          "mae": 3.4851927048793696,
+          "rmse": 4.485149396910731,
+          "bias": 3.144153364180561
         },
         "10_to_30": {
-          "n": 164,
-          "mae": 4.800086477601358,
-          "rmse": 6.207587343867593,
-          "bias": -2.6743782933254767
+          "n": 161,
+          "mae": 4.184641551344965,
+          "rmse": 5.276672602535056,
+          "bias": -2.594716441418322
         },
         "30_plus": {
-          "n": 60,
-          "mae": 13.119226331748344,
-          "rmse": 14.855039729877227,
-          "bias": -11.194883942893073
+          "n": 61,
+          "mae": 12.644008635553012,
+          "rmse": 14.43117704509516,
+          "bias": -10.554543571716167
         }
       },
       "comps": {
         "under_10": {
-          "n": 317,
-          "mae": 3.0950428122287437,
-          "rmse": 4.4404580800248725,
-          "bias": 2.5114127094189733
+          "n": 301,
+          "mae": 3.0342833031555463,
+          "rmse": 3.821065409405325,
+          "bias": 2.461017940638377
         },
         "10_to_30": {
-          "n": 164,
-          "mae": 5.561231183739,
-          "rmse": 6.999285829712692,
-          "bias": -4.260754272418952
+          "n": 161,
+          "mae": 5.299632876324941,
+          "rmse": 6.560000805802333,
+          "bias": -4.283270875571251
         },
         "30_plus": {
-          "n": 60,
-          "mae": 14.638482691071298,
-          "rmse": 16.6675121870678,
-          "bias": -14.633479459261896
+          "n": 61,
+          "mae": 14.182083469033106,
+          "rmse": 16.22061264022941,
+          "bias": -14.126138014555972
         }
       },
       "blend": {
         "under_10": {
-          "n": 317,
-          "mae": 3.11755194502993,
-          "rmse": 4.499264950035603,
-          "bias": 2.6088055586017487
+          "n": 301,
+          "mae": 3.1627194081741474,
+          "rmse": 4.022481710677255,
+          "bias": 2.7541013141500192
         },
         "10_to_30": {
-          "n": 164,
-          "mae": 5.089473980928302,
-          "rmse": 6.455044404541975,
-          "bias": -3.472567795869303
+          "n": 161,
+          "mae": 4.616687008226344,
+          "rmse": 5.769223624443352,
+          "bias": -3.440681861017908
         },
         "30_plus": {
-          "n": 60,
-          "mae": 13.466768013834535,
-          "rmse": 15.154604224392537,
-          "bias": -12.914181701077483
+          "n": 61,
+          "mae": 13.013925343209914,
+          "rmse": 14.719593266632916,
+          "bias": -12.340340793136068
         }
       },
       "uniform_comps": {
         "under_10": {
-          "n": 317,
-          "mae": 3.103641484757882,
-          "rmse": 4.407570862571827,
-          "bias": 2.516038218246695
+          "n": 301,
+          "mae": 3.0400253141345672,
+          "rmse": 3.8329904940709643,
+          "bias": 2.472378425593826
         },
         "10_to_30": {
-          "n": 164,
-          "mae": 5.576186437805661,
-          "rmse": 7.021940720069307,
-          "bias": -4.448341008610896
+          "n": 161,
+          "mae": 5.349764685603536,
+          "rmse": 6.627026636634987,
+          "bias": -4.476772853174886
         },
         "30_plus": {
-          "n": 60,
-          "mae": 15.68110051146204,
-          "rmse": 17.683568110912834,
-          "bias": -15.68110051146204
+          "n": 61,
+          "mae": 15.333919227959777,
+          "rmse": 17.369164068521265,
+          "bias": -15.310088355125743
         }
       },
       "weighted_comps": {
         "under_10": {
-          "n": 317,
-          "mae": 3.0958575890697952,
-          "rmse": 4.465100835004443,
-          "bias": 2.5108957598395296
+          "n": 301,
+          "mae": 3.0396656999067884,
+          "rmse": 3.8224455565415467,
+          "bias": 2.4562623654051343
         },
         "10_to_30": {
-          "n": 164,
-          "mae": 5.566042041073082,
-          "rmse": 7.002563678143445,
-          "bias": -4.159635826631882
+          "n": 161,
+          "mae": 5.283343483009064,
+          "rmse": 6.544979826512548,
+          "bias": -4.174710193644362
         },
         "30_plus": {
-          "n": 60,
-          "mae": 13.965804357310509,
-          "rmse": 16.063399845210395,
-          "bias": -13.936666115586636
+          "n": 61,
+          "mae": 13.450941208609867,
+          "rmse": 15.581762003735903,
+          "bias": -13.361857680210331
         }
       },
       "weighted_blend": {
         "under_10": {
-          "n": 317,
-          "mae": 3.2020169322855447,
-          "rmse": 4.616701468043374,
-          "bias": 2.720665980924931
+          "n": 301,
+          "mae": 3.2987750695960782,
+          "rmse": 4.227820275095009,
+          "bias": 2.941777379596601
         },
         "10_to_30": {
-          "n": 164,
-          "mae": 4.917645235084595,
-          "rmse": 6.296290867621349,
-          "bias": -3.0494951202717546
+          "n": 161,
+          "mae": 4.361831516944768,
+          "rmse": 5.480249925395102,
+          "bias": -2.9920175347727507
         },
         "30_plus": {
-          "n": 60,
-          "mae": 13.081958251356333,
-          "rmse": 14.725356258233495,
-          "bias": -11.880329486066463
+          "n": 61,
+          "mae": 12.595855502481536,
+          "rmse": 14.282420168605084,
+          "bias": -11.256372098839707
         }
       },
       "local": {
         "under_10": {
-          "n": 317,
-          "mae": 3.0863846457106767,
-          "rmse": 4.616977522966889,
-          "bias": 2.5739097733093055
+          "n": 301,
+          "mae": 3.187769965981802,
+          "rmse": 4.1476716309408195,
+          "bias": 2.767544563928887
         },
         "10_to_30": {
-          "n": 164,
-          "mae": 5.0302028419227485,
-          "rmse": 6.465639236230818,
-          "bias": -2.7614666630408116
+          "n": 161,
+          "mae": 4.4268399716533215,
+          "rmse": 5.565768462174071,
+          "bias": -2.7682386502691605
         },
         "30_plus": {
-          "n": 60,
-          "mae": 12.14747605840752,
-          "rmse": 13.997454393614106,
-          "bias": -10.003670192802351
+          "n": 61,
+          "mae": 11.663356499292988,
+          "rmse": 13.562790278965226,
+          "bias": -9.243385461208806
         }
       },
       "age_ridge": {
         "under_10": {
-          "n": 317,
-          "mae": 3.3203660247000557,
-          "rmse": 4.8574156291656925,
-          "bias": 2.7969459175421267
+          "n": 301,
+          "mae": 3.642222368393338,
+          "rmse": 4.723872843231667,
+          "bias": 3.1826784863062607
         },
         "10_to_30": {
-          "n": 164,
-          "mae": 4.729139240741102,
-          "rmse": 6.052482960998263,
-          "bias": -2.319100622453119
+          "n": 161,
+          "mae": 4.20707610583159,
+          "rmse": 5.276332271264308,
+          "bias": -2.3064231515002103
         },
         "30_plus": {
-          "n": 60,
-          "mae": 12.708518970992639,
-          "rmse": 14.439555735315041,
-          "bias": -10.748719010490701
+          "n": 61,
+          "mae": 12.306640199837858,
+          "rmse": 14.035316198056721,
+          "bias": -10.178479183815856
         }
       },
       "age_comps": {
         "under_10": {
-          "n": 317,
-          "mae": 3.084710111089065,
-          "rmse": 4.376602541693007,
-          "bias": 2.5048038625900975
+          "n": 301,
+          "mae": 3.0997445975297375,
+          "rmse": 3.8689050209364297,
+          "bias": 2.5543705894643027
         },
         "10_to_30": {
-          "n": 164,
-          "mae": 5.275084337175658,
-          "rmse": 6.653441525090995,
-          "bias": -4.068145306283154
+          "n": 161,
+          "mae": 5.137509116157801,
+          "rmse": 6.310768250059029,
+          "bias": -4.1365325634320245
         },
         "30_plus": {
-          "n": 60,
-          "mae": 14.56153052960741,
-          "rmse": 16.51353361772848,
-          "bias": -14.440126735719597
+          "n": 61,
+          "mae": 14.214695649120605,
+          "rmse": 16.170666582826836,
+          "bias": -14.095282081362102
         }
       },
       "age_blend": {
         "under_10": {
-          "n": 317,
-          "mae": 3.0708078538550243,
-          "rmse": 4.502743728530088,
-          "bias": 2.5573569373067535
+          "n": 301,
+          "mae": 3.2551995219247982,
+          "rmse": 4.159318129114483,
+          "bias": 2.790128402561739
         },
         "10_to_30": {
-          "n": 164,
-          "mae": 4.849847944751595,
-          "rmse": 6.154786670765307,
-          "bias": -3.198031293375785
+          "n": 161,
+          "mae": 4.497476376737447,
+          "rmse": 5.6007937313068625,
+          "bias": -3.2214778574661174
         },
         "30_plus": {
-          "n": 60,
-          "mae": 13.28153530214109,
-          "rmse": 14.91942439362966,
-          "bias": -12.594422873105149
+          "n": 61,
+          "mae": 12.92201031032238,
+          "rmse": 14.536871459844402,
+          "bias": -12.136880632588978
         }
       },
       "age_uniform_comps": {
         "under_10": {
-          "n": 317,
-          "mae": 3.0842446511233366,
-          "rmse": 4.311969200443288,
-          "bias": 2.4998222104133916
+          "n": 301,
+          "mae": 3.0897792924166514,
+          "rmse": 3.852321951406025,
+          "bias": 2.5573551981649087
         },
         "10_to_30": {
-          "n": 164,
-          "mae": 5.281748272191513,
-          "rmse": 6.654623584616613,
-          "bias": -4.2327573287185425
+          "n": 161,
+          "mae": 5.214284055449503,
+          "rmse": 6.380373296008478,
+          "bias": -4.325771175991029
         },
         "30_plus": {
-          "n": 60,
-          "mae": 15.685832319544785,
-          "rmse": 17.63892102950682,
-          "bias": -15.624856811018695
+          "n": 61,
+          "mae": 15.448749906079103,
+          "rmse": 17.359335612755473,
+          "bias": -15.388773996053441
         }
       },
       "age_weighted_comps": {
         "under_10": {
-          "n": 317,
-          "mae": 3.0904944615711942,
-          "rmse": 4.42292995244846,
-          "bias": 2.509447620828347
+          "n": 301,
+          "mae": 3.1123842377000646,
+          "rmse": 3.8907630905643527,
+          "bias": 2.5559418645659924
         },
         "10_to_30": {
-          "n": 164,
-          "mae": 5.276178915845393,
-          "rmse": 6.6645041209715705,
-          "bias": -3.971884664590122
+          "n": 161,
+          "mae": 5.1197058162624804,
+          "rmse": 6.291922272643987,
+          "bias": -4.0254705779548114
         },
         "30_plus": {
-          "n": 60,
-          "mae": 13.860025714433128,
-          "rmse": 15.849430439604351,
-          "bias": -13.653847485927132
+          "n": 61,
+          "mae": 13.457661682684524,
+          "rmse": 15.510217320658278,
+          "bias": -13.254863425137644
         }
       },
       "age_weighted_blend": {
         "under_10": {
-          "n": 317,
-          "mae": 3.174973526916151,
-          "rmse": 4.666096626061172,
-          "bias": 2.660254713373703
+          "n": 301,
+          "mae": 3.4341651445270807,
+          "rmse": 4.421646216504685,
+          "bias": 2.969925582675189
         },
         "10_to_30": {
-          "n": 164,
-          "mae": 4.743148771520935,
-          "rmse": 6.052676930859394,
-          "bias": -2.734399869014578
+          "n": 161,
+          "mae": 4.291449991589676,
+          "rmse": 5.3792193690723,
+          "bias": -2.7361850081138606
         },
         "30_plus": {
-          "n": 60,
-          "mae": 12.777954804731824,
-          "rmse": 14.392489345599952,
-          "bias": -11.475001129349808
+          "n": 61,
+          "mae": 12.36890512704982,
+          "rmse": 13.989774305488488,
+          "bias": -10.947575244146304
         }
       },
       "age_local": {
         "under_10": {
-          "n": 317,
-          "mae": 3.0603371087704327,
-          "rmse": 4.695502795019885,
-          "bias": 2.469354114139183
+          "n": 301,
+          "mae": 3.327063107835753,
+          "rmse": 4.3759414694484535,
+          "bias": 2.776861126626618
         },
         "10_to_30": {
-          "n": 164,
-          "mae": 4.8511873171207895,
-          "rmse": 6.230981506484352,
-          "bias": -2.4517019202745343
+          "n": 161,
+          "mae": 4.356326522407477,
+          "rmse": 5.482740098901062,
+          "bias": -2.540071323993464
         },
         "30_plus": {
-          "n": 60,
-          "mae": 11.909464357709767,
-          "rmse": 13.704852676754205,
-          "bias": -9.546777299211032
+          "n": 61,
+          "mae": 11.484385270041477,
+          "rmse": 13.355188578702053,
+          "bias": -8.911681315366303
         }
       },
       "market_local": {
         "under_10": {
-          "n": 317,
-          "mae": 3.146447053685672,
-          "rmse": 4.726882938132582,
-          "bias": 2.640177330519698
+          "n": 301,
+          "mae": 3.25233988948,
+          "rmse": 4.234186557871404,
+          "bias": 2.838845434753861
         },
         "10_to_30": {
-          "n": 164,
-          "mae": 5.010131650400729,
-          "rmse": 6.469935377469144,
-          "bias": -2.4784752960200267
+          "n": 161,
+          "mae": 4.385872021628663,
+          "rmse": 5.511590809626645,
+          "bias": -2.487108079530523
         },
         "30_plus": {
-          "n": 60,
-          "mae": 11.802612888519496,
-          "rmse": 13.732866450197614,
-          "bias": -9.320123813486315
+          "n": 61,
+          "mae": 11.366555021418835,
+          "rmse": 13.317190058918644,
+          "bias": -8.529673647151983
         }
       },
       "market_age_local": {
         "under_10": {
-          "n": 317,
-          "mae": 3.1102391057851038,
-          "rmse": 4.78207271356396,
-          "bias": 2.5298880944736495
+          "n": 301,
+          "mae": 3.3903969892050774,
+          "rmse": 4.4693947006263635,
+          "bias": 2.852750309643985
         },
         "10_to_30": {
-          "n": 164,
-          "mae": 4.843562671312039,
-          "rmse": 6.236448963490383,
-          "bias": -2.1913790381900107
+          "n": 161,
+          "mae": 4.31428390965895,
+          "rmse": 5.415071152511498,
+          "bias": -2.2789205545427826
         },
         "30_plus": {
-          "n": 60,
-          "mae": 11.591505566562393,
-          "rmse": 13.458103390692061,
-          "bias": -8.968959311068177
+          "n": 61,
+          "mae": 11.184018166279214,
+          "rmse": 13.122150981171393,
+          "bias": -8.294807278619956
         }
       }
     },
     "by_season": {
       "2018-19": {
         "n": 177,
-        "mae": 4.52810761357271,
-        "rmse": 7.810185262240471,
-        "bias": -0.4372542387476793
+        "mae": 4.571700651414586,
+        "rmse": 8.111076649357384,
+        "bias": -0.005607161564423801
       },
       "2019-20": {
-        "n": 178,
-        "mae": 4.726798043302612,
-        "rmse": 7.5846393685315165,
-        "bias": 0.10984029030055027
+        "n": 174,
+        "mae": 4.306913483935243,
+        "rmse": 6.836397532032398,
+        "bias": -0.27588535020385113
       },
       "2020-21": {
         "n": 178,
-        "mae": 4.584565061644645,
-        "rmse": 6.245104091398403,
-        "bias": -0.4322321454846993
+        "mae": 4.5706538432024,
+        "rmse": 6.167124413710354,
+        "bias": -0.008864687876148874
       },
       "2021-22": {
-        "n": 181,
-        "mae": 4.872663646854349,
-        "rmse": 6.90024178148926,
-        "bias": 0.18886673706904064
+        "n": 178,
+        "mae": 4.573039652336759,
+        "rmse": 6.331633473395708,
+        "bias": -0.04102878791366021
       },
       "2022-23": {
-        "n": 176,
-        "mae": 4.541371854229132,
-        "rmse": 6.592428700387111,
-        "bias": 0.08426721743920396
+        "n": 175,
+        "mae": 4.33876034943046,
+        "rmse": 6.268226921493355,
+        "bias": 0.2380018853431579
       },
       "2023-24": {
         "n": 183,
-        "mae": 4.228000904016068,
-        "rmse": 5.694855976590812,
-        "bias": -0.06702352879867335
+        "mae": 4.215786837854427,
+        "rmse": 5.678445203084966,
+        "bias": 0.09929048207294974
       },
       "2024-25": {
-        "n": 178,
-        "mae": 4.654310973246852,
-        "rmse": 7.005464148803063,
-        "bias": -0.6680502805978579
+        "n": 177,
+        "mae": 4.5315105743175,
+        "rmse": 6.854823189300015,
+        "bias": -0.4827404005596969
       },
       "2025-26": {
-        "n": 180,
-        "mae": 4.878321812654126,
-        "rmse": 7.436871694058322,
-        "bias": -0.3384569054388256
+        "n": 163,
+        "mae": 5.053791094277874,
+        "rmse": 6.562346733800118,
+        "bias": 0.32554161107577084
       }
     },
-    "interpretation": "Out-of-season price tests use prior-year actuals, not archived preseason projections. Rookies and low-sample players without prior stats are excluded. Current projection-based estimates are not independently validated.",
-    "training_rows": 1991,
-    "unmatched_or_low_sample_rows": 182,
+    "interpretation": "Older auction seasons use prior-year actuals as proxies. 2025-26 uses the partial user-supplied forecast workbook, whose provider and original date are unverified. Missing forecasts and documented availability exceptions are excluded; this changes the evaluation cohort. Rookies appear only where supplied forecasts exist. Current projection-based estimates are not independently validated.",
+    "training_rows": 1965,
+    "unmatched_or_low_sample_rows": 167,
+    "excluded_rows": 208,
+    "preseason_excluded_rows": 13,
+    "preseason_evidence": {
+      "version": 1,
+      "coverage": "Documented exceptions, not a complete injury or role-change archive. Unlisted players have unreviewed preseason availability, not certified health.",
+      "date_basis": "Dated preseason reports. Exact league auction dates were not recorded, so these are preseason evidence checks, not verified auction-day snapshots.",
+      "records": [
+        {
+          "season": "2019-20",
+          "player_id": "klaythompson",
+          "reported_at": "2019-09-24",
+          "status": "extended_rehab",
+          "reason": "ACL rehabilitation entering camp; healthy prior-season rates do not represent expected availability.",
+          "source_url": "https://api-hub.nba.com/news/warriors-prepare-transition-new-era"
+        },
+        {
+          "season": "2019-20",
+          "player_id": "kevindurant",
+          "reported_at": "2019-09-24",
+          "status": "season_absence_expected",
+          "reason": "Brooklyn planned the season without Durant during Achilles recovery.",
+          "source_url": "https://www.nba.com/news/kevin-durant-likely-out-entire-season"
+        },
+        {
+          "season": "2019-20",
+          "player_id": "johnwall",
+          "reported_at": "2019-09-04",
+          "status": "season_absence_expected",
+          "reason": "Achilles recovery expected to prevent participation in the coming season.",
+          "source_url": "https://www.nba.com/timberwolves/news/very-least-wizards-we-know-bradley-beal-star"
+        },
+        {
+          "season": "2019-20",
+          "player_id": "demarcuscousins",
+          "reported_at": "2019-08-15",
+          "status": "extended_rehab",
+          "reason": "Offseason ACL tear; prior-season rates omit the new rehabilitation period.",
+          "source_url": "https://www.nba.com/lakers/news/190815-demarcus-cousins-suffers-torn-acl"
+        },
+        {
+          "season": "2021-22",
+          "player_id": "kawhileonard",
+          "reported_at": "2021-07-14",
+          "status": "extended_rehab",
+          "reason": "ACL surgery with no return timetable.",
+          "source_url": "https://www.nba.com/news/kawhi-leonard-has-surgery-to-repair-partially-torn-acl"
+        },
+        {
+          "season": "2021-22",
+          "player_id": "jamalmurray",
+          "reported_at": "2021-10-13",
+          "status": "extended_rehab",
+          "reason": "Entering the season in ACL rehabilitation with no return timetable.",
+          "source_url": "https://www.nba.com/news/nuggets-must-continue-to-soldier-on-without-injured-jamal-murray"
+        },
+        {
+          "season": "2021-22",
+          "player_id": "johnwall",
+          "reported_at": "2021-09-14",
+          "status": "not_playing_pending_trade",
+          "reason": "Houston and Wall planned for him not to play while seeking a trade.",
+          "source_url": "https://cdn-uat.nba.com/news/report-john-wall-rockets-working-together-on-trade"
+        },
+        {
+          "season": "2022-23",
+          "player_id": "lonzoball",
+          "reported_at": "2022-09-21",
+          "status": "delayed_start",
+          "reason": "Another knee procedure before camp; reevaluation in 4-6 weeks, not a clearance date.",
+          "source_url": "https://www.nba.com/news/lonzo-ball-arthroscopic-debridement-procedure"
+        },
+        {
+          "season": "2024-25",
+          "player_id": "kristapsporzingis",
+          "reported_at": "2024-06-27",
+          "status": "delayed_start",
+          "reason": "Leg surgery with a published 5-6 month recovery window extending into the next season.",
+          "source_url": "https://cdn-uat.nba.com/news/celtics-kristaps-porzingis-offseason-surgery"
+        },
+        {
+          "season": "2025-26",
+          "player_id": "jaysontatum",
+          "reported_at": "2025-08-07",
+          "status": "extended_rehab",
+          "reason": "Achilles rehabilitation expected to cost most or all of the coming season; no invented zero-game forecast.",
+          "source_url": "https://www.nba.com/news/celtics-jayson-tatum-rehab-progressing"
+        },
+        {
+          "season": "2025-26",
+          "player_id": "tyresehaliburton",
+          "reported_at": "2025-07-07",
+          "status": "season_absence_expected",
+          "reason": "Indiana confirmed he would miss the coming season during Achilles rehabilitation.",
+          "source_url": "https://www.nba.com/news/pacers-confirm-tyrese-haliburton-will-miss-entire-2025-26-season"
+        },
+        {
+          "season": "2025-26",
+          "player_id": "damianlillard",
+          "reported_at": "2025-07-19",
+          "status": "extended_rehab",
+          "reason": "Achilles rehabilitation could keep him out for the coming season.",
+          "source_url": "https://www.nba.com/news/damian-lillard-to-return-to-trail-blazers"
+        },
+        {
+          "season": "2025-26",
+          "player_id": "dejountemurray",
+          "reported_at": "2025-09-23",
+          "status": "extended_rehab",
+          "reason": "Still recovering from an Achilles injury at preseason media day.",
+          "source_url": "https://cdn-uat.nba.com/news/zion-williamson-pelicans-media-day"
+        }
+      ],
+      "excluded_sales": [
+        {
+          "season": "2019-20",
+          "player_id": "demarcuscousins",
+          "player": "DeMarcus Cousins",
+          "franchise_sheet": "Arthur",
+          "recorded_cost": 1,
+          "stats_season": "2018-19",
+          "reason_code": "preseason_availability",
+          "reason": "Offseason ACL tear; prior-season rates omit the new rehabilitation period.",
+          "reported_at": "2019-08-15",
+          "availability_status": "extended_rehab",
+          "source_url": "https://www.nba.com/lakers/news/190815-demarcus-cousins-suffers-torn-acl"
+        },
+        {
+          "season": "2019-20",
+          "player_id": "johnwall",
+          "player": "John Wall",
+          "franchise_sheet": "Mark",
+          "recorded_cost": 2,
+          "stats_season": "2018-19",
+          "reason_code": "preseason_availability",
+          "reason": "Achilles recovery expected to prevent participation in the coming season.",
+          "reported_at": "2019-09-04",
+          "availability_status": "season_absence_expected",
+          "source_url": "https://www.nba.com/timberwolves/news/very-least-wizards-we-know-bradley-beal-star"
+        },
+        {
+          "season": "2019-20",
+          "player_id": "kevindurant",
+          "player": "Kevin Durant",
+          "franchise_sheet": "Peter",
+          "recorded_cost": 18,
+          "stats_season": "2018-19",
+          "reason_code": "preseason_availability",
+          "reason": "Brooklyn planned the season without Durant during Achilles recovery.",
+          "reported_at": "2019-09-24",
+          "availability_status": "season_absence_expected",
+          "source_url": "https://www.nba.com/news/kevin-durant-likely-out-entire-season"
+        },
+        {
+          "season": "2019-20",
+          "player_id": "klaythompson",
+          "player": "Klay Thompson",
+          "franchise_sheet": "Ian",
+          "recorded_cost": 9,
+          "stats_season": "2018-19",
+          "reason_code": "preseason_availability",
+          "reason": "ACL rehabilitation entering camp; healthy prior-season rates do not represent expected availability.",
+          "reported_at": "2019-09-24",
+          "availability_status": "extended_rehab",
+          "source_url": "https://api-hub.nba.com/news/warriors-prepare-transition-new-era"
+        },
+        {
+          "season": "2021-22",
+          "player_id": "jamalmurray",
+          "player": "Jamal Murray",
+          "franchise_sheet": "Ian",
+          "recorded_cost": 11,
+          "stats_season": "2020-21",
+          "reason_code": "preseason_availability",
+          "reason": "Entering the season in ACL rehabilitation with no return timetable.",
+          "reported_at": "2021-10-13",
+          "availability_status": "extended_rehab",
+          "source_url": "https://www.nba.com/news/nuggets-must-continue-to-soldier-on-without-injured-jamal-murray"
+        },
+        {
+          "season": "2021-22",
+          "player_id": "johnwall",
+          "player": "John Wall",
+          "franchise_sheet": "Benji",
+          "recorded_cost": 1,
+          "stats_season": "2020-21",
+          "reason_code": "preseason_availability",
+          "reason": "Houston and Wall planned for him not to play while seeking a trade.",
+          "reported_at": "2021-09-14",
+          "availability_status": "not_playing_pending_trade",
+          "source_url": "https://cdn-uat.nba.com/news/report-john-wall-rockets-working-together-on-trade"
+        },
+        {
+          "season": "2021-22",
+          "player_id": "kawhileonard",
+          "player": "Kawhi Leonard",
+          "franchise_sheet": "Benji",
+          "recorded_cost": 12,
+          "stats_season": "2020-21",
+          "reason_code": "preseason_availability",
+          "reason": "ACL surgery with no return timetable.",
+          "reported_at": "2021-07-14",
+          "availability_status": "extended_rehab",
+          "source_url": "https://www.nba.com/news/kawhi-leonard-has-surgery-to-repair-partially-torn-acl"
+        },
+        {
+          "season": "2022-23",
+          "player_id": "lonzoball",
+          "player": "Lonzo Ball",
+          "franchise_sheet": "Mark",
+          "recorded_cost": 2,
+          "stats_season": "2021-22",
+          "reason_code": "preseason_availability",
+          "reason": "Another knee procedure before camp; reevaluation in 4-6 weeks, not a clearance date.",
+          "reported_at": "2022-09-21",
+          "availability_status": "delayed_start",
+          "source_url": "https://www.nba.com/news/lonzo-ball-arthroscopic-debridement-procedure"
+        },
+        {
+          "season": "2024-25",
+          "player_id": "kristapsporzingis",
+          "player": "Kristaps Porzingis",
+          "franchise_sheet": "Joe",
+          "recorded_cost": 14,
+          "stats_season": "2023-24",
+          "reason_code": "preseason_availability",
+          "reason": "Leg surgery with a published 5-6 month recovery window extending into the next season.",
+          "reported_at": "2024-06-27",
+          "availability_status": "delayed_start",
+          "source_url": "https://cdn-uat.nba.com/news/celtics-kristaps-porzingis-offseason-surgery"
+        },
+        {
+          "season": "2025-26",
+          "player_id": "damianlillard",
+          "player": "Damian Lillard",
+          "franchise_sheet": "Alvin",
+          "recorded_cost": 1,
+          "stats_season": "2024-25",
+          "reason_code": "preseason_availability",
+          "reason": "Achilles rehabilitation could keep him out for the coming season.",
+          "reported_at": "2025-07-19",
+          "availability_status": "extended_rehab",
+          "source_url": "https://www.nba.com/news/damian-lillard-to-return-to-trail-blazers"
+        },
+        {
+          "season": "2025-26",
+          "player_id": "dejountemurray",
+          "player": "Dejounte Murray",
+          "franchise_sheet": "Max",
+          "recorded_cost": 2,
+          "stats_season": "2024-25",
+          "reason_code": "preseason_availability",
+          "reason": "Still recovering from an Achilles injury at preseason media day.",
+          "reported_at": "2025-09-23",
+          "availability_status": "extended_rehab",
+          "source_url": "https://cdn-uat.nba.com/news/zion-williamson-pelicans-media-day"
+        },
+        {
+          "season": "2025-26",
+          "player_id": "jaysontatum",
+          "player": "Jayson Tatum",
+          "franchise_sheet": "Ian",
+          "recorded_cost": 23,
+          "stats_season": "2024-25",
+          "reason_code": "preseason_availability",
+          "reason": "Achilles rehabilitation expected to cost most or all of the coming season; no invented zero-game forecast.",
+          "reported_at": "2025-08-07",
+          "availability_status": "extended_rehab",
+          "source_url": "https://www.nba.com/news/celtics-jayson-tatum-rehab-progressing"
+        },
+        {
+          "season": "2025-26",
+          "player_id": "tyresehaliburton",
+          "player": "Tyrese Haliburton",
+          "franchise_sheet": "Arthur",
+          "recorded_cost": 15,
+          "stats_season": "2024-25",
+          "reason_code": "preseason_availability",
+          "reason": "Indiana confirmed he would miss the coming season during Achilles rehabilitation.",
+          "reported_at": "2025-07-07",
+          "availability_status": "season_absence_expected",
+          "source_url": "https://www.nba.com/news/pacers-confirm-tyrese-haliburton-will-miss-entire-2025-26-season"
+        }
+      ]
+    },
     "historical_sales": 2173,
+    "historical_projection_sources": [
+      {
+        "season": "2025-26",
+        "source_name": "User-supplied 2025-26 projections",
+        "source_file": "2025-26 Player Projections.xlsx",
+        "source_sha256": "9264299d0d8a8fa2196bcf9e93ffdfb10bc3b7127e64e44e2771c99e1c838fa4",
+        "received_at": "2026-10-07T02:32:28.571329+00:00",
+        "published_at": null,
+        "provider": null,
+        "coverage": "partial_player_pool",
+        "season_basis": "Season identified by user; original publication date and provider unverified.",
+        "notes": "200 listed players only. Missing names are not zero projections. No projected minutes, positions or teams supplied. Rank columns are retained but not used as forecasts or features.",
+        "dataset_id": "a75da975dfa6c5e27d941a07dfc5e26fd202f2dc1605f4e8dd7d791a10762417"
+      }
+    ],
+    "forecast_training_rows": 163,
+    "missing_historical_projection_rows": 28,
     "remaining_budget": 2210,
     "remaining_slots": 195,
     "projected_players": 348,
@@ -861,7 +1163,7 @@
       },
       "basis": "Basketball Reference season ages. Target-season age advances the latest earlier recorded season age by elapsed seasons; no birthdays or rookie ages are guessed."
     },
-    "age_training_rows": 1991,
+    "age_training_rows": 1954,
     "current_age_coverage": 332,
     "auction_contexts": [
       {
@@ -3662,7 +3964,7 @@
         "budget_basis": "$200 starting budget and 15 opening slots per team; historical budget rule assumed constant."
       }
     ],
-    "supply_adjustment_selected": false,
+    "supply_adjustment_selected": true,
     "survivor_scenarios": {
       "faster": {
         "name": "faster",
@@ -4188,7 +4490,7 @@
       "interpretation": "Only finalists, classified by preceding-season per-game rank. Matching opening and final snapshots does not prove continuous ownership. This descriptive audit is not used to fit replacement dates or prices."
     },
     "neutral_value_basis": "Equal category weights; linear allocation of positive survivor value above replacement. No historical price fitting, star multiplier or category punt. Scenario estimate, not an empirically validated optimum.",
-    "market_price_basis": "Conditional on selection at auction; keeper-adjusted discretionary money per open slot; available-talent correction was evaluated but not selected. Individual estimates are not a simultaneous auction allocation. Team budget distribution is displayed, not a simulation of manager bidding.",
+    "market_price_basis": "Conditional on selection at auction; keeper-adjusted discretionary money per available talent unit. Individual estimates are not a simultaneous auction allocation. Team budget distribution is displayed, not a simulation of manager bidding.",
     "interval": {
       "nominal": 0.8,
       "basis": "Absolute normalized out-of-season price errors, grouped by predicted price tier; descriptive error band, not a guaranteed confidence interval."
@@ -4208,44 +4510,44 @@
         "age_centered/5 * positive_score/8"
       ],
       "standardized_coefficients": [
-        1.0071065539964736,
-        0.42751256138419896,
-        0.17669131964398482,
-        0.25331978172206204,
-        0.07505685677497415,
-        0.21002199639088695,
-        0.11781003052408849,
-        0.2687766621105198,
-        0.17558682221401814,
-        0.28953631523496737,
-        -0.16792836199099867,
-        0.07888896005471918
+        0.8583628324296632,
+        0.38030202800115404,
+        0.1375053154756183,
+        0.2201784279354417,
+        0.07050168964885196,
+        0.19298331817575576,
+        0.09155495218369425,
+        0.23374312765576016,
+        0.16879660826305531,
+        0.2575004299406786,
+        -0.114563187514583,
+        0.06264361359476008
       ],
       "feature_means": [
-        -0.15228722560165572,
-        -0.001381364517105849,
-        -0.12565175704448853,
-        -0.123982954812269,
-        0.04224494047307529,
-        -0.14610875951333668,
-        0.08145818581683832,
-        -0.08401204413258472,
-        0.7620329870460772,
-        0.03606228026117529,
-        0.050131833913753844
+        -0.14249342414829191,
+        0.005790937472393373,
+        -0.12074734382474805,
+        -0.11826674143675987,
+        0.05030061554852505,
+        -0.13733299536109184,
+        0.08642280274922738,
+        -0.08631419652097788,
+        0.7459960566347872,
+        0.029477993858751283,
+        0.04619910029212183
       ],
       "feature_scales": [
-        0.9268657587417846,
-        0.9641280176879982,
-        0.9821508563350209,
-        1.0231726259775173,
-        0.961335395070226,
-        1.0472013987235307,
-        0.9850413056696046,
-        0.9731604220012477,
-        2.595596664117721,
-        0.8228561717553715,
-        0.2462389162998376
+        0.9165593407876278,
+        0.9662014415668575,
+        0.9752240290919063,
+        1.0153774259659367,
+        0.9713215464066861,
+        1.0436568653719884,
+        0.9833979040639608,
+        0.9657137818269984,
+        2.5876650064341855,
+        0.8209332843140451,
+        0.24115660130318886
       ]
     }
   },

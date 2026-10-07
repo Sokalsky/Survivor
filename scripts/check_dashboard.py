@@ -49,7 +49,7 @@ def main():
         page.locator('[data-view="projections"]').click()
         expect(page.locator('#data-count')).to_have_text('318')
         expect(page.locator('.dataset-header')).to_contain_text('ESPN published projections')
-        expect(page.locator('#projection-source-note')).to_contain_text('No forecasts are blended or estimated')
+        expect(page.locator('#projection-source-note')).to_have_count(0)
         expect(page.locator('.dataset-header a')).to_have_attribute('href','https://fantasy.espn.com/basketball/players/projections')
         expect(page.locator('#data-table')).not_to_contain_text('Nikola Jokic')
         page.screenshot(path=str(output/'dashboard-projections.png'),full_page=False)
@@ -74,15 +74,24 @@ def main():
         expect(page.locator('#data-table thead')).to_contain_text('NEUTRAL AUCTION VALUE')
         expect(page.locator('#data-table')).not_to_contain_text('Nikola Jokic')
         page.screenshot(path=str(output/'valuations-desktop.png'),full_page=False)
-        page.locator('#auction-market > summary').click()
-        expect(page.locator('#auction-market')).to_contain_text('$147.33')
-        expect(page.locator('#auction-market tbody > tr')).to_have_count(12)
-        page.screenshot(path=str(output/'auction-market.png'),full_page=False)
-        page.locator('#auction-market > summary').click()
-        page.locator('#valuation-method summary').click()
-        expect(page.locator('#valuation-method')).to_contain_text('541 purchases')
-        expect(page.locator('#valuation-method')).to_contain_text('stars were underpriced')
-        page.locator('#valuation-method summary').click()
+        expect(page.locator('#auction-market')).to_have_count(0)
+        expect(page.locator('#valuation-method')).to_have_count(0)
+        expect(page.locator('.valuation-guide')).to_have_count(0)
+        page.locator('#data-position').select_option('SG')
+        page.locator('#data-sort').select_option('fg_pct')
+        page.locator('#data-direction').select_option('asc')
+        cells=page.locator('#data-table tbody [data-label="FG%"]')
+        percentages=[float(v) for v in cells.evaluate_all('(els)=>els.map(el=>el.dataset.value).filter(Boolean)')]
+        assert percentages==sorted(percentages) and len(percentages)>5
+        page.locator('#data-table [data-sort-key="fg_pct"]').click()
+        descending=[float(v) for v in cells.evaluate_all('(els)=>els.map(el=>el.dataset.value).filter(Boolean)')]
+        assert descending==list(reversed(percentages))
+        page.locator('#data-columns').select_option('all')
+        expect(page.locator('#data-table thead')).to_contain_text('PTS')
+        expect(page.locator('#data-table thead')).to_contain_text('EXPECTED LEAGUE PRICE')
+        page.locator('#data-position').select_option('')
+        page.locator('#data-sort').select_option('survivor_score')
+        page.locator('#data-columns').select_option('values')
         page.locator('#draft-filter').select_option('kept')
         expect(page.locator('#data-count')).to_have_text('30')
         with page.expect_download() as download:
@@ -100,6 +109,10 @@ def main():
         expect(page.locator('.comps-table tbody tr:visible')).to_have_count(5)
         expect(page.locator('.comp-weight')).to_have_count(20)
         expect(page.locator('.comp-price-breakdown')).to_contain_text('Weighted comp adjustment')
+        page.locator('.comps-table [data-sort-key="distance"]').first.click()
+        distances=[float(t) for t in page.locator('.comps-table tbody tr td:nth-child(4)').all_text_contents()]
+        assert distances==sorted(distances), 'Comp sorting must include the collapsed rows'
+        page.locator('.comps-table [data-sort-key="weight"]').first.click()
         page.locator('.remaining-comps summary').click()
         expect(page.locator('.comps-table tbody tr:visible')).to_have_count(20)
         page.locator('.remaining-comps summary').click()
@@ -107,7 +120,7 @@ def main():
         assert page.locator('.comps-table').first.evaluate('(el) => el.scrollWidth <= el.parentElement.clientWidth'), 'Desktop comparable adjustment column is hidden'
         page.screenshot(path=str(output/'valuation-weighted-comps.png'),full_page=False)
         expect(page.locator('.scenario-grid .projection-stat')).to_have_count(3)
-        expect(page.locator('#player-content')).to_contain_text('Hypothetical price if available')
+        expect(page.locator('.valuation-metrics')).to_contain_text('IF AVAILABLE')
         page.screenshot(path=str(output/'valuation-player.png'),full_page=True)
         page.keyboard.press('Escape')
         page.set_viewport_size({'width':390,'height':844})
@@ -156,6 +169,21 @@ def main():
         expect(page.locator('#player-name')).not_to_have_text('Loading player…')
         page.locator('#close-player').click()
         expect(page.locator('#player-dialog')).not_to_be_visible()
+        page.set_viewport_size({'width':1440,'height':1050})
+        page.locator('[data-view="projections"]').click()
+        datasets=page.request.get(args.url+'/api/bootstrap').json()['datasets']
+        archive=next(d for d in datasets if d.get('coverage')=='partial_player_pool')
+        page.locator('#dataset-select').select_option(archive['dataset_id'])
+        expect(page.locator('#data-count')).to_have_text('200')
+        expect(page.locator('.dataset-header')).to_contain_text('Received:')
+        page.locator('#data-search').fill('Tatum')
+        expect(page.locator('#data-count')).to_have_text('0')
+        page.locator('#data-search').fill('Edwards')
+        expect(page.locator('#data-count')).to_have_text('1')
+        page.locator('#data-table .player-button').click()
+        expect(page.locator('#player-content')).to_contain_text('No valuation for this projection set')
+        expect(page.locator('#player-content')).to_contain_text('User-supplied 2025-26 projections')
+        page.keyboard.press('Escape')
         # Synthetic data stays inside browser request interception; nothing is
         # written to the preview database or the production database.
         bootstrap=page.request.get(args.url+'/api/bootstrap').json()
@@ -201,17 +229,17 @@ def main():
         expect(page.locator('#player-name')).to_have_text('Nikola Jokic')
         expect(page.locator('.valuation-metrics strong').nth(0)).to_have_text('12.34')
         expect(page.locator('.valuation-metrics strong').nth(2)).to_have_text('$90')
-        expect(page.locator('#player-content')).to_contain_text('Neutral keeper surplus: $2')
+        expect(page.locator('#player-content')).to_contain_text('Keeper surplus $2')
         page.locator('#close-player').click()
         older={**dataset,'dataset_id':'older-browser-test','season':'2025-26'}
         unknown_projection={**projection,'draft_status':'unknown','keeper_franchise':None,'confirmed_keeper_cost':None}
         page.route('**/api/projections?*',lambda route:route.fulfill(json={'dataset':older,'rows':[unknown_projection]}))
         page.locator('[data-view="projections"]').click()
         expect(page.locator('#draft-filter')).to_have_value('all')
-        expect(page.locator('.availability-note')).to_contain_text('2025–26')
+        expect(page.locator('.dataset-header')).to_contain_text('2025–26')
         expect(page.locator('#data-table')).to_contain_text('Keeper list not supplied')
         assert not errors, errors
-        print('PASS: desktop/mobile layouts, history, three valuation outputs, formula notes, category bars, real comps, scenarios, CSV downloads, synthetic fixtures, keeper budgets, availability, season isolation. No browser errors.')
+        print('PASS: desktop/mobile layouts, history, three valuation outputs, sortable positions/stats, supplied forecasts, category bars, real comps, scenarios, CSV downloads, synthetic fixtures, keeper budgets, availability, season isolation. No browser errors.')
         browser.close()
 
 

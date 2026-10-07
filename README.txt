@@ -214,51 +214,53 @@ reverse sniper rules are recorded; actual order and claim outcomes are unknown.
 Exact elimination dates, stat resets and lineup constraints remain unresolved.
 Neutral values assume reaching the final, with no manager preferences or punts.
 
-The separate price model fits 1,991 matched historical purchases using only
-preceding-season stats and earlier recorded age data. The overall auction estimate
-is adjusted using the 20 closest profiles, with stronger inverse-cube distance
-weights and a recency factor. Only half the weighted actual-minus-modeled comp
-price difference is applied. No fixed youth premium or future keeper bonus is
-assumed. Season ages come from verified Basketball Reference data already in the
-source Excel, bundled separately in output/stats/market-context.json. Of 348 current
-players, 332 have earlier age data; the other 16 use the statistics-only counterpart.
+The price model fits 1,965 actual auction purchases. It uses the supplied
+2025-26 forecasts for 163 matched purchases and prior-season actual-stat proxies
+for older years. Thirteen documented preseason availability exceptions are removed
+from fitting and comps, including Tatum 2025-26 and Klay 2019-20. Original prices
+remain in history. Missing names in the partial forecast workbook are excluded,
+not converted to zero forecasts or filled with prior healthy stats.
 
-Chronological comparisons on the last three seasons have $4.58 average absolute
-error versus $4.86 for the earlier model; $30+ players have $11.91 error versus
-$13.12 previously and remain underpriced on average. Those seasons have already
-been reviewed, so this is a reused retrospective comparison, not new independent
-validation. Model choice uses older development seasons only. Historical preseason
-forecasts are unavailable: these checks do not validate the provider forecasts or the
-survivor formula. Full method and limitations: valuation_design.txt.
+The 20 nearest profiles receive inverse-cube distance and recency weights. Half
+the weighted actual-minus-modeled price residual adjusts the regression estimate.
+Similarity includes age when known and projected GP when both sides have forecasts.
+The available-talent and budget normalization candidate now wins the development-
+year selection (market_age_local). Current dollars use the actual keeper budget;
+neutral dollars retain the separate $3,000 no-keeper allocation.
 
-The Auction room panel compares all 11 historical auctions and this season:
-average/minimum/maximum team budgets, top-10/top-30 availability, named available
-stars, and each franchise's money remaining. Historical talent is a prior-season
-statistical proxy excluding recorded keepers, not a reconstructed preseason
-forecast or a list inferred from end-of-season rosters. Historical rookie and
-offseason context is incomplete; $200 starting capital is assumed throughout.
-Each comparable displays its auction's average budget and top-30 availability.
+Recent retrospective MAE is $4.58 over 523 purchases; $30+ purchases have $11.18
+error and remain underpriced on average. This cohort changed, so v3/v4 errors are
+not a like-for-like accuracy comparison. The reused seasons are not independent
+holdouts. Full formulas, provenance and limitations: valuation_design.txt.
 
-An available-talent normalization was tested alongside the existing budget-only
-model. Development MAE was $4.6535 versus $4.6518, so the existing age_local model
-remains selected. The extra correction is not applied to live prices. Recent
-retrospective MAE was $4.5763 versus $4.5846: effectively tied, not a meaningful
-accuracy claim. Team budget dispersion is visible, not fitted as manager behavior.
-The Excel adds Auction markets and Historical budgets tabs. A View comps button
-on each expected price opens the evidence directly.
+The supplied workbook contains 200 forecast rows and is stored losslessly as
+original cells plus normalized rates in output/stats/preseason-2025-26.json.
+Provider and original publication date are unknown. Its received date is labelled
+as such. Missing minutes, teams and positions remain NULL. Explicit source-local
+spelling corrections live in survivor/historical_projections.py. Rebuild with:
+  python -m survivor.historical_projections "path/to/2025-26 Player Projections.xlsx"
+The archive is bundled into Docker and imported into historical_projection_sets
+at normal startup; no Railway shell or manual SQL import is needed.
 
-Player details show category contributions, actual historical comps, each comp's
-weight and dollar adjustment, the price decomposition, market-price
-bands, elimination-schedule sensitivity and keeper surplus. Formula and assumptions
-are expandable on the board. Export CSV downloads the selected run and availability
-filter (all matching players, independent of the text search).
-output/valuations/ includes an Excel workbook, player/backtest CSVs and model report.
+The boards have position filters, sortable columns and ascending/descending
+controls for all categories, projected games/minutes, shooting volume and all
+three values. Switch columns between values, projections or both. Historical
+prices and rosters have position filters and clickable headings too. Drawer
+history and comps can be sorted. CSV exports follow search, position, availability,
+sort and direction. Unknown values sort last. A valuation always joins its exact
+projection set; values from another season/provider are never shown alongside it.
+
+Explanatory cards, methodology accordions and long drawer paragraphs were removed.
+Model audit information remains in this repo and saved run metadata. Player details
+retain category contributions, the original comparable prices, weights, adjustments,
+price bands, schedule sensitivity and keeper surplus. output/valuations/ includes
+the workbook, player/backtest/excluded-history CSVs and the complete model report.
 
 On deployment, the normal startup computes and saves the run transactionally.
 Identical inputs produce the same run ID; old runs remain available. Public web
 requests cannot write valuations. No manual Railway import is needed. Completion
 is reported in startup logs as:
-  Valuations ready: 2026-27 / 348 players / survivor-8cat-v3
+  Valuations ready: 2026-27 / 348 players / survivor-8cat-v4
 Development checks do not verify that Railway has deployed the update.
 Age context can also be rebuilt offline from verified HTML caches with:
   python -m survivor.market_context
