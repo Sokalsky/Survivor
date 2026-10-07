@@ -1,5 +1,5 @@
 {
-  "model_version": "survivor-8cat-v6",
+  "model_version": "survivor-8cat-v7",
   "roster_size": 15,
   "minimum_bid": 1,
   "minimum_bid_basis": "Working assumption; lowest recorded auction purchase is $1. Formal rule not confirmed.",
@@ -10,7 +10,7 @@
   "neighbors": 20,
   "comp_distance_offset": 0.25,
   "comp_distance_power": 3,
-  "comp_correction_share": 0.5,
+  "comp_correction_share": 0.75,
   "comp_blend_share": 0.25,
   "age_distance_years": 5,
   "projection_games_distance_scale": 20,
@@ -77,5 +77,6 @@
       "age_gap": 10,
       "games_gap": 30
     }
-  }
+  },
+  "comp_influence_basis": "With at least one close forecast, blend 75% of the adjusted comp estimate with 25% regression base. Chosen from five predefined influence settings using 2018-19 through 2022-23 price errors only; later seasons are reused retrospective checks. Supporting-only matches keep 25% influence. See output/valuations/comp-influence-check.json."
 }

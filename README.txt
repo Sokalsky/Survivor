@@ -226,7 +226,7 @@ Comps must meet production, category-shape, age and known-games limits using bot
 raw stat lines on the target's reference scale. Up to 20 qualifying records are
 retained. Close forecasts receive at least 80% of the weight when present, so
 one to three close matches dominate supporting records. With no close forecasts,
-supporting evidence gets half the usual correction; with no qualifying records,
+supporting evidence retains a 25% blend; with no qualifying records,
 the model uses the regression estimate alone. Missing games/age are not invented.
 The drawer compares the target with the three highest-weight stat lines and shows
 comp-implied prices adjusted for profile and auction context. See the explicit
@@ -234,9 +234,15 @@ limits, weights and adjustment formulas in valuation_design.txt.
 
 Development selection still favors market_age_local. Current dollars use actual
 keeper budgets and available-talent normalization; neutral dollars retain the
-separate $3,000 no-keeper allocation. Recent retrospective MAE is $4.17 across
-468 purchases, versus $4.30 for v5 rerun on the identical cohort. $30+ purchase
-error is $9.50, previously $10.07; stars remain underpriced on average. These are
+separate $3,000 no-keeper allocation. With close forecasts, v7 blends 75% of the
+adjusted comp estimate with 25% base; an 80% comp share therefore has 60% final
+influence. The drawer shows both shares and cash/supply/profile adjustments.
+Five predefined influence settings were compared on development years only:
+  python scripts/check_comp_influence.py
+Results: output/valuations/comp-influence-check.json. Development MAE improves
+slightly from $4.6811 to $4.6733. Recent retrospective MAE is $4.09 across
+468 purchases, versus v6's $4.17 on the identical cohort. $30+ purchase
+error is $9.24, previously $9.50; stars remain underpriced on average. These are
 reused checks, not independent holdouts. Current projections remain unchanged.
 
 The supplied workbook contains 200 forecast rows and is stored losslessly as
@@ -295,7 +301,7 @@ On deployment, the normal startup computes and saves the run transactionally.
 Identical inputs produce the same run ID; old runs remain available. Public web
 requests cannot write valuations. No manual Railway import is needed. Completion
 is reported in startup logs as:
-  Valuations ready: 2026-27 / 348 players / survivor-8cat-v6
+  Valuations ready: 2026-27 / 348 players / survivor-8cat-v7
 Development checks do not verify that Railway has deployed the update.
 Age context can also be rebuilt offline from verified HTML caches with:
   python -m survivor.market_context

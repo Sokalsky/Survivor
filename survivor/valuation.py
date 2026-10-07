@@ -451,7 +451,7 @@ def evaluate(observations,settings):
     candidates = ('score_curve',)+plain_candidates+tuple('age_'+name for name in plain_candidates if name!='mean')+('market_local','market_age_local')
     results = {name:[] for name in candidates}
     previous_results = []
-    previous_settings = {**settings,'comp_rules':None}
+    previous_settings = {**settings,'comp_correction_share':0.5}
     seasons = sorted({o['season'] for o in observations})
     selected = None
     for season in seasons:
@@ -506,7 +506,8 @@ def evaluate(observations,settings):
         radius = error_radius(earlier,record['predicted'],record['scale'],settings['interval_coverage'])
         covered += abs(record['predicted']-record['actual'])<=radius
     return selected, {'selected_model':selected,'development':development,'holdout':holdout,
-                     'previous_comp_method':{'development':metrics([r for r in previous_results if r['season']<settings['holdout_first_season']]),
+                     'previous_comp_method':{'model_version':'survivor-8cat-v6',
+                                             'development':metrics([r for r in previous_results if r['season']<settings['holdout_first_season']]),
                                              'holdout':metrics([r for r in previous_results if r['season']>=settings['holdout_first_season']])},
                      'holdout_by_actual_price_tier':{tier:metrics([r for r in selected_holdout if price_tier(r['actual'])==tier]) for tier in ('under_10','10_to_30','30_plus')},
                      'holdout_interval_coverage':covered/len(selected_holdout),
@@ -579,16 +580,24 @@ def build_valuations(db, season, settings=None):
             regression_price = settings['minimum_bid']+player_model.raw_prediction(comp['profile'])*scale
             adjusted_price = settings['minimum_bid']+comp['target']*scale
             target_base = settings['minimum_bid']+components['base']*scale
+            cash_price = settings['minimum_bid']+(comp['recorded_cost']-settings['minimum_bid'])*(
+                current_market['discretionary_per_slot']/comp['auction_context']['discretionary_per_slot'])
             comps.append({'player':comp['player'],'player_id':comp['player_id'],'season':comp['season'],
                           'stats_season':comp['stats_season'],'actual_price':comp['recorded_cost'],
                           'outlook_basis':comp['outlook_basis'],'availability_review':comp['availability_review'],
                           'projected_games':comp['profile'].get('projected_games'),'forecast_dataset_id':comp['forecast_dataset_id'],
                           'franchise':comp['franchise_sheet'],'distance':round(distance,4),
                           'weight':weighted['weight'],'target_season_age':comp['profile'].get('age'),
+                          'final_price_weight':weighted['weight']*components['correction_share'] if prediction_key=='local' else None,
                           'average_team_budget':comp['auction_context']['average_team_budget'],
+                          'remaining_budget':comp['auction_context']['remaining_budget'],
+                          'open_slots':comp['auction_context']['open_slots'],
+                          'pool_stats_season':comp['auction_context']['stats_season'],
                           'available_top_30':comp['auction_context']['available_top_counts']['30'],
                           'supply_ratio':comp['auction_context']['supply_ratio'],
                           'budget_adjusted_price':adjusted_price,'model_price':regression_price,
+                          'cash_adjustment':cash_price-comp['recorded_cost'],
+                          'supply_adjustment':adjusted_price-cash_price,
                           'profile_adjustment':target_base-regression_price,
                           'implied_price':adjusted_price+target_base-regression_price,
                           'match_quality':weighted.get('match_quality'),
@@ -607,7 +616,7 @@ def build_valuations(db, season, settings=None):
             flags.append('No strong historical forecast match; supporting comps have a reduced price correction.')
         if not age_record:
             flags.append('No earlier recorded season age: market estimate uses the statistics-only counterpart, with no invented age or youth premium.')
-        if components['effective_comps']<3:
+        if nearest and components['effective_comps']<3:
             flags.append('Comparable pricing is concentrated in fewer than three effectively weighted records.')
         if p['games'] < 65:
             flags.append(f'The provider projects {p["games"]:g} games; availability is spread uniformly, so a delayed return may overstate early usefulness.')
@@ -625,12 +634,16 @@ def build_valuations(db, season, settings=None):
                                           'value_basis':'neutral_15_team_no_keepers',
                                           'neutral_slot':fair>0,'games':p['games'],
                                           'market':{'method':selected if player_model is model else ('market_' if market_adjusted else '')+prediction_key,
+                                                    'season':season,'remaining_budget':current_market['remaining_budget'],
+                                                    'open_slots':current_market['open_slots'],
                                                     'supply_adjusted':market_adjusted,
                                                     'average_team_budget':current_market['average_team_budget'],
                                                     'available_top_30':current_market['available_top_counts']['30'],
                                                     'supply_ratio':current_market['supply_ratio'],
                                                     'age_source':age_record,'age_in_model':player_model.age,
                                                     'base_price':settings['minimum_bid']+components['base']*scale,
+                                                    'comp_estimate':sum(w['weight']*comp['implied_price'] for w,comp in zip(nearest,comps)) if nearest else None,
+                                                    'base_weight':1-components['correction_share'],
                                                     'comp_adjustment':components['correction']*scale if prediction_key=='local' else None,
                                                     'effective_comps':components['effective_comps'],
                                                     'comp_count':len(nearest),'weight_power':power,

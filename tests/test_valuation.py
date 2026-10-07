@@ -272,6 +272,11 @@ class PublishedValueIntegrationTests(unittest.TestCase):
             if strong:
                 self.assertGreaterEqual(sum(c['weight'] for c in strong),.8-1e-12)
             self.assertAlmostEqual(sum(c['price_adjustment'] for c in row['comps']),market['comp_adjustment'])
+            self.assertAlmostEqual(sum(c['final_price_weight'] for c in row['comps'])+market['base_weight'],1)
+            if row['comps']:
+                self.assertAlmostEqual(market['comp_estimate'],sum(c['weight']*c['implied_price'] for c in row['comps']))
+                blend = market['base_weight']*market['base_price']+market['correction_share']*market['comp_estimate']
+                self.assertAlmostEqual(row['expected_auction_price'],round(min(200,max(1,blend)),2))
             expected = min(200,max(1,market['base_price']+market['comp_adjustment']))
             self.assertAlmostEqual(row['expected_auction_price'],round(expected,2))
             for comp in row['comps']:
@@ -286,6 +291,8 @@ class PublishedValueIntegrationTests(unittest.TestCase):
                 self.assertLess(comp['season'],self.result['season'])
                 self.assertAlmostEqual(comp['price_adjustment'],market['correction_share']*comp['weight']*(comp['budget_adjusted_price']-comp['model_price']))
                 self.assertAlmostEqual(comp['implied_price'],comp['budget_adjusted_price']+market['base_price']-comp['model_price'])
+                self.assertAlmostEqual(comp['implied_price'],comp['actual_price']+comp['cash_adjustment']+comp['supply_adjustment']+comp['profile_adjustment'])
+                self.assertAlmostEqual(comp['final_price_weight'],comp['weight']*market['correction_share'])
                 limits = settings()['comp_rules'][comp['match_quality']]
                 for key in ('category_rms','production_gap','largest_category_gap','age_gap','games_gap'):
                     gap = comp['match_details'][key]
@@ -314,6 +321,15 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         strong = [c for c in ant['comps'] if c['match_quality']=='strong']
         self.assertEqual([(c['player_id'],c['season']) for c in strong],[('bradleybeal','2020-21')])
         self.assertGreaterEqual(strong[0]['weight'],.8-1e-12)
+        self.assertAlmostEqual(strong[0]['final_price_weight'],.6)
+        self.assertEqual(ant['category_values']['market']['base_weight'],.25)
+        self.assertEqual(strong[0]['remaining_budget'],2148)
+        self.assertEqual(strong[0]['available_top_30'],13)
+        self.assertEqual(ant['category_values']['market']['remaining_budget'],2210)
+        self.assertEqual(ant['category_values']['market']['available_top_30'],17)
+        self.assertGreater(strong[0]['cash_adjustment'],0)
+        self.assertLess(strong[0]['supply_adjustment'],0)
+        self.assertGreater(strong[0]['profile_adjustment'],0)
         self.assertGreater(strong[0]['stats']['pts_pg'],27)
         self.assertIsNone(strong[0]['projected_games'])
         miller = next(c for c in ant['comps'] if c['player_id']=='brandonmiller')

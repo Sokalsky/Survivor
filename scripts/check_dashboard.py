@@ -120,6 +120,16 @@ def main():
         expect(page.locator('.comp-target')).to_contain_text('Nikola Jokic')
         assert page.locator('.comp-stats-table').evaluate('(el) => el.scrollWidth <= el.parentElement.clientWidth'), 'Desktop comparison prices are clipped'
         expect(page.locator('.comp-price-breakdown')).to_contain_text('Weighted comp adjustment')
+        market=json.loads(detail['valuations'][0]['category_values_json'])['market']
+        expect(page.locator('.comp-price-breakdown')).to_contain_text('75% of final estimate')
+        expect(page.locator('.comp-price-breakdown')).to_contain_text('25% of final estimate')
+        expect(page.locator('.comp-summary')).to_contain_text('% of final price')
+        expect(page.locator('.comp-weight small')).to_have_count(len(comps))
+        page.locator('.comp-auction-context summary').click()
+        expect(page.locator('.comp-context-table').first).to_contain_text('$2,210')
+        largest=max(comps,key=lambda c:c['weight'])
+        expect(page.locator('.comp-price-bridge tr').last).to_contain_text(f"${largest['implied_price']:.2f}")
+        page.locator('.comp-auction-context summary').click()
         page.locator('.comps-table [data-sort-key="distance"]').first.click()
         distances=[float(t) for t in page.locator('.comps-table tbody tr td:nth-child(4)').all_text_contents()]
         assert distances==sorted(distances), 'Comp sorting must include the collapsed rows'

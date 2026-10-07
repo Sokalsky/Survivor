@@ -1,4 +1,4 @@
-SURVIVOR VALUATION v6
+SURVIVOR VALUATION v7
 
 THREE DISTINCT OUTPUTS
 
@@ -158,10 +158,10 @@ changes, retirements and unavailable players limit this proxy. Today's supply
 uses the complete ESPN set. Team budget dispersion is recorded, not simulated.
 
 Selected model: market_age_local. Selection uses development auctions from
-2018-19 through 2022-23 (610 purchases, MAE $4.6811), then stays fixed for the
+2018-19 through 2022-23 (610 purchases, MAE $4.6733), then stays fixed for the
 later three seasons. Each fitted model uses only earlier auctions. No target
 player's desired price is an input to comp selection. The v6 thresholds below
-are explicit working rules; one rule set was checked, not a holdout-tuned grid.
+are explicit working rules. v7 retains them and changes the final comp influence.
 
 COMPARABLE QUALIFICATION
 
@@ -203,7 +203,7 @@ qualified forecasts are allowed. No supporting records means 100% goes to close
 forecasts. Recency cannot promote a supporting record into the close group.
 
   residual = normalized actual price - regression price for the comp profile
-  correction share = 0.5 if any close forecasts, otherwise 0.25
+  correction share = 0.75 if any close forecasts, otherwise 0.25
   adjustment = correction share * sum(weight * residual) * current market scale
   final price = clamp(regression price + adjustment, $1, $200)
 No qualifying match means zero comp adjustment and the regression estimate alone.
@@ -221,21 +221,55 @@ Individual price effects sum to the displayed comp correction. All qualifying
 comps retain original bids, source basis, stats, match gaps and weights in the API
 and workbook. Sorting changes display order only.
 
-Ant example: 2020-21 Beal projects 27.61 PTS, 4.0 REB, 5.3 AST, 1.3 STL,
-0.4 BLK and 2.9 3PM, with unknown GP. He is the one close forecast and receives
-80% weight. Miller 2025-26 fails the close-category limits and remains supporting.
-Ant's expected price is $41.88 (base $38.63, adjustment +$3.25); his unchanged
-neutral value is $41.62. Those are results, never tuning targets.
+FINAL ESTIMATE INFLUENCE
 
-Recent retrospective checks: 468 purchases, MAE $4.17 versus $4.30 from the v5
-comp method rerun on the exact same cohort, and $10.86 from the mean baseline.
-The v5 development MAE was $4.7009. $30+ purchases have MAE $9.50 (previously
-$10.07) and bias -$5.20; stars remain underpriced on average. Nominal 80% bands
-cover 82.1%. Bands use earlier normalized absolute errors by price tier, falling
-back to all errors when samples are sparse. These seasons have been reviewed
-before; they are reused retrospective checks, not fresh independent holdouts.
-The supplied 2025-26 workbook is not independently dated. No test proves the
-current provider, rookie forecasts or neutral survivor formula is accurate.
+The final price is also expressible as a convex blend, before the $1-$200 clamp:
+  comp estimate = sum(comp weight * comp-implied price)
+  final estimate = (1 - correction share) * base + correction share * comp estimate
+Comp share and influence on the final estimate are different quantities. A comp
+with 80% of the basket and a 75% basket blend has 60% final influence. v6 used
+50% for the basket, giving that same comp only 40% influence. Supporting-only
+players still use 25% of the comp estimate; no qualifying comps means 100% base.
+The dashboard now displays both shares and a cash/supply/profile price bridge.
+
+Five influence choices were specified before comparing historical errors:
+  close group minimum 80%, final basket share 50% (v6), 75%, or 100%;
+  close group minimum 90%, final basket share 75% or 100%.
+Selection uses MAE on 610 development purchases, 2018-19 through 2022-23; each
+fit uses only earlier seasons. The winner is 80% / 75%, MAE $4.6733 versus v6's
+$4.6811. This development difference is small and does not establish statistical
+significance. Later years do not select the influence setting. Their 100% blend
+has lower MAE, but was not selected because it did worse on development years.
+The frozen candidate set, all split metrics, and selected setting are saved in
+output/valuations/comp-influence-check.json. Reproduce with:
+  python scripts/check_comp_influence.py
+
+Ant example: 2020-21 Beal projects 27.61 PTS, 4.0 REB, 5.3 AST, 1.3 STL,
+0.4 BLK and 2.9 3PM, with unknown GP. He remains the one close forecast, receives
+80% of comp weight and now has 60% final influence. Miller stays supporting.
+
+2020-21 cash after keepers: $2,148, or $143.20 per team. Current cash: $2,210,
+or $147.33 per team. Both have 195 open roster slots. Top-30 availability is
+13 then versus 17 now; the historical figure uses preceding-season actuals,
+whereas the current figure uses projections. This is an imperfect supply proxy,
+not a verified historical projection ranking of all available players.
+
+Beal paid $44. Reserve $1 per slot, then normalize by discretionary cash per
+open slot: +$1.37. Account for available-pool strength: -$0.62, net $44.75.
+The fitted stat/age profile difference adds $1.83, giving a comp-implied $46.58.
+Ant's whole comp basket implies $45.13. Blending 75% of that with 25% of the
+$38.63 regression base gives $43.51 (previously $41.88). His neutral value stays
+$41.62. A single historical winning bid is not a hard minimum price; uncertainty
+and the rest of the evidence still matter. These are results, not tuning targets.
+
+Recent retrospective checks: 468 purchases, MAE $4.09 versus v6's $4.17 rerun
+on the identical cohort. $30+ purchases have MAE $9.24 (previously $9.50) and
+bias -$4.54; stars remain underpriced on average. Nominal 80% bands cover 82.3%.
+Bands use earlier normalized absolute errors by price tier, falling back to all
+errors when samples are sparse. These seasons have been reviewed before; they
+are reused retrospective checks, not fresh independent holdouts. The supplied
+2025-26 workbook is not independently dated. No test proves the current provider,
+rookie forecasts or neutral survivor formula is accurate.
 
 DESCRIPTIVE ROSTER CHECK
 
