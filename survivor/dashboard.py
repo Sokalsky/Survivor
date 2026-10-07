@@ -18,7 +18,7 @@ from werkzeug.exceptions import BadRequest, HTTPException
 from survivor.catalog import build_catalog, name_key, rows
 from survivor.database import Postgres, preview_database, railway_database
 from survivor.keepers import annotate_availability, keeper_summary, sync_bundled_keepers
-from survivor.bundled_stats import sync_bundled_stats
+from survivor.bundled_stats import sync_bundled_stats, sync_bundled_projections
 
 ROOT = Path(__file__).resolve().parents[1]
 RULES = json.loads((ROOT / 'config/league.json').read_text(encoding='utf-8'))
@@ -188,7 +188,7 @@ def create_app(preview_db=None):
                 return jsonify(error='Player not found.'), 404
             history = rows(db, "SELECT season,franchise_sheet,recorded_cost,contract_year_recorded,acquisition_class,finish,source_cell FROM roster_history WHERE player_id=? AND stage='opening' ORDER BY season", (player_id,))
             finals = rows(db, "SELECT season,franchise_sheet,recorded_cost,finish FROM roster_history WHERE player_id=? AND stage='final' ORDER BY season DESC,finish", (player_id,))
-            projections = rows(db, "SELECT s.*,d.season,d.source_name,d.as_of_date FROM player_stats s JOIN stat_datasets d USING(dataset_id) WHERE s.player_id=? AND d.kind='projection' ORDER BY d.as_of_date DESC,d.imported_at DESC", (player_id,))
+            projections = rows(db, "SELECT s.*,d.season,d.source_name,d.source_url,d.as_of_date,d.notes FROM player_stats s JOIN stat_datasets d USING(dataset_id) WHERE s.player_id=? AND d.kind='projection' ORDER BY d.as_of_date DESC,d.imported_at DESC", (player_id,))
             values = rows(db, 'SELECT v.*,r.model_version,r.created_at,d.season FROM projected_values v JOIN valuation_runs r USING(run_id) JOIN stat_datasets d ON r.projection_dataset_id=d.dataset_id WHERE v.player_id=? ORDER BY r.created_at DESC', (player_id,))
             current = rows(db, 'SELECT season,franchise,keeper_cost FROM keeper_selections WHERE player_id=? AND season=?', (player_id, RULES['target_season']))
         return jsonify(**player[0], history=history, finals=finals, projections=projections, valuations=values,
@@ -201,7 +201,7 @@ def create_app(preview_db=None):
             if not dataset_id:
                 latest = db.execute("SELECT dataset_id FROM stat_datasets WHERE kind='projection' AND season=? ORDER BY as_of_date DESC,imported_at DESC LIMIT 1", (request.args.get('season', RULES['target_season']),)).fetchone()
                 dataset_id = latest[0] if latest else ''
-            metadata = rows(db, "SELECT dataset_id,season,source_name,source_url,as_of_date,coverage FROM stat_datasets WHERE kind='projection' AND dataset_id=?", (dataset_id,))
+            metadata = rows(db, "SELECT dataset_id,season,source_name,source_url,as_of_date,coverage,notes FROM stat_datasets WHERE kind='projection' AND dataset_id=?", (dataset_id,))
             entries = rows(db, "SELECT s.*,p.display_name AS player FROM player_stats s JOIN players p USING(player_id) JOIN stat_datasets d USING(dataset_id) WHERE s.dataset_id=? AND d.kind='projection' ORDER BY s.pts_pg DESC,p.display_name", (dataset_id,))
             entries = available_entries(db, entries, metadata[0]['season'] if metadata else '')
         return jsonify(dataset=metadata[0] if metadata else None, rows=entries)
@@ -237,6 +237,7 @@ def main():
         build_catalog(ROOT / 'Survivor keeper log 2025.xlsx', db)
         sync_bundled_keepers(db)
         sync_bundled_stats(db)
+        sync_bundled_projections(db)
         app = create_app(db)
     else:
         # Apply only additive schema/index changes once at startup. History is untouched.
@@ -244,6 +245,7 @@ def main():
         try:
             sync_bundled_keepers(db)
             sync_bundled_stats(db)
+            sync_bundled_projections(db)
         finally:
             db.close()
         app = create_app()

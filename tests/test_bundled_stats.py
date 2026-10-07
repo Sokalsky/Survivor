@@ -19,7 +19,7 @@ class BundledStatsTests(unittest.TestCase):
     def snapshot_copy(self, folder):
         manifest = json.loads((SNAPSHOT/'manifest.json').read_text(encoding='utf-8'))
         actuals = [s for s in manifest['sources'] if s['kind'] == 'actual'][:2]
-        # No projection file is copied, matching the Docker image.
+        # Historical validation must not depend on the separate projection file.
         manifest['sources'] = actuals + [s for s in manifest['sources'] if s['kind'] == 'projection']
         manifest['historical_seasons'] = len(actuals)
         manifest['historical_rows'] = sum(s['players'] for s in actuals)
@@ -56,7 +56,7 @@ class BundledStatsTests(unittest.TestCase):
         self.assertEqual(client.get('/api/valuations').json, {'run':None, 'rows':[]})
         self.assertEqual(db.execute("SELECT COUNT(*) FROM player_stats WHERE player_id='nikolajokic'").fetchone()[0], 11)
 
-    def test_projections_are_excluded_even_when_the_file_is_absent(self):
+    def test_historical_validation_does_not_require_the_projection_file(self):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp)
             self.snapshot_copy(folder)

@@ -1,10 +1,10 @@
 {
-  "created_at": "2026-10-06T23:51:30.405660+00:00",
+  "created_at": "2026-10-07T00:10:56.589851+00:00",
   "workbook": "survivor-player-stats.xlsx",
   "historical_seasons": 12,
   "historical_rows": 6460,
-  "projection_rows": 266,
-  "projections_ready_for_valuation": false,
+  "projection_rows": 500,
+  "projections_ready_for_valuation": true,
   "sources": [
     {
       "kind": "actual",
@@ -14,10 +14,10 @@
       "file": "actuals-2014-15.csv",
       "players": 492,
       "ready_for_import": true,
+      "csv_sha256": "0ad81ed85c72a465a58e9299d961756d7f59b94ba2be7285aede035dad864e26",
       "url": "https://www.basketball-reference.com/leagues/NBA_2015_totals.html",
       "retrieved_at": "2026-10-06T23:48:41.071563+00:00",
-      "sha256": "575c2e0f865d9fa4af6723051ed2adc790c52de4fb742cbdfb783802f844be82",
-      "csv_sha256": "0ad81ed85c72a465a58e9299d961756d7f59b94ba2be7285aede035dad864e26"
+      "sha256": "575c2e0f865d9fa4af6723051ed2adc790c52de4fb742cbdfb783802f844be82"
     },
     {
       "kind": "actual",
@@ -27,10 +27,10 @@
       "file": "actuals-2015-16.csv",
       "players": 476,
       "ready_for_import": true,
+      "csv_sha256": "026e119814d8ae17c755164b8b414ba358c44f406e42179c12eb18028a3fbf5c",
       "url": "https://www.basketball-reference.com/leagues/NBA_2016_totals.html",
       "retrieved_at": "2026-10-06T23:48:44.808582+00:00",
-      "sha256": "77173c7f1fae208155553948415b7439df562f4cd922a04af861b6624e1131c5",
-      "csv_sha256": "026e119814d8ae17c755164b8b414ba358c44f406e42179c12eb18028a3fbf5c"
+      "sha256": "77173c7f1fae208155553948415b7439df562f4cd922a04af861b6624e1131c5"
     },
     {
       "kind": "actual",
@@ -40,10 +40,10 @@
       "file": "actuals-2016-17.csv",
       "players": 486,
       "ready_for_import": true,
+      "csv_sha256": "13b0a5a6e865356df7a6e025245224360d261365ba70dd7efdb30e08a9b990af",
       "url": "https://www.basketball-reference.com/leagues/NBA_2017_totals.html",
       "retrieved_at": "2026-10-06T23:48:48.496328+00:00",
-      "sha256": "98ff5f3c754c9426e2d5fa2e757d49c8064ee3c090c57ad5e6973b87c980705b",
-      "csv_sha256": "13b0a5a6e865356df7a6e025245224360d261365ba70dd7efdb30e08a9b990af"
+      "sha256": "98ff5f3c754c9426e2d5fa2e757d49c8064ee3c090c57ad5e6973b87c980705b"
     },
     {
       "kind": "actual",
@@ -53,10 +53,10 @@
       "file": "actuals-2017-18.csv",
       "players": 540,
       "ready_for_import": true,
+      "csv_sha256": "e454348e942e69b8c5b9161538f43944d9406523bd3c246a7469fdec159dbffe",
       "url": "https://www.basketball-reference.com/leagues/NBA_2018_totals.html",
       "retrieved_at": "2026-10-06T23:48:52.214498+00:00",
-      "sha256": "515a67d33e45da5bfdbed6f773ecca9f2b0d789cb5d78800106a49f3b4ce9613",
-      "csv_sha256": "e454348e942e69b8c5b9161538f43944d9406523bd3c246a7469fdec159dbffe"
+      "sha256": "515a67d33e45da5bfdbed6f773ecca9f2b0d789cb5d78800106a49f3b4ce9613"
     },
     {
       "kind": "actual",
@@ -66,10 +66,10 @@
       "file": "actuals-2018-19.csv",
       "players": 530,
       "ready_for_import": true,
+      "csv_sha256": "a08403b01dfab70e5582c42ce977671dec98da733933e11e82dd0374228aa796",
       "url": "https://www.basketball-reference.com/leagues/NBA_2019_totals.html",
       "retrieved_at": "2026-10-06T23:48:55.975050+00:00",
-      "sha256": "ae93d830946cf669c676fb1fd39c33ed68bd48c21d72bc728bd2388c9082d40b",
-      "csv_sha256": "a08403b01dfab70e5582c42ce977671dec98da733933e11e82dd0374228aa796"
+      "sha256": "ae93d830946cf669c676fb1fd39c33ed68bd48c21d72bc728bd2388c9082d40b"
     },
     {
       "kind": "actual",
@@ -79,10 +79,10 @@
       "file": "actuals-2019-20.csv",
       "players": 529,
       "ready_for_import": true,
+      "csv_sha256": "cd4555a32174d473cd6d55014278dc53d40ec0616c0b8fcea73340a6470efaaf",
       "url": "https://www.basketball-reference.com/leagues/NBA_2020_totals.html",
       "retrieved_at": "2026-10-06T23:48:59.737120+00:00",
-      "sha256": "acdbf0f15ed01117b387e1c900cd4617fafd639da4090b49b75df50208e4d53e",
-      "csv_sha256": "cd4555a32174d473cd6d55014278dc53d40ec0616c0b8fcea73340a6470efaaf"
+      "sha256": "acdbf0f15ed01117b387e1c900cd4617fafd639da4090b49b75df50208e4d53e"
     },
     {
       "kind": "actual",
@@ -92,10 +92,10 @@
       "file": "actuals-2020-21.csv",
       "players": 540,
       "ready_for_import": true,
+      "csv_sha256": "0bcfb326543fb5ffe0938120b8dd914a27b5cb3a466b654e704e55c902d5cc43",
       "url": "https://www.basketball-reference.com/leagues/NBA_2021_totals.html",
       "retrieved_at": "2026-10-06T23:49:03.484923+00:00",
-      "sha256": "90c572d1de4b34ea8e5299d7fe922488709b60b1a96bb79fc41d745c2902a3d1",
-      "csv_sha256": "0bcfb326543fb5ffe0938120b8dd914a27b5cb3a466b654e704e55c902d5cc43"
+      "sha256": "90c572d1de4b34ea8e5299d7fe922488709b60b1a96bb79fc41d745c2902a3d1"
     },
     {
       "kind": "actual",
@@ -105,10 +105,10 @@
       "file": "actuals-2021-22.csv",
       "players": 605,
       "ready_for_import": true,
+      "csv_sha256": "5fe3ef31f740153998844b1264d7214c1e838ac9640c85929ba11971566e0083",
       "url": "https://www.basketball-reference.com/leagues/NBA_2022_totals.html",
       "retrieved_at": "2026-10-06T23:49:07.324471+00:00",
-      "sha256": "743a14338d65dc24f56eba56a0222ec70c8cf166b748b1267d6acb282f3038ee",
-      "csv_sha256": "5fe3ef31f740153998844b1264d7214c1e838ac9640c85929ba11971566e0083"
+      "sha256": "743a14338d65dc24f56eba56a0222ec70c8cf166b748b1267d6acb282f3038ee"
     },
     {
       "kind": "actual",
@@ -118,10 +118,10 @@
       "file": "actuals-2022-23.csv",
       "players": 539,
       "ready_for_import": true,
+      "csv_sha256": "5ec27f40e97eec9f2de88239e1ad76812d0b5ebe4039853283e29c9ad52d6e5d",
       "url": "https://www.basketball-reference.com/leagues/NBA_2023_totals.html",
       "retrieved_at": "2026-10-06T23:49:11.135830+00:00",
-      "sha256": "ff9b7a0f184acf17882ac87741d110850d861d0a24be1878a8bfe038c3f46459",
-      "csv_sha256": "5ec27f40e97eec9f2de88239e1ad76812d0b5ebe4039853283e29c9ad52d6e5d"
+      "sha256": "ff9b7a0f184acf17882ac87741d110850d861d0a24be1878a8bfe038c3f46459"
     },
     {
       "kind": "actual",
@@ -131,10 +131,10 @@
       "file": "actuals-2023-24.csv",
       "players": 572,
       "ready_for_import": true,
+      "csv_sha256": "1bccf8b9a2b7401466c82df09450c61a572dafa1e54d1d2474f6154d39877f1b",
       "url": "https://www.basketball-reference.com/leagues/NBA_2024_totals.html",
       "retrieved_at": "2026-10-06T23:49:14.922259+00:00",
-      "sha256": "56e60556aa3dadadfa9baf5b8e68c9bb4c2d4be16197f2a68f05efde7e52ffa5",
-      "csv_sha256": "1bccf8b9a2b7401466c82df09450c61a572dafa1e54d1d2474f6154d39877f1b"
+      "sha256": "56e60556aa3dadadfa9baf5b8e68c9bb4c2d4be16197f2a68f05efde7e52ffa5"
     },
     {
       "kind": "actual",
@@ -144,10 +144,10 @@
       "file": "actuals-2024-25.csv",
       "players": 569,
       "ready_for_import": true,
+      "csv_sha256": "a07875bea98718adb5b00c962ba54550d81aef203ceb279f1c39dc76549327e4",
       "url": "https://www.basketball-reference.com/leagues/NBA_2025_totals.html",
       "retrieved_at": "2026-10-06T23:49:18.714807+00:00",
-      "sha256": "9af373ee7bf4ef7070e1214b8e51e00e485837154cea14248ae57958f912bcd2",
-      "csv_sha256": "a07875bea98718adb5b00c962ba54550d81aef203ceb279f1c39dc76549327e4"
+      "sha256": "9af373ee7bf4ef7070e1214b8e51e00e485837154cea14248ae57958f912bcd2"
     },
     {
       "kind": "actual",
@@ -157,23 +157,76 @@
       "file": "actuals-2025-26.csv",
       "players": 582,
       "ready_for_import": true,
+      "csv_sha256": "ff8747f4dd5e52de620a00f22caf01ecc4b306c87b4777dfa4f4f677efa0df3f",
       "url": "https://www.basketball-reference.com/leagues/NBA_2026_totals.html",
       "retrieved_at": "2026-10-06T23:49:22.590581+00:00",
-      "sha256": "07b8cddfa6904ff1eec098774802b3c247a84453ff9def4c0628da89597f5746",
-      "csv_sha256": "ff8747f4dd5e52de620a00f22caf01ecc4b306c87b4777dfa4f4f677efa0df3f"
+      "sha256": "07b8cddfa6904ff1eec098774802b3c247a84453ff9def4c0628da89597f5746"
     },
     {
       "kind": "projection",
       "season": "2026-27",
-      "source_name": "FantasyPros public consensus",
-      "as_of_date": "2026-09-19",
-      "file": "projections-2026-27-INCOMPLETE.csv",
-      "players": 266,
-      "ready_for_import": false,
-      "note": "Missing projected FGM, FGA, FTM and FTA; not ready for eight-category valuation.",
-      "url": "https://www.fantasypros.com/nba/projections/overall.php",
-      "retrieved_at": "2026-10-06T23:49:26.268112+00:00",
-      "sha256": "c001cd15c5029bd54adb90f0410ab40da2c0166d6baf7b37d000cae9ce806e6d"
+      "source_name": "CBS Sports published projections",
+      "as_of_date": "2026-10-07",
+      "as_of_basis": "retrieval_date",
+      "retrieved_at": "2026-10-07T00:08:42.996466+00:00",
+      "file": "projections-2026-27-CBS.csv",
+      "players": 500,
+      "ready_for_import": true,
+      "csv_sha256": "97dfe57a000af700ef368de07b8e6c87bb2909396cfb1c59242ccc04037f13b2",
+      "note": "Published CBS season totals divided by published projected games. FGM, FGA, FTM and FTA are supplied by CBS; no statistics are estimated or imputed. Snapshot date is the retrieval date; CBS does not show a publication timestamp. CBS displays the season by its starting year. Position filters overlap; one intact source row is retained per CBS player ID.",
+      "url": "https://www.cbssports.com/fantasy/basketball/projections/",
+      "source_pages": [
+        {
+          "group": "PG",
+          "players": 100,
+          "url": "https://www.cbssports.com/fantasy/basketball/stats/PG/2026/season/projections/",
+          "retrieved_at": "2026-10-07T00:08:41.788836+00:00",
+          "sha256": "867486dbf920d0a7f8247d362c4a18a7308ea6951db42a6fcbe5afcb56ca03af"
+        },
+        {
+          "group": "SG",
+          "players": 100,
+          "url": "https://www.cbssports.com/fantasy/basketball/stats/SG/2026/season/projections/",
+          "retrieved_at": "2026-10-07T00:08:42.254757+00:00",
+          "sha256": "37f70f9d423d81536367f40def389cdea0b84e5f5b98b7530f93d5b8063030d4"
+        },
+        {
+          "group": "SF",
+          "players": 100,
+          "url": "https://www.cbssports.com/fantasy/basketball/stats/SF/2026/season/projections/",
+          "retrieved_at": "2026-10-07T00:08:42.996466+00:00",
+          "sha256": "f98caa164746e43805fc7c808cd84cb3d0d33eaf1d1736dbf24fc86c31b9f400"
+        },
+        {
+          "group": "PF",
+          "players": 100,
+          "url": "https://www.cbssports.com/fantasy/basketball/stats/PF/2026/season/projections/",
+          "retrieved_at": "2026-10-07T00:08:42.664441+00:00",
+          "sha256": "5804ecddccb008ec445e51431f2a1ffbda4a5dd983a453cf7b38d272dd9e00fc"
+        },
+        {
+          "group": "C",
+          "players": 100,
+          "url": "https://www.cbssports.com/fantasy/basketball/stats/C/2026/season/projections/",
+          "retrieved_at": "2026-10-07T00:07:33.040923+00:00",
+          "sha256": "ca5a55b7b6e8cc89d533c36d3a34e42d0482be0614b6ef2eff2b699974b7da28"
+        },
+        {
+          "group": "G",
+          "players": 100,
+          "url": "https://www.cbssports.com/fantasy/basketball/stats/G/2026/season/projections/",
+          "retrieved_at": "2026-10-07T00:08:03.484704+00:00",
+          "sha256": "36465feb1f3acdd2b17c493de49b15d5ad8c0ddbdb4f37032d8f355fd3de9bbe"
+        },
+        {
+          "group": "F",
+          "players": 100,
+          "url": "https://www.cbssports.com/fantasy/basketball/stats/F/2026/season/projections/",
+          "retrieved_at": "2026-10-07T00:08:03.825674+00:00",
+          "sha256": "17267c50c55f8c514d3df0a7e603f6a9fe59dbd929eb1ad7324ee6b8ff0986bd"
+        }
+      ],
+      "provider_fields_only": true
     }
   ],
   "errors": []

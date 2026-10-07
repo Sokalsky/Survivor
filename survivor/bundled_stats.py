@@ -1,4 +1,4 @@
-"""Import the reviewed historical CSV snapshot bundled with the Railway image."""
+"""Import reviewed historical stats and published projections bundled with the image."""
 from __future__ import annotations
 
 import argparse
@@ -21,15 +21,16 @@ def csv_hash(path):
     return hashlib.sha256(text.encode('utf-8')).hexdigest()
 
 
-def validated_sources(folder=SNAPSHOT):
+def validated_sources(folder=SNAPSHOT, *, kind='actual'):
+    if kind not in ('actual', 'projection'):
+        raise ValueError('Unknown snapshot kind.')
     folder = Path(folder).resolve()
     manifest = json.loads((folder/'manifest.json').read_text(encoding='utf-8'))
     if manifest.get('errors'):
         raise ValueError('Historical snapshot has source errors; refusing startup import.')
     sources, seasons = [], set()
     for source in manifest['sources']:
-        # Projection snapshots have a separate completeness/approval workflow.
-        if source['kind'] != 'actual':
+        if source['kind'] != kind:
             continue
         season = source['season']
         if not re.fullmatch(r'20\d{2}-\d{2}', season) or int(season[-2:]) != (int(season[:4])+1) % 100:
@@ -37,7 +38,8 @@ def validated_sources(folder=SNAPSHOT):
         if season in seasons or source.get('ready_for_import') is not True:
             raise ValueError('Duplicate or unready season in historical snapshot.')
         seasons.add(season)
-        if source['file'] != f'actuals-{season}.csv':
+        expected_file = f'actuals-{season}.csv' if kind == 'actual' else f'projections-{season}-CBS.csv'
+        if source['file'] != expected_file:
             raise ValueError('Unexpected historical snapshot filename.')
         path = (folder/source['file']).resolve()
         if path.parent != folder:
@@ -51,7 +53,12 @@ def validated_sources(folder=SNAPSHOT):
         if len(records) != source['players']:
             raise ValueError(f'Historical CSV row count mismatch: {season}.')
         sources.append((source, path))
-    if not sources or len(sources) != manifest['historical_seasons'] or sum(s['players'] for s,_ in sources) != manifest['historical_rows']:
+    if kind == 'projection':
+        if not sources or manifest.get('projections_ready_for_valuation') is not True:
+            raise ValueError('No complete published projection snapshot is available.')
+        if sum(s['players'] for s,_ in sources) != manifest['projection_rows']:
+            raise ValueError('Projection snapshot totals do not reconcile.')
+    elif not sources or len(sources) != manifest['historical_seasons'] or sum(s['players'] for s,_ in sources) != manifest['historical_rows']:
         raise ValueError('Historical snapshot totals do not reconcile.')
     return sources
 
@@ -75,6 +82,21 @@ def sync_bundled_stats(db, folder=SNAPSHOT):
     return {'seasons':len(sources), 'rows':total}
 
 
+def sync_bundled_projections(db, folder=SNAPSHOT):
+    sources = validated_sources(folder, kind='projection')
+    total = 0
+    for source, path in sources:
+        dataset_id = import_stats(db, path, kind='projection', season=source['season'],
+                                 source_name=source['source_name'], as_of_date=source['as_of_date'],
+                                 source_url=source['url'], notes=source['note'])
+        count = db.execute('SELECT COUNT(*) FROM player_stats WHERE dataset_id=?', (dataset_id,)).fetchone()[0]
+        if count != source['players']:
+            raise ValueError(f'Stored projection count does not match {source["season"]}.')
+        total += count
+        print(f'Published projections ready: {source["season"]} / {count:,} players / {source["source_name"]}', flush=True)
+    return {'datasets':len(sources), 'rows':total}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--validate-only', action='store_true')
@@ -82,10 +104,13 @@ def main():
     if args.validate_only:
         sources = validated_sources()
         print(f'Validated {len(sources)} historical seasons / {sum(s["players"] for s,_ in sources):,} rows')
+        projections = validated_sources(kind='projection')
+        print(f'Validated {sum(s["players"] for s,_ in projections):,} published player projections')
         return
     db = railway_database()
     try:
         sync_bundled_stats(db)
+        sync_bundled_projections(db)
     finally:
         db.close()
 

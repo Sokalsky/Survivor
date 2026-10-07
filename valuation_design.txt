@@ -124,25 +124,28 @@ excluded players for the future model. A keeper inflation factor has not yet
 been calculated: that requires projections and the remaining player pool.
 Free data only: no subscriptions or paid APIs. The stats_workbook script collects
 Basketball Reference regular-season totals for 2014-15 through 2025-26 and the
-public FantasyPros 2026-27 projection table into Excel and CSVs. The preceding
+published CBS Sports 2026-27 projections into Excel and CSVs. The preceding
 season supplies context for the first 2015-16 auction. Snapshot dates, raw-source
 hashes, source player IDs and archive name matches are retained for review.
-The dashboard now imports the bundled historical CSVs on startup, without
-fetching external data. Repeated startups skip identical datasets. Data notes
-shows the imported season and row counts; live completion still needs to be
-confirmed on the website or in Railway's deployment logs.
+The dashboard imports bundled historical CSVs and complete CBS projections on
+startup, without fetching external data. Repeated startups skip identical datasets.
+Live completion still needs to be confirmed on the website or in Railway logs.
 
-FantasyPros' public projection table omits FGM/FGA/FTM/FTA. Those columns remain
-empty and the projection CSV is labeled incomplete. These records cannot enter
-the eight-category valuation model until shooting volume is obtained or estimated
-by an explicitly labeled, tested model. Public free access does not imply that
-every field needed by the valuation model is available.
+The 500 CBS player projections include all eight-category inputs and shooting
+makes/attempts. All 30 keepers are covered, leaving 470 available players. Season
+totals are divided by the provider's projected games; no missing statistics are
+estimated or filled. Original values, CBS IDs and source URLs are retained. The
+snapshot date is when the source was retrieved, not a publication date. Published
+point totals are retained even when they differ from the shooting components.
+The user's requirement is published projections only: do not silently substitute
+a locally generated forecast. The prior incomplete FantasyPros CSV is archived
+but excluded from startup import and model inputs.
 
 Not yet completed: full provider identity reconciliation, live verification of
-the historical-stat import, complete preseason projection ingestion, trained
-valuation model or current player price forecasts.
+the imports, trained valuation model or current player price forecasts. Complete
+preseason projection ingestion is now implemented and can supply that model.
 https://www.basketball-reference.com/leagues/NBA_2026_totals.html
-https://www.fantasypros.com/nba/projections/overall.php
+https://www.cbssports.com/fantasy/basketball/projections/
 
 For custom projections later: separate expected minutes, per-minute statistical
 rates and availability; backtest each component before replacing the external

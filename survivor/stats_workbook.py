@@ -279,23 +279,29 @@ def build_workbook(output_dir, first_start, last_start, target_season, *, refres
         except Exception as exc:
             errors.append({'season':season, 'source':'Basketball Reference', 'note':str(exc)})
             print(f'{season}: FAILED - {exc}', flush=True)
-    projections = []
+    projections, projection_pages, projection_audit_headers = [], [], []
     if include_projections:
         try:
-            html, metadata = download(PROJECTION_URL, cache, 'projections-'+target_season, refresh=refresh)
-            projections, published_date = parse_projections(html, target_season)
-            if len(projections) < 225:
-                raise ValueError(f'Only {len(projections)} projections found; fewer than the observed 225 league roster spots.')
-            source = dict(kind='projection', season=target_season, source_name='FantasyPros public consensus',
-                          as_of_date=published_date, file='projections-'+target_season+'-INCOMPLETE.csv',
-                          players=len(projections), ready_for_import=False, note=MISSING_SHOOTING, **metadata)
+            from survivor.cbs_projections import collect_projections, AUDIT_HEADERS, SOURCE_NAME, SOURCE_NOTE, SOURCE_URL
+            projections, projection_pages = collect_projections(output_dir, target_season, refresh=refresh)
+            projection_audit_headers = AUDIT_HEADERS
+            retrieved_at = max(page['retrieved_at'] for page in projection_pages)
+            for row in projections:
+                row.update(season=target_season, source_date=retrieved_at[:10],
+                           ready_for_valuation=True, quality_note='Published CBS projections; no imputed statistics.')
+            path = output_dir/f'projections-{target_season}-CBS.csv'
+            write_csv(path, projections, STAT_HEADERS+AUDIT_HEADERS)
+            validate_csv(path)
+            source = dict(kind='projection', season=target_season, source_name=SOURCE_NAME,
+                          as_of_date=retrieved_at[:10], as_of_basis='retrieval_date', retrieved_at=retrieved_at,
+                          file=path.name, players=len(projections), ready_for_import=True,
+                          csv_sha256=csv_hash(path), note=SOURCE_NOTE, url=SOURCE_URL,
+                          source_pages=projection_pages, provider_fields_only=True)
             sources.append(source)
-            write_csv(output_dir/source['file'], projections,
-                      STAT_HEADERS+['fg_pct','ft_pct','source_date','quality_note'])
-            print(f'{target_season}: {len(projections)} projections; shooting-volume fields unavailable', flush=True)
+            print(f'{target_season}: {len(projections)} published CBS projections including shooting volume', flush=True)
         except Exception as exc:
             projections = []
-            errors.append({'season':target_season,'source':'FantasyPros','note':str(exc)})
+            errors.append({'season':target_season,'source':'CBS Sports','note':str(exc)})
             print(f'Projections: FAILED - {exc}', flush=True)
 
     db = preview_database()
@@ -326,12 +332,13 @@ def build_workbook(output_dir, first_start, last_start, target_season, *, refres
         {'item':'History','note':f'{season_name(first_start)} through {season_name(last_start)} requested; regular season only, one combined row per player-season.'},
         {'item':'Historical units','note':'Per-game values calculated from exact source totals. Aggregate TOT / multi-team rows replace individual team splits.'},
         {'item':'Historical dates','note':'As-of dates are retrieval dates, not evidence that final stats were known before that season began.'},
-        {'item':'Projection units','note':'FantasyPros season totals divided by projected games; published FG% and FT% retained separately.'},
-        {'item':'Projection completeness','note':MISSING_SHOOTING+' Empty cells are not zeroes. No shooting volume has been invented.'},
+        {'item':'Projection units','note':'CBS published season totals divided by published projected games. Makes and attempts come directly from CBS. Published percentages and original totals are retained for checking.'},
+        {'item':'Projection completeness','note':f'{len(projections)} CBS player projections collected. No statistical estimates, imputation or cross-provider blending. No dollar valuations are calculated here.'},
+        {'item':'Projection provenance','note':'Each row retains its CBS player ID, URL, original totals, source hash and retrieval date. CBS labels seasons by starting year and does not show a publication timestamp. Overlapping position filters are deduplicated by player ID.'},
         {'item':'Identity matching','note':'Source player IDs and normalized archive matches are included. Unmatched names require review before modeling.'},
         {'item':'Keepers','note':'Confirmed keeper availability applies only to the target projection season. Historical purchases remain separate.'},
         {'item':'Refresh','note':'Run python -m survivor.stats_workbook. Use --refresh to download again; cache snapshots retain source hashes and dates.'},
-        {'item':'Database','note':'Validated actuals CSVs can be imported with --import-history. Incomplete projections are blocked from that import.'},
+        {'item':'Database','note':'Committed actuals and complete CBS projections import automatically when the Railway dashboard starts. Repeated startups do not duplicate identical snapshots.'},
         {'item':'Fetch errors','note':str(len(errors))+' failed sources; see Issues and manifest.json. A failed refresh is never labeled complete.'},
     ]
     add_sheet(workbook,'Read me',notes,['item','note'])
@@ -340,7 +347,7 @@ def build_workbook(output_dir, first_start, last_start, target_season, *, refres
         add_sheet(workbook, 'Stats '+season, records, history_headers)
     if include_projections:
         add_sheet(workbook, 'Projections '+target_season, projections,
-                  ['player','source_player_id','local_player_id','archive_match','nba_team','positions']+STAT_HEADERS[3:]+['fg_pct','ft_pct','source_date','draft_status','keeper_franchise','keeper_cost','ready_for_valuation','quality_note'])
+                  ['player','local_player_id','archive_match','nba_team','positions']+STAT_HEADERS[3:]+projection_audit_headers+['source_date','draft_status','keeper_franchise','keeper_cost','ready_for_valuation','quality_note'])
     add_sheet(workbook,'Auction prices',prices,['season','player','player_id','franchise_sheet','recorded_cost'])
     covered = {season:{row['local_player_id'] for row in records} for season,records in datasets}
     coverage = []
@@ -354,6 +361,8 @@ def build_workbook(output_dir, first_start, last_start, target_season, *, refres
         add_sheet(workbook,'Keepers '+target_season,draft['rows'],['franchise','player','player_id','keeper_cost'])
         add_sheet(workbook,'Team budgets',draft['teams'],['franchise','budget_per_team','keeper_spend','remaining_budget'])
     add_sheet(workbook,'Sources',sources,['kind','season','source_name','as_of_date','retrieved_at','players','ready_for_import','file','url','sha256','note'])
+    if projection_pages:
+        add_sheet(workbook,'Projection sources',projection_pages,['group','players','url','retrieved_at','sha256'])
     add_sheet(workbook,'Issues',errors,['season','source','note'])
     workbook_path = output_dir/'survivor-player-stats.xlsx'
     temporary = workbook_path.with_suffix('.tmp.xlsx')
@@ -361,7 +370,7 @@ def build_workbook(output_dir, first_start, last_start, target_season, *, refres
     temporary.replace(workbook_path)
     manifest = {'created_at':datetime.now(timezone.utc).isoformat(), 'workbook':workbook_path.name,
                 'historical_seasons':len(datasets), 'historical_rows':sum(len(r) for _,r in datasets),
-                'projection_rows':len(projections), 'projections_ready_for_valuation':False,
+                'projection_rows':len(projections), 'projections_ready_for_valuation':bool(projections),
                 'sources':sources,'errors':errors}
     (output_dir/'manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
     print(f'Workbook: {workbook_path.resolve()}', flush=True)
