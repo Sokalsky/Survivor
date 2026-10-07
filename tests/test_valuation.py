@@ -179,6 +179,54 @@ class ComparableTests(unittest.TestCase):
         self.assertEqual(components['neighbors'][0]['match_quality'],'supporting')
         self.assertEqual(components['correction_share'],settings()['comp_rules']['supporting_correction_share'])
 
+    def precise_profile(self, value=0, games=72):
+        return {**self.profile(value),'projected_games':games,'outlook_basis':'projection'}
+
+    def test_one_to_three_near_identical_forecasts_dominate_many_merely_close_matches(self):
+        for count in (1,2,3):
+            observations = [{'season':'2025-26','player_id':f'close{i}',
+                             'profile':self.precise_profile(i*.01),'target':4} for i in range(count)]
+            observations += [{'season':'2025-26','player_id':f'other{i}',
+                              'profile':self.precise_profile(.15),'target':1} for i in range(20)]
+            model = PriceModel(observations,settings(),2026,age=True)
+            components = model.local_components(self.precise_profile())
+            precise = [w for w in components['neighbors'] if w['match_quality']=='near_identical']
+            self.assertEqual(len(precise),count)
+            self.assertGreaterEqual(sum(w['weight'] for w in precise),.95-1e-12)
+            self.assertEqual(components['correction_share'],.9)
+            self.assertGreaterEqual(sum(w['weight'] for w in precise)*components['correction_share'],.855-1e-12)
+            self.assertAlmostEqual(sum(w['weight'] for w in components['neighbors']),1)
+            changed = [{**o,'target':100-o['target'],'player_id':'renamed'+o['player_id']} for o in observations]
+            self.assertEqual(model.weighted_neighbors(self.precise_profile()),
+                             PriceModel(changed,settings(),2026,age=True).weighted_neighbors(self.precise_profile()))
+
+    def test_near_identical_requires_known_games_age_recent_projection_and_separation(self):
+        target = self.precise_profile(.1)
+        rows = [{'season':'2025-26','profile':self.precise_profile(),'target':1},
+                {'season':'2025-26','profile':self.precise_profile(.23),'target':2}]
+        model = PriceModel(rows,settings(),2026,age=True)
+        # One record passes absolute limits, but its .224 distance is too close
+        # to the next record's .291 distance to deserve the dominant tier.
+        self.assertTrue(all(w['match_quality']=='strong' for w in model.weighted_neighbors(target)))
+        tests = [({'season':'2025-26','profile':self.precise_profile(games=None),'target':1},True),
+                 ({'season':'2022-23','profile':self.precise_profile(),'target':1},True),
+                 ({'season':'2025-26','profile':{**self.precise_profile(),'outlook_basis':'prior_actuals_proxy'},'target':1},True),
+                 ({'season':'2025-26','profile':self.precise_profile(),'target':1},False)]
+        for observation,age in tests:
+            m = PriceModel([observation],settings(),2026,age=age)
+            self.assertEqual(m.local_components(self.precise_profile())['near_identical_count'],0)
+
+    def test_match_cache_invalidates_when_games_or_settings_change(self):
+        target = self.precise_profile()
+        config = settings()
+        model = PriceModel([{'season':'2025-26','profile':self.precise_profile(),'target':1}],config,2026,age=True)
+        self.assertEqual(model.local_components(target)['near_identical_count'],1)
+        target['projected_games'] = None
+        self.assertEqual(model.local_components(target)['near_identical_count'],0)
+        target['projected_games'] = 72
+        config['comp_rules'].pop('near_identical')
+        self.assertEqual(model.local_components(target)['near_identical_count'],0)
+
     def test_age_context_cannot_use_future_rows_or_guess_missing_players(self):
         sources = {s:{'url':'https://example.test/'+s,'sha256':'test','retrieved_at':'2026-10-01'}
                    for s in ['2023-24','2025-26']}
@@ -267,8 +315,13 @@ class PublishedValueIntegrationTests(unittest.TestCase):
             market = row['category_values']['market']
             self.assertLessEqual(len(row['comps']),20)
             self.assertAlmostEqual(sum(c['weight'] for c in row['comps']),1 if row['comps'] else 0)
-            strong = [c for c in row['comps'] if c['match_quality']=='strong']
+            strong = [c for c in row['comps'] if c['match_quality'] in ('strong','near_identical')]
             self.assertEqual(market['strong_comp_count'],len(strong))
+            precise = [c for c in row['comps'] if c['match_quality']=='near_identical']
+            self.assertEqual(market['near_identical_comp_count'],len(precise))
+            if precise:
+                self.assertGreaterEqual(sum(c['weight'] for c in precise),.95-1e-12)
+                self.assertGreaterEqual(sum(c['final_price_weight'] for c in precise),.855-1e-12)
             if strong:
                 self.assertGreaterEqual(sum(c['weight'] for c in strong),.8-1e-12)
             self.assertAlmostEqual(sum(c['price_adjustment'] for c in row['comps']),market['comp_adjustment'])
@@ -298,8 +351,12 @@ class PublishedValueIntegrationTests(unittest.TestCase):
                     gap = comp['match_details'][key]
                     if gap is not None:
                         self.assertLessEqual(gap,limits[key])
-                if comp['match_quality']=='strong':
+                if comp['match_quality'] in ('strong','near_identical'):
                     self.assertIsNotNone(comp['forecast_dataset_id'])
+                if comp['match_quality']=='near_identical':
+                    self.assertIsNotNone(comp['projected_games'])
+                    self.assertIsNotNone(comp['target_season_age'])
+                    self.assertLessEqual(int(self.result['season'][:4])-int(comp['season'][:4]),3)
             if market['age_source'] is None:
                 missing_age += 1
                 self.assertFalse(market['age_in_model'])
@@ -335,6 +392,17 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         miller = next(c for c in ant['comps'] if c['player_id']=='brandonmiller')
         self.assertEqual(miller['match_quality'],'supporting')
         self.assertLess(miller['weight'],.05)
+
+    def test_brunson_prior_auction_dominates_and_keeper_cost_is_not_a_comp(self):
+        brunson = next(v for v in self.result['values'] if v['player_id']=='jalenbrunson')
+        precise = [c for c in brunson['comps'] if c['match_quality']=='near_identical']
+        self.assertEqual([(c['player_id'],c['season']) for c in precise],[('jalenbrunson','2025-26')])
+        self.assertEqual(precise[0]['actual_price'],45)
+        self.assertEqual(brunson['keeper_cost'],46)
+        self.assertAlmostEqual(precise[0]['weight'],.95)
+        self.assertAlmostEqual(precise[0]['final_price_weight'],.855)
+        self.assertGreater(brunson['expected_auction_price'],43)
+        self.assertEqual(brunson['fair_value'],25.52)
 
     def test_injury_exceptions_removed_from_fit_and_every_comp_but_history_preserved(self):
         from survivor.preseason import load_preseason_evidence

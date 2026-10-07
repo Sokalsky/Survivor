@@ -1,5 +1,5 @@
 {
-  "model_version": "survivor-8cat-v7",
+  "model_version": "survivor-8cat-v8",
   "roster_size": 15,
   "minimum_bid": 1,
   "minimum_bid_basis": "Working assumption; lowest recorded auction purchase is $1. Formal rule not confirmed.",
@@ -76,7 +76,19 @@
       "largest_category_gap": 2,
       "age_gap": 10,
       "games_gap": 30
+    },
+    "near_identical": {
+      "category_rms": 0.25,
+      "production_gap": 1,
+      "largest_category_gap": 0.5,
+      "age_gap": 2,
+      "games_gap": 5,
+      "maximum_seasons_ago": 3,
+      "minimum_weight": 0.95,
+      "correction_share": 0.9,
+      "separation_ratio": 0.65,
+      "requires_known_games": true
     }
   },
-  "comp_influence_basis": "With at least one close forecast, blend 75% of the adjusted comp estimate with 25% regression base. Chosen from five predefined influence settings using 2018-19 through 2022-23 price errors only; later seasons are reused retrospective checks. Supporting-only matches keep 25% influence. See output/valuations/comp-influence-check.json."
+  "comp_influence_basis": "Near-identical forecasts get at least 95% of comp weight and a 90% final comp blend (at least 85.5% effective influence). Require known age and projected GP, strict stat/age/GP gaps, an auction within three seasons, and distance no more than 65% of the nearest alternative. These weights implement the requested dominance, not a statistically calibrated gain: only one retrospective auction qualifies and none in development. Without this tier, retain v7: close 80% minimum weight / 75% blend, supporting-only 25% blend. See output/valuations/near-identical-check.json and the rejected broad-rule audit."
 }

@@ -1,0 +1,845 @@
+{
+  "basis": "Initial broad rule, rejected after worse errors on both splits. Known projected GP and relative separation were not required.",
+  "qualification": {
+    "category_rms": 0.25,
+    "production_gap": 1,
+    "largest_category_gap": 0.5,
+    "age_gap": 2,
+    "games_gap": 5,
+    "maximum_seasons_ago": 3,
+    "separation_ratio": null,
+    "requires_known_games": false
+  },
+  "variants": {
+    "v7": null,
+    "near_90_90": [
+      0.9,
+      0.9
+    ],
+    "near_95_90": [
+      0.95,
+      0.9
+    ],
+    "near_95_95": [
+      0.95,
+      0.95
+    ]
+  },
+  "selected": "v7",
+  "development": {
+    "v7": {
+      "n": 610,
+      "mae": 4.6733365146744745,
+      "rmse": 6.215067902578787,
+      "bias": 0.00869850226707925
+    },
+    "near_90_90": {
+      "n": 610,
+      "mae": 4.763484468018818,
+      "rmse": 6.3301757830289755,
+      "bias": 0.08520785868122922
+    },
+    "near_95_90": {
+      "n": 610,
+      "mae": 4.7785512408763084,
+      "rmse": 6.351213240805434,
+      "bias": 0.09209022677830628
+    },
+    "near_95_95": {
+      "n": 610,
+      "mae": 4.793980244809416,
+      "rmse": 6.374072543347992,
+      "bias": 0.0982536686468006
+    }
+  },
+  "holdout": {
+    "v7": {
+      "n": 468,
+      "mae": 4.0885688947717815,
+      "rmse": 5.984176446203503,
+      "bias": 0.08448189343701107
+    },
+    "near_90_90": {
+      "n": 468,
+      "mae": 4.187465791937331,
+      "rmse": 6.090375073372889,
+      "bias": 0.10696216443790617
+    },
+    "near_95_90": {
+      "n": 468,
+      "mae": 4.197455267281622,
+      "rmse": 6.102338285388969,
+      "bias": 0.11057606469743718
+    },
+    "near_95_95": {
+      "n": 468,
+      "mae": 4.206623799844601,
+      "rmse": 6.113911080120181,
+      "bias": 0.10991321946747971
+    }
+  },
+  "development_matched": {
+    "v7": {
+      "n": 72,
+      "mae": 3.887549267710573,
+      "rmse": 5.041749609089261,
+      "bias": 1.1229335334889334
+    },
+    "near_90_90": {
+      "n": 72,
+      "mae": 4.651302761322375,
+      "rmse": 6.136253411563746,
+      "bias": 1.7711378031088152
+    },
+    "near_95_90": {
+      "n": 72,
+      "mae": 4.77895180914278,
+      "rmse": 6.317741751705629,
+      "bias": 1.8294467550423847
+    },
+    "near_95_95": {
+      "n": 72,
+      "mae": 4.9096697591316065,
+      "rmse": 6.509866002583545,
+      "bias": 1.8816648042060171
+    }
+  },
+  "holdout_matched": {
+    "v7": {
+      "n": 42,
+      "mae": 2.948719114442258,
+      "rmse": 3.6529367625349214,
+      "bias": 0.7848614339118427
+    },
+    "near_90_90": {
+      "n": 42,
+      "mae": 4.050713111429811,
+      "rmse": 5.256656881009155,
+      "bias": 1.035355882207531
+    },
+    "near_95_90": {
+      "n": 42,
+      "mae": 4.162024408123342,
+      "rmse": 5.409046445138714,
+      "bias": 1.0756250565280194
+    },
+    "near_95_95": {
+      "n": 42,
+      "mae": 4.264188056682242,
+      "rmse": 5.552757661487749,
+      "bias": 1.068239066822779
+    }
+  },
+  "holdout_expensive": {
+    "v7": {
+      "n": 61,
+      "mae": 9.242999906384242,
+      "rmse": 11.6519669560541,
+      "bias": -4.539804274437571
+    },
+    "near_90_90": {
+      "n": 61,
+      "mae": 9.242999906384242,
+      "rmse": 11.6519669560541,
+      "bias": -4.539804274437571
+    },
+    "near_95_90": {
+      "n": 61,
+      "mae": 9.242999906384242,
+      "rmse": 11.6519669560541,
+      "bias": -4.539804274437571
+    },
+    "near_95_95": {
+      "n": 61,
+      "mae": 9.242999906384242,
+      "rmse": 11.6519669560541,
+      "bias": -4.539804274437571
+    }
+  },
+  "affected_auctions": [
+    {
+      "season": "2018-19",
+      "player_id": "etwaunmoore",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2018-19",
+      "player_id": "jamychalgreen",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2018-19",
+      "player_id": "jeffteague",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2018-19",
+      "player_id": "jimmybutler",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2018-19",
+      "player_id": "klaythompson",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2018-19",
+      "player_id": "markieffmorris",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2018-19",
+      "player_id": "nikolamirotic",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2018-19",
+      "player_id": "ottoporterjr",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2018-19",
+      "player_id": "thaddeusyoung",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2018-19",
+      "player_id": "tyrekeevans",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2019-20",
+      "player_id": "bogdanbogdanovic",
+      "near_identical_count": 2,
+      "same_player_match": true
+    },
+    {
+      "season": "2019-20",
+      "player_id": "cjmccollum",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2019-20",
+      "player_id": "davisbertans",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2019-20",
+      "player_id": "djaugustin",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2019-20",
+      "player_id": "draymondgreen",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2019-20",
+      "player_id": "evanfournier",
+      "near_identical_count": 2,
+      "same_player_match": true
+    },
+    {
+      "season": "2019-20",
+      "player_id": "jamalmurray",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2019-20",
+      "player_id": "jimmybutler",
+      "near_identical_count": 2,
+      "same_player_match": true
+    },
+    {
+      "season": "2019-20",
+      "player_id": "kellyolynyk",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2019-20",
+      "player_id": "kembawalker",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2019-20",
+      "player_id": "kentbazemore",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2019-20",
+      "player_id": "mikeconley",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2019-20",
+      "player_id": "nicolasbatum",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2020-21",
+      "player_id": "aarongordon",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2020-21",
+      "player_id": "deandrejordan",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2020-21",
+      "player_id": "delonwright",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2020-21",
+      "player_id": "derrickjonesjr",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2020-21",
+      "player_id": "jakobpoeltl",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2020-21",
+      "player_id": "jjredick",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2020-21",
+      "player_id": "laurimarkkanen",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2020-21",
+      "player_id": "malikbeasley",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2020-21",
+      "player_id": "mikeconley",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2020-21",
+      "player_id": "ottoporterjr",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2020-21",
+      "player_id": "terrenceross",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2020-21",
+      "player_id": "terryrozier",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2021-22",
+      "player_id": "bojanbogdanovic",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2021-22",
+      "player_id": "buddyhield",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2021-22",
+      "player_id": "cameronjohnson",
+      "near_identical_count": 2,
+      "same_player_match": false
+    },
+    {
+      "season": "2021-22",
+      "player_id": "chumaokeke",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2021-22",
+      "player_id": "collinsexton",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2021-22",
+      "player_id": "dangelorussell",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2021-22",
+      "player_id": "danielgafford",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2021-22",
+      "player_id": "dannygreen",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2021-22",
+      "player_id": "devontegraham",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2021-22",
+      "player_id": "dorianfinneysmith",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2021-22",
+      "player_id": "duncanrobinson",
+      "near_identical_count": 2,
+      "same_player_match": true
+    },
+    {
+      "season": "2021-22",
+      "player_id": "evanfournier",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2021-22",
+      "player_id": "jeremylamb",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2021-22",
+      "player_id": "joeharris",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2021-22",
+      "player_id": "jonasvalanciunas",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2021-22",
+      "player_id": "keldonjohnson",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2021-22",
+      "player_id": "kevinhuerter",
+      "near_identical_count": 2,
+      "same_player_match": true
+    },
+    {
+      "season": "2021-22",
+      "player_id": "khrismiddleton",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2021-22",
+      "player_id": "mobamba",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2021-22",
+      "player_id": "terancemann",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2021-22",
+      "player_id": "timhardawayjr",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2021-22",
+      "player_id": "tylerherro",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2021-22",
+      "player_id": "willbarton",
+      "near_identical_count": 2,
+      "same_player_match": true
+    },
+    {
+      "season": "2022-23",
+      "player_id": "bogdanbogdanovic",
+      "near_identical_count": 2,
+      "same_player_match": true
+    },
+    {
+      "season": "2022-23",
+      "player_id": "brooklopez",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2022-23",
+      "player_id": "brucebrown",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2022-23",
+      "player_id": "deanthonymelton",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2022-23",
+      "player_id": "graysonallen",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2022-23",
+      "player_id": "harrisonbarnes",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2022-23",
+      "player_id": "kyrieirving",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2022-23",
+      "player_id": "laurimarkkanen",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2022-23",
+      "player_id": "markellefultz",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2022-23",
+      "player_id": "mikalbridges",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2022-23",
+      "player_id": "nikolavucevic",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2022-23",
+      "player_id": "normanpowell",
+      "near_identical_count": 2,
+      "same_player_match": true
+    },
+    {
+      "season": "2022-23",
+      "player_id": "patrickwilliams",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2022-23",
+      "player_id": "terryrozier",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2023-24",
+      "player_id": "alexcaruso",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2023-24",
+      "player_id": "andrewwiggins",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2023-24",
+      "player_id": "clintcapela",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2023-24",
+      "player_id": "deanthonymelton",
+      "near_identical_count": 2,
+      "same_player_match": true
+    },
+    {
+      "season": "2023-24",
+      "player_id": "herbertjones",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2023-24",
+      "player_id": "ivicazubac",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2023-24",
+      "player_id": "johncollins",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2023-24",
+      "player_id": "khrismiddleton",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2023-24",
+      "player_id": "mikeconley",
+      "near_identical_count": 2,
+      "same_player_match": true
+    },
+    {
+      "season": "2023-24",
+      "player_id": "mitchellrobinson",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2023-24",
+      "player_id": "oganunoby",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2023-24",
+      "player_id": "onyekaokongwu",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2023-24",
+      "player_id": "robertwilliamsiii",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2023-24",
+      "player_id": "sethcurry",
+      "near_identical_count": 2,
+      "same_player_match": true
+    },
+    {
+      "season": "2023-24",
+      "player_id": "spencerdinwiddie",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2024-25",
+      "player_id": "devinvassell",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2024-25",
+      "player_id": "duncanrobinson",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2024-25",
+      "player_id": "johncollins",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2024-25",
+      "player_id": "kentaviouscaldwellpope",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2024-25",
+      "player_id": "luguentzdort",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2024-25",
+      "player_id": "malcolmbrogdon",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2024-25",
+      "player_id": "markwilliams",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2024-25",
+      "player_id": "mikeconley",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2024-25",
+      "player_id": "treymurphyiii",
+      "near_identical_count": 2,
+      "same_player_match": false
+    },
+    {
+      "season": "2025-26",
+      "player_id": "alexcaruso",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2025-26",
+      "player_id": "bradleybeal",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2025-26",
+      "player_id": "cobywhite",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2025-26",
+      "player_id": "collinsexton",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2025-26",
+      "player_id": "deandrehunter",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2025-26",
+      "player_id": "demarderozan",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2025-26",
+      "player_id": "harrisonbarnes",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2025-26",
+      "player_id": "jabarismithjr",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2025-26",
+      "player_id": "jaimejaquezjr",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2025-26",
+      "player_id": "jaylenwells",
+      "near_identical_count": 1,
+      "same_player_match": false
+    },
+    {
+      "season": "2025-26",
+      "player_id": "keeganmurray",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2025-26",
+      "player_id": "keyontegeorge",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2025-26",
+      "player_id": "nickeilalexanderwalker",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2025-26",
+      "player_id": "nikolavucevic",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2025-26",
+      "player_id": "obitoppin",
+      "near_identical_count": 1,
+      "same_player_match": true
+    },
+    {
+      "season": "2025-26",
+      "player_id": "pjwashington",
+      "near_identical_count": 2,
+      "same_player_match": true
+    },
+    {
+      "season": "2025-26",
+      "player_id": "quentingrimes",
+      "near_identical_count": 2,
+      "same_player_match": false
+    },
+    {
+      "season": "2025-26",
+      "player_id": "taylorhendricks",
+      "near_identical_count": 1,
+      "same_player_match": true
+    }
+  ]
+}

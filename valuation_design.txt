@@ -1,4 +1,4 @@
-SURVIVOR VALUATION v7
+SURVIVOR VALUATION v8
 
 THREE DISTINCT OUTPUTS
 
@@ -161,7 +161,7 @@ Selected model: market_age_local. Selection uses development auctions from
 2018-19 through 2022-23 (610 purchases, MAE $4.6733), then stays fixed for the
 later three seasons. Each fitted model uses only earlier auctions. No target
 player's desired price is an input to comp selection. The v6 thresholds below
-are explicit working rules. v7 retains them and changes the final comp influence.
+are explicit working rules. v8 adds the narrower near-identical tier below.
 
 COMPARABLE QUALIFICATION
 
@@ -192,7 +192,27 @@ Prior-actual proxies can only be supporting evidence. Documented preseason
 exceptions remain excluded before fitting and comparison. No hard position rule:
 category shape determines statistical similarity, without invented eligibility.
 
-Keep up to 20 qualifying records, choosing close forecasts first, then by
+NEAR-IDENTICAL FORECAST TIER (v8)
+
+A forecast must first pass the close-match limits, then all of these:
+  category RMS <= 0.25; production gap <= 1; largest category gap <= 0.5;
+  known age difference <= 2 years; known projected GP difference <= 5;
+  an actual auction within the preceding three seasons.
+Both age and projected GP must be supplied. Unknown GP remains valid for ordinary
+close/supporting comparisons, but cannot establish a near-identical forecast.
+Prior-actual proxies never qualify. No player identity, keeper salary, actual bid
+or desired current price is used to decide similarity.
+
+The group must also stand out from other qualifying records: the farthest
+near-identical distance must be <= 65% of the nearest alternative's distance.
+If it fails, demote the entire group to ordinary close matches. This prevents
+a small cutoff difference between otherwise similar candidates from giving one
+record dominant influence. The separation check uses all qualifying history,
+not just the retained 20 records. If all eligible records are near-identical,
+there is no weaker group to dilute them. Multiple equally close records share
+weight; there is no forced single winner or arbitrary three-record cutoff.
+
+Keep up to 20 qualifying records, choosing near-identical, then close forecasts, then by
 smallest distance. Do not fill the list with disqualified players. Start with:
   raw weight = 0.9^(years since auction - 1) / (distance + 0.25)^3
   initial share = raw weight / sum(raw weights)
@@ -202,8 +222,16 @@ supporting evidence; twenty weak records cannot dilute them. More than three
 qualified forecasts are allowed. No supporting records means 100% goes to close
 forecasts. Recency cannot promote a supporting record into the close group.
 
+If near-identical forecasts exist, give them at least 95% of total comp weight,
+after the ordinary close-group allocation. Preserve relative weights within the
+near-identical group and within the remaining group. They therefore receive at
+least 95% * 90% = 85.5% of the final estimate. The other comps share at most 4.5%,
+and the regression base contributes 10%. Weights can exceed those minimums when
+natural inverse-distance concentration is already stronger.
+
   residual = normalized actual price - regression price for the comp profile
-  correction share = 0.75 if any close forecasts, otherwise 0.25
+  correction share = 0.90 if near-identical forecasts exist;
+                     otherwise 0.75 for close forecasts, or 0.25 for supporting only
   adjustment = correction share * sum(weight * residual) * current market scale
   final price = clamp(regression price + adjustment, $1, $200)
 No qualifying match means zero comp adjustment and the regression estimate alone.
@@ -223,26 +251,47 @@ and workbook. Sorting changes display order only.
 
 FINAL ESTIMATE INFLUENCE
 
-The final price is also expressible as a convex blend, before the $1-$200 clamp:
+Before the $1-$200 clamp:
   comp estimate = sum(comp weight * comp-implied price)
   final estimate = (1 - correction share) * base + correction share * comp estimate
-Comp share and influence on the final estimate are different quantities. A comp
-with 80% of the basket and a 75% basket blend has 60% final influence. v6 used
-50% for the basket, giving that same comp only 40% influence. Supporting-only
-players still use 25% of the comp estimate; no qualifying comps means 100% base.
-The dashboard now displays both shares and a cash/supply/profile price bridge.
+The dashboard labels near-identical versus ordinary close matches and displays
+both basket weight and final-price influence. Original auction bids, source
+projections, age, GP, category gaps and the price bridge remain available.
 
-Five influence choices were specified before comparing historical errors:
-  close group minimum 80%, final basket share 50% (v6), 75%, or 100%;
-  close group minimum 90%, final basket share 75% or 100%.
-Selection uses MAE on 610 development purchases, 2018-19 through 2022-23; each
-fit uses only earlier seasons. The winner is 80% / 75%, MAE $4.6733 versus v6's
-$4.6811. This development difference is small and does not establish statistical
-significance. Later years do not select the influence setting. Their 100% blend
-has lower MAE, but was not selected because it did worse on development years.
-The frozen candidate set, all split metrics, and selected setting are saved in
-output/valuations/comp-influence-check.json. Reproduce with:
+v7 chose an 80% close-group minimum and 75% basket blend from five settings using
+610 development purchases (2018-19 through 2022-23). The small MAE improvement
+from $4.6811 to $4.6733 was not statistical proof. That rule still applies where
+no near-identical forecasts qualify. Its audit is preserved and reproducible:
   python scripts/check_comp_influence.py
+
+The first v8 experiment used strict category/age limits but allowed unknown GP
+and did not require separation. Across 72 affected development purchases, its
+95% / 90% setting increased MAE from $3.89 to $4.78; across 42 affected later
+purchases it increased MAE from $2.95 to $4.16. That broad rule was rejected.
+Its unfavorable results remain in near-identical-broad-check.json; reproduce:
+  python scripts/check_near_identical_comps.py --broad
+
+The revised rule requires known projected GP and a clearly separated group.
+There are no qualifying development auctions because those forecast archives
+lack GP. Only one of the 468 later test auctions qualifies: DeMar DeRozan 2025-26.
+Its error changes from $4.31 to $2.77, changing overall MAE only from $4.0886 to
+$4.0853. This single example does not validate the new tier or its weights.
+The 95% / 90% weights implement the user's preference for dominant near-identical
+comps, not a winning calibration or a held-out selection. Report selected=null
+when development has no affected cases; never select later on the held-out years.
+The revised audit is exploratory after reviewing the failed broad rule, not an
+independent holdout. Both audits are preserved. Reproduce the deployed rule with:
+  python scripts/check_near_identical_comps.py
+
+Brunson example: his own 2025-26 auction has category RMS 0.1595, largest category
+gap 0.2756, production gap 0.7700, age difference 1 and projected GP difference 2.
+Combined distance is 0.2774 versus 0.5103 for the nearest alternative, satisfying
+the 65% separation limit. This record gets 95% of comp weight and 85.5% final
+influence, instead of 34.2% and 25.7% in v7. His expected price rises from $33.72
+to $45.39; his neutral value stays $25.52. His actual $45 auction bid is evidence;
+the current $46 keeper salary is not another auction observation or a price floor.
+The historical bid adjusted for current cash, supply and profile still implies
+$48.28. The remaining 10% base and 4.5% other comps explain the smaller final price.
 
 Ant example: 2020-21 Beal projects 27.61 PTS, 4.0 REB, 5.3 AST, 1.3 STL,
 0.4 BLK and 2.9 3PM, with unknown GP. He remains the one close forecast, receives
@@ -262,8 +311,8 @@ $38.63 regression base gives $43.51 (previously $41.88). His neutral value stays
 $41.62. A single historical winning bid is not a hard minimum price; uncertainty
 and the rest of the evidence still matter. These are results, not tuning targets.
 
-Recent retrospective checks: 468 purchases, MAE $4.09 versus v6's $4.17 rerun
-on the identical cohort. $30+ purchases have MAE $9.24 (previously $9.50) and
+Recent retrospective checks: 468 purchases, MAE $4.09, essentially unchanged
+from v7 on the identical cohort. $30+ purchases have MAE $9.24 (unchanged from v7) and
 bias -$4.54; stars remain underpriced on average. Nominal 80% bands cover 82.3%.
 Bands use earlier normalized absolute errors by price tier, falling back to all
 errors when samples are sparse. These seasons have been reviewed before; they

@@ -1,0 +1,169 @@
+{
+  "basis": "Revised qualification after the broad-rule audit: require known projected games and clear separation. These checks are exploratory, not independent validation. Historical development archives lack GP, so a zero matched development sample cannot select influence weights.",
+  "qualification": {
+    "category_rms": 0.25,
+    "production_gap": 1,
+    "largest_category_gap": 0.5,
+    "age_gap": 2,
+    "games_gap": 5,
+    "maximum_seasons_ago": 3,
+    "separation_ratio": 0.65,
+    "requires_known_games": true
+  },
+  "variants": {
+    "v7": null,
+    "near_90_90": [
+      0.9,
+      0.9
+    ],
+    "near_95_90": [
+      0.95,
+      0.9
+    ],
+    "near_95_95": [
+      0.95,
+      0.95
+    ]
+  },
+  "selected": null,
+  "development": {
+    "v7": {
+      "n": 610,
+      "mae": 4.6733365146744745,
+      "rmse": 6.215067902578787,
+      "bias": 0.00869850226707925
+    },
+    "near_90_90": {
+      "n": 610,
+      "mae": 4.6733365146744745,
+      "rmse": 6.215067902578787,
+      "bias": 0.00869850226707925
+    },
+    "near_95_90": {
+      "n": 610,
+      "mae": 4.6733365146744745,
+      "rmse": 6.215067902578787,
+      "bias": 0.00869850226707925
+    },
+    "near_95_95": {
+      "n": 610,
+      "mae": 4.6733365146744745,
+      "rmse": 6.215067902578787,
+      "bias": 0.00869850226707925
+    }
+  },
+  "holdout": {
+    "v7": {
+      "n": 468,
+      "mae": 4.0885688947717815,
+      "rmse": 5.984176446203503,
+      "bias": 0.08448189343701107
+    },
+    "near_90_90": {
+      "n": 468,
+      "mae": 4.084128639744528,
+      "rmse": 5.9817491948830375,
+      "bias": 0.09845867822427656
+    },
+    "near_95_90": {
+      "n": 468,
+      "mae": 4.085288607825952,
+      "rmse": 5.982234547846556,
+      "bias": 0.09961864630570051
+    },
+    "near_95_95": {
+      "n": 468,
+      "mae": 4.086397093205899,
+      "rmse": 5.982796672815085,
+      "bias": 0.10072713168564766
+    }
+  },
+  "development_matched": {
+    "v7": {
+      "n": 0,
+      "mae": null,
+      "rmse": null,
+      "bias": null
+    },
+    "near_90_90": {
+      "n": 0,
+      "mae": null,
+      "rmse": null,
+      "bias": null
+    },
+    "near_95_90": {
+      "n": 0,
+      "mae": null,
+      "rmse": null,
+      "bias": null
+    },
+    "near_95_95": {
+      "n": 0,
+      "mae": null,
+      "rmse": null,
+      "bias": null
+    }
+  },
+  "holdout_matched": {
+    "v7": {
+      "n": 1,
+      "mae": 4.309587316597485,
+      "rmse": 4.309587316597485,
+      "bias": -4.309587316597485
+    },
+    "near_90_90": {
+      "n": 1,
+      "mae": 2.231547963842768,
+      "rmse": 2.231547963842768,
+      "bias": 2.231547963842768
+    },
+    "near_95_90": {
+      "n": 1,
+      "mae": 2.7744130259491797,
+      "rmse": 2.7744130259491797,
+      "bias": 2.7744130259491797
+    },
+    "near_95_95": {
+      "n": 1,
+      "mae": 3.293184183764442,
+      "rmse": 3.293184183764442,
+      "bias": 3.293184183764442
+    }
+  },
+  "holdout_expensive": {
+    "v7": {
+      "n": 61,
+      "mae": 9.242999906384242,
+      "rmse": 11.6519669560541,
+      "bias": -4.539804274437571
+    },
+    "near_90_90": {
+      "n": 61,
+      "mae": 9.242999906384242,
+      "rmse": 11.6519669560541,
+      "bias": -4.539804274437571
+    },
+    "near_95_90": {
+      "n": 61,
+      "mae": 9.242999906384242,
+      "rmse": 11.6519669560541,
+      "bias": -4.539804274437571
+    },
+    "near_95_95": {
+      "n": 61,
+      "mae": 9.242999906384242,
+      "rmse": 11.6519669560541,
+      "bias": -4.539804274437571
+    }
+  },
+  "deployment_choice": "near_95_90",
+  "deployment_basis": "Working weights implementing the requested dominant influence of exceptionally close matches; not chosen by held-out errors.",
+  "affected_auctions": [
+    {
+      "season": "2025-26",
+      "player_id": "demarderozan",
+      "near_identical_count": 1,
+      "same_player_match": true
+    }
+  ]
+}

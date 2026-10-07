@@ -1,10 +1,10 @@
 {
-  "run_id": "23935fbba29b94f8249a800233bec05a1fa55ed41d6747812986d2b78aa55cf7",
+  "run_id": "0d93ef4640e150b450dcdd278e888330face5570459ce1f2c3d945a7e63a51d7",
   "projection_dataset_id": "8512725602d60917be54e9dac88175045afbe9157138db58b85e6affc9379fba",
   "season": "2026-27",
-  "model_version": "survivor-8cat-v7",
+  "model_version": "survivor-8cat-v8",
   "settings": {
-    "model_version": "survivor-8cat-v7",
+    "model_version": "survivor-8cat-v8",
     "roster_size": 15,
     "minimum_bid": 1,
     "minimum_bid_basis": "Working assumption; lowest recorded auction purchase is $1. Formal rule not confirmed.",
@@ -81,9 +81,21 @@
         "largest_category_gap": 2,
         "age_gap": 10,
         "games_gap": 30
+      },
+      "near_identical": {
+        "category_rms": 0.25,
+        "production_gap": 1,
+        "largest_category_gap": 0.5,
+        "age_gap": 2,
+        "games_gap": 5,
+        "maximum_seasons_ago": 3,
+        "minimum_weight": 0.95,
+        "correction_share": 0.9,
+        "separation_ratio": 0.65,
+        "requires_known_games": true
       }
     },
-    "comp_influence_basis": "With at least one close forecast, blend 75% of the adjusted comp estimate with 25% regression base. Chosen from five predefined influence settings using 2018-19 through 2022-23 price errors only; later seasons are reused retrospective checks. Supporting-only matches keep 25% influence. See output/valuations/comp-influence-check.json.",
+    "comp_influence_basis": "Near-identical forecasts get at least 95% of comp weight and a 90% final comp blend (at least 85.5% effective influence). Require known age and projected GP, strict stat/age/GP gaps, an auction within three seasons, and distance no more than 65% of the nearest alternative. These weights implement the requested dominance, not a statistically calibrated gain: only one retrospective auction qualifies and none in development. Without this tier, retain v7: close 80% minimum weight / 75% blend, supporting-only 25% blend. See output/valuations/near-identical-check.json and the rejected broad-rule audit.",
     "league_rules": {
       "teams": 15,
       "keepers_per_team": 2,
@@ -293,39 +305,39 @@
       },
       "age_comps": {
         "n": 468,
-        "mae": 4.832182113029515,
-        "rmse": 6.306559435956288,
-        "bias": 1.7586867023893697
+        "mae": 4.833339219830799,
+        "rmse": 6.307356881813391,
+        "bias": 1.777261831977241
       },
       "age_blend": {
         "n": 468,
-        "mae": 4.383633792223636,
-        "rmse": 5.9629370386075475,
-        "bias": 0.7999639276970667
+        "mae": 4.3743462274297,
+        "rmse": 5.957506032519787,
+        "bias": 0.8092514924910024
       },
       "age_uniform_comps": {
         "n": 468,
-        "mae": 4.850127422176592,
-        "rmse": 6.311325407427871,
-        "bias": 1.6407173083263225
+        "mae": 4.848217690461809,
+        "rmse": 6.309788429795182,
+        "bias": 1.6624216699995096
       },
       "age_weighted_comps": {
         "n": 468,
-        "mae": 4.844861456773273,
-        "rmse": 6.332694387297071,
-        "bias": 1.8196877449760989
+        "mae": 4.848963876791982,
+        "rmse": 6.33505919475388,
+        "bias": 1.8352907919889787
       },
       "age_weighted_blend": {
         "n": 468,
-        "mae": 4.363977006159752,
-        "rmse": 6.075973584277974,
-        "bias": 0.40588774185956855
+        "mae": 4.360076244406532,
+        "rmse": 6.072640034301081,
+        "bias": 0.4097885036127885
       },
       "age_local": {
         "n": 468,
-        "mae": 4.085459727500216,
-        "rmse": 5.9528692191099255,
-        "bias": -0.04813385027449797
+        "mae": 4.079899016300549,
+        "rmse": 5.949516387335238,
+        "bias": -0.032799351450809124
       },
       "market_local": {
         "n": 468,
@@ -335,24 +347,24 @@
       },
       "market_age_local": {
         "n": 468,
-        "mae": 4.0885688947717815,
-        "rmse": 5.984176446203503,
-        "bias": 0.08448189343701107
+        "mae": 4.085288607825952,
+        "rmse": 5.982234547846556,
+        "bias": 0.09961864630570051
       }
     },
     "previous_comp_method": {
-      "model_version": "survivor-8cat-v6",
+      "model_version": "survivor-8cat-v7",
       "development": {
         "n": 610,
-        "mae": 4.681098498900008,
-        "rmse": 6.227429382469071,
-        "bias": -0.04270852097133692
+        "mae": 4.6733365146744745,
+        "rmse": 6.215067902578787,
+        "bias": 0.00869850226707925
       },
       "holdout": {
         "n": 468,
-        "mae": 4.1728926634708765,
-        "rmse": 6.022257322510556,
-        "bias": 0.13779219856458996
+        "mae": 4.0885688947717815,
+        "rmse": 5.984176446203503,
+        "bias": 0.08448189343701107
       }
     },
     "holdout_by_actual_price_tier": {
@@ -364,9 +376,9 @@
       },
       "10_to_30": {
         "n": 160,
-        "mae": 4.095696298111198,
-        "rmse": 5.323154981591475,
-        "bias": -1.1148083110631692
+        "mae": 4.086101458794646,
+        "rmse": 5.316766791296851,
+        "bias": -1.0705333089222526
       },
       "30_plus": {
         "n": 61,
@@ -588,9 +600,9 @@
         },
         "10_to_30": {
           "n": 160,
-          "mae": 4.282543898760319,
-          "rmse": 5.635398516244216,
-          "bias": 0.35942028907130896
+          "mae": 4.285928436154076,
+          "rmse": 5.63800840405259,
+          "bias": 0.4137525431158325
         },
         "30_plus": {
           "n": 61,
@@ -608,9 +620,9 @@
         },
         "10_to_30": {
           "n": 160,
-          "mae": 3.882244195597694,
-          "rmse": 5.125032864634004,
-          "bias": -0.5146277262444978
+          "mae": 3.8550780685754322,
+          "rmse": 5.106524979556155,
+          "bias": -0.4874615992222361
         },
         "30_plus": {
           "n": 61,
@@ -628,9 +640,9 @@
         },
         "10_to_30": {
           "n": 160,
-          "mae": 4.200170667877302,
-          "rmse": 5.520581662835257,
-          "bias": 0.16487480688537964
+          "mae": 4.194584702611561,
+          "rmse": 5.515440296545293,
+          "bias": 0.22836006477945173
         },
         "30_plus": {
           "n": 61,
@@ -648,9 +660,9 @@
         },
         "10_to_30": {
           "n": 160,
-          "mae": 4.356699143252854,
-          "rmse": 5.739971245064819,
-          "bias": 0.4635442548097993
+          "mae": 4.3686987218075775,
+          "rmse": 5.747598935965056,
+          "bias": 0.5091831673224729
         },
         "30_plus": {
           "n": 61,
@@ -668,9 +680,9 @@
         },
         "10_to_30": {
           "n": 160,
-          "mae": 3.9060693246677745,
-          "rmse": 5.1145044742818415,
-          "bias": -0.9255915854400504
+          "mae": 3.894659596539606,
+          "rmse": 5.102910868935987,
+          "bias": -0.914181857311882
         },
         "30_plus": {
           "n": 61,
@@ -688,9 +700,9 @@
         },
         "10_to_30": {
           "n": 160,
-          "mae": 4.104016461128933,
-          "rmse": 5.33929607344728,
-          "bias": -1.272096477350322
+          "mae": 4.087751380869906,
+          "rmse": 5.328353917694572,
+          "bias": -1.2272430682910322
         },
         "30_plus": {
           "n": 61,
@@ -728,9 +740,9 @@
         },
         "10_to_30": {
           "n": 160,
-          "mae": 4.095696298111198,
-          "rmse": 5.323154981591475,
-          "bias": -1.1148083110631692
+          "mae": 4.086101458794646,
+          "rmse": 5.316766791296851,
+          "bias": -1.0705333089222526
         },
         "30_plus": {
           "n": 61,
@@ -785,9 +797,9 @@
       },
       "2025-26": {
         "n": 163,
-        "mae": 4.020426813418991,
-        "rmse": 5.677147733716562,
-        "bias": -0.025991686490941655
+        "mae": 4.0110085662371,
+        "rmse": 5.6712685991919285,
+        "bias": 0.017468438309958128
       }
     },
     "interpretation": "Seasons with archived forecasts use their preseason stat profiles; other seasons use prior-year actuals as explicit proxies. Published per-game-only archives have unknown projected GP. The 2025-26 user workbook has unverified provider/date. Missing or invalid forecasts and documented availability exceptions are excluded, changing the evaluation cohort. Exact league auction dates are unknown. Current estimates are not independently validated.",

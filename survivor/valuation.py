@@ -225,7 +225,7 @@ class PriceModel:
     def raw_prediction(self, profile):
         return sum(a*b for a,b in zip(self.beta,self.standardize(feature_vector(profile,self.full,self.age))))
 
-    def match(self, profile, other):
+    def match(self, profile, other, *, season=None):
         """Compare both stat lines on the target's scale, without era/age dilution."""
         rules = self.settings['comp_rules']
         ref = profile.get('comparison_reference')
@@ -254,14 +254,37 @@ class PriceModel:
         # Prior actuals are useful secondary evidence, never a close preseason forecast.
         strong = qualifies(rules['strong']) and other.get('outlook_basis')!='prior_actuals_proxy'
         quality = 'strong' if strong else 'supporting' if qualifies(rules['supporting']) else 'excluded'
+        precise = rules.get('near_identical')
+        if (strong and precise and age is not None and (games is not None or not precise.get('requires_known_games',True))
+                and other.get('outlook_basis')=='projection'
+                and season is not None and 1<=self.target_year-int(season[:4])<=precise['maximum_seasons_ago']
+                and qualifies(precise)):
+            quality = 'near_identical'
         return {'distance':distance,'match_quality':quality,'category_rms':rms,'production_gap':tier,
                 'largest_category_gap':maximum,'age_gap':age,'games_gap':games}
 
+    def qualified_matches(self, profile):
+        # Cache by values, not object identity: a changed GP or setting must invalidate it.
+        rules = self.settings['comp_rules']
+        key = canonical((profile,rules))
+        if getattr(self,'_match_key',None)==key:
+            return self._matches
+        matches = [(self.match(profile,o['profile'],season=o['season']),i) for i,o in enumerate(self.observations)]
+        precise = [m for m,_ in matches if m['match_quality']=='near_identical']
+        other = [m for m,_ in matches if m['match_quality'] in ('strong','supporting')]
+        separation = (rules.get('near_identical') or {}).get('separation_ratio')
+        if precise and other and separation is not None and max(m['distance'] for m in precise) > separation*min(m['distance'] for m in other):
+            for match in precise:
+                match['match_quality'] = 'strong'
+        self._match_key,self._matches = key,matches
+        return matches
+
     def nearest(self, profile, count=None):
         if self.settings.get('comp_rules'):
-            matches = [(self.match(profile,o['profile']),i) for i,o in enumerate(self.observations)]
+            matches = self.qualified_matches(profile)
             eligible = [(m,i) for m,i in matches if m['match_quality']!='excluded']
-            eligible.sort(key=lambda row:(row[0]['match_quality']!='strong',row[0]['distance'],row[1]))
+            order = {'near_identical':0,'strong':1,'supporting':2}
+            eligible.sort(key=lambda row:(order[row[0]['match_quality']],row[0]['distance'],row[1]))
             return [(m['distance'],i) for m,i in eligible[:count or self.settings['neighbors']]]
         z = [profile['z'][cat] for cat in CATEGORIES]
         distances = []
@@ -289,13 +312,22 @@ class PriceModel:
         result = [{'weight':w/total,'distance':distance,'index':i} for w,distance,i in weights]
         rules = self.settings.get('comp_rules')
         if rules:
+            matches = {i:match for match,i in self.qualified_matches(profile)}
             for row in result:
-                row.update(self.match(profile,self.observations[row['index']]['profile']))
-            strong = [r for r in result if r['match_quality']=='strong']
+                row.update(matches[row['index']])
+            strong = [r for r in result if r['match_quality'] in ('strong','near_identical')]
             supporting = [r for r in result if r['match_quality']=='supporting']
             if strong and supporting:
                 share = max(rules['strong_minimum_weight'],sum(r['weight'] for r in strong))
                 for group,allocation in ((strong,share),(supporting,1-share)):
+                    subtotal = sum(r['weight'] for r in group)
+                    for row in group:
+                        row['weight'] *= allocation/subtotal
+            precise = [r for r in result if r['match_quality']=='near_identical']
+            other = [r for r in result if r['match_quality']!='near_identical']
+            if precise and other:
+                share = max(rules['near_identical']['minimum_weight'],sum(r['weight'] for r in precise))
+                for group,allocation in ((precise,share),(other,1-share)):
                     subtotal = sum(r['weight'] for r in group)
                     for row in group:
                         row['weight'] *= allocation/subtotal
@@ -304,11 +336,15 @@ class PriceModel:
     def local_components(self, profile, weighted=None):
         weighted = self.weighted_neighbors(profile) if weighted is None else weighted
         share = self.settings['comp_correction_share']
-        if self.settings.get('comp_rules') and not any(w['match_quality']=='strong' for w in weighted):
+        precise_count = sum(w.get('match_quality')=='near_identical' for w in weighted)
+        strong_count = sum(w.get('match_quality') in ('strong','near_identical') for w in weighted)
+        if precise_count:
+            share = self.settings['comp_rules']['near_identical']['correction_share']
+        elif self.settings.get('comp_rules') and not strong_count:
             share = self.settings['comp_rules']['supporting_correction_share'] if weighted else 0
         correction = share*sum(w['weight']*self.residuals[w['index']] for w in weighted)
         return {'base':self.raw_prediction(profile),'correction':correction,'neighbors':weighted,
-                'correction_share':share,'strong_count':sum(w.get('match_quality')=='strong' for w in weighted),
+                'correction_share':share,'strong_count':strong_count,'near_identical_count':precise_count,
                 'effective_comps':1/sum(w['weight']**2 for w in weighted) if weighted else 0}
 
     def predictions(self, profile):
@@ -451,7 +487,7 @@ def evaluate(observations,settings):
     candidates = ('score_curve',)+plain_candidates+tuple('age_'+name for name in plain_candidates if name!='mean')+('market_local','market_age_local')
     results = {name:[] for name in candidates}
     previous_results = []
-    previous_settings = {**settings,'comp_correction_share':0.5}
+    previous_settings = {**settings,'comp_rules':{k:v for k,v in settings['comp_rules'].items() if k!='near_identical'}}
     seasons = sorted({o['season'] for o in observations})
     selected = None
     for season in seasons:
@@ -506,7 +542,7 @@ def evaluate(observations,settings):
         radius = error_radius(earlier,record['predicted'],record['scale'],settings['interval_coverage'])
         covered += abs(record['predicted']-record['actual'])<=radius
     return selected, {'selected_model':selected,'development':development,'holdout':holdout,
-                     'previous_comp_method':{'model_version':'survivor-8cat-v6',
+                     'previous_comp_method':{'model_version':'survivor-8cat-v7',
                                              'development':metrics([r for r in previous_results if r['season']<settings['holdout_first_season']]),
                                              'holdout':metrics([r for r in previous_results if r['season']>=settings['holdout_first_season']])},
                      'holdout_by_actual_price_tier':{tier:metrics([r for r in selected_holdout if price_tier(r['actual'])==tier]) for tier in ('under_10','10_to_30','30_plus')},
@@ -648,7 +684,9 @@ def build_valuations(db, season, settings=None):
                                                     'effective_comps':components['effective_comps'],
                                                     'comp_count':len(nearest),'weight_power':power,
                                                     'strong_comp_count':components['strong_count'],
-                                                    'strong_comp_weight':sum(w['weight'] for w in nearest if w.get('match_quality')=='strong'),
+                                                    'strong_comp_weight':sum(w['weight'] for w in nearest if w.get('match_quality') in ('strong','near_identical')),
+                                                    'near_identical_comp_count':components['near_identical_count'],
+                                                    'near_identical_comp_weight':sum(w['weight'] for w in nearest if w.get('match_quality')=='near_identical'),
                                                     'comparison_stats':profile['stats'],
                                                     'comparison_player':p['player'],'comparison_games':p['games'],
                                                     'distance_offset':settings['comp_distance_offset'],

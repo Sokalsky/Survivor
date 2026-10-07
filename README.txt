@@ -232,18 +232,24 @@ The drawer compares the target with the three highest-weight stat lines and show
 comp-implied prices adjusted for profile and auction context. See the explicit
 limits, weights and adjustment formulas in valuation_design.txt.
 
-Development selection still favors market_age_local. Current dollars use actual
-keeper budgets and available-talent normalization; neutral dollars retain the
-separate $3,000 no-keeper allocation. With close forecasts, v7 blends 75% of the
-adjusted comp estimate with 25% base; an 80% comp share therefore has 60% final
-influence. The drawer shows both shares and cash/supply/profile adjustments.
-Five predefined influence settings were compared on development years only:
+v8 adds a near-identical tier: very small stat gaps, known age within two years,
+known projected GP within five games, an auction within three seasons, and a
+group at least 35% closer than the nearest alternative. Those matches receive
+at least 95% of comp weight and a 90% final blend: 85.5% effective influence.
+This is based on forecast similarity, not player name or keeper salary. Brunson's
+own recent auction qualifies; his expected price moves from $33.72 to $45.39,
+while neutral value stays $25.52. Ordinary close matches retain v7 weights.
+
+The first broad version worsened historical errors and was rejected. The stricter
+rule has no qualifying development records (missing archived GP) and only one
+qualifying retrospective test auction. Its weights implement the requested
+stronger influence; they are not statistically calibrated. Overall retrospective
+MAE remains about $4.09. See both retained audits and valuation_design.txt:
+  python scripts/check_near_identical_comps.py
+  python scripts/check_near_identical_comps.py --broad
+The earlier v7 comparison remains reproducible:
   python scripts/check_comp_influence.py
-Results: output/valuations/comp-influence-check.json. Development MAE improves
-slightly from $4.6811 to $4.6733. Recent retrospective MAE is $4.09 across
-468 purchases, versus v6's $4.17 on the identical cohort. $30+ purchase
-error is $9.24, previously $9.50; stars remain underpriced on average. These are
-reused checks, not independent holdouts. Current projections remain unchanged.
+No current projections or neutral values were altered.
 
 The supplied workbook contains 200 forecast rows and is stored losslessly as
 original cells plus normalized rates in output/stats/preseason-2025-26.json.
@@ -301,7 +307,7 @@ On deployment, the normal startup computes and saves the run transactionally.
 Identical inputs produce the same run ID; old runs remain available. Public web
 requests cannot write valuations. No manual Railway import is needed. Completion
 is reported in startup logs as:
-  Valuations ready: 2026-27 / 348 players / survivor-8cat-v7
+  Valuations ready: 2026-27 / 348 players / survivor-8cat-v8
 Development checks do not verify that Railway has deployed the update.
 Age context can also be rebuilt offline from verified HTML caches with:
   python -m survivor.market_context
