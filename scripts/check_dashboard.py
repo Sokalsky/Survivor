@@ -59,6 +59,7 @@ def main():
         expect(page.locator('#results-count')).to_have_text('17')
         page.locator('[data-view="notes"]').click()
         expect(page.locator('.issue-list .issue-row')).to_have_count(27)
+        expect(page.locator('#historical-stats-status')).to_contain_text('12 seasons / 6,460 player-season records')
         page.locator('[data-view="keepers"]').click()
         expect(page.locator('.keeper-card')).to_have_count(15)
         expect(page.locator('.keeper-player')).to_have_count(30)

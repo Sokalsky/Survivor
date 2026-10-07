@@ -5,5 +5,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY survivor ./survivor
 COPY config ./config
+COPY output/stats/manifest.json ./output/stats/manifest.json
+COPY output/stats/actuals-*.csv ./output/stats/
 COPY ["Survivor keeper log 2025.xlsx", "./"]
 CMD ["python", "-m", "survivor.dashboard"]

@@ -18,6 +18,7 @@ from werkzeug.exceptions import BadRequest, HTTPException
 from survivor.catalog import build_catalog, name_key, rows
 from survivor.database import Postgres, preview_database, railway_database
 from survivor.keepers import annotate_availability, keeper_summary, sync_bundled_keepers
+from survivor.bundled_stats import sync_bundled_stats
 
 ROOT = Path(__file__).resolve().parents[1]
 RULES = json.loads((ROOT / 'config/league.json').read_text(encoding='utf-8'))
@@ -235,12 +236,14 @@ def main():
         db = preview_database(threaded=True)
         build_catalog(ROOT / 'Survivor keeper log 2025.xlsx', db)
         sync_bundled_keepers(db)
+        sync_bundled_stats(db)
         app = create_app(db)
     else:
         # Apply only additive schema/index changes once at startup. History is untouched.
         db = railway_database()
         try:
             sync_bundled_keepers(db)
+            sync_bundled_stats(db)
         finally:
             db.close()
         app = create_app()

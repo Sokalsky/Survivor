@@ -15,6 +15,8 @@ READY NOW
   valuations, opening/final rosters, data notes and filtered CSV downloads.
 - Dockerfile and Railway configuration for the persistent dashboard web service.
 - Confirmed 2026-27 keepers, team budgets and draft availability filters.
+- 6,460 historical NBA player-season records (2014-15 through 2025-26), imported
+  automatically from the bundled CSV snapshot when the dashboard starts.
 
 RAILWAY SETUP
 
@@ -40,6 +42,11 @@ Startup syncs config/keepers/*.json into draft_seasons and keeper_selections.
 Identical lists are no-ops; corrected complete lists replace only that season's
 keeper selections in one transaction. Historical prices and saved model runs
 remain untouched. No separate import command is needed after deploying updates.
+Startup also imports the verified output/stats/actuals-*.csv snapshot, recording
+each season's source and retrieval date. Already imported datasets are skipped;
+new snapshots are stored as separate versions. It does not fetch websites during
+startup. In Data notes, the historical-stats banner reports the seasons and rows
+actually loaded from the database (latest dataset per season).
 Projection and valuation pages display stored datasets and model runs; when none
 are loaded they show explicit empty states. No forecast or price is invented.
 The public website provides browsing and CSV downloads, with no write/import API.
@@ -60,10 +67,9 @@ implemented explicitly, without silently replacing existing history. Changes to
 name aliases likewise need explicit reconciliation after the first cloud import.
 Imports use transactions; interrupted history imports roll back together.
 
-Optional Railway CLI workflow after login and choosing the target project:
-  railway.cmd link
-  railway.cmd up --service <dashboard-service>
-These commands upload/deploy to the service selected in your Railway project.
+Updates are pushed to GitHub. Railway deploys the connected repository and runs
+the startup imports using its existing DATABASE_URL. Direct Railway access from
+the development workspace is not part of this workflow.
 
 PREVIEW AND TESTS
 
@@ -108,15 +114,26 @@ and attempts EMPTY. Projections are labeled INCOMPLETE and cannot pass the curre
 statistics importer until shooting volume is supplied from a verified source or
 an explicitly labeled model. No paid projection source or fabricated stats are used.
 
-The script also produces validated actuals CSVs and a manifest. To run the same
-job in Railway and load historical stats into Postgres:
-  python -m survivor.stats_workbook --import-history
+The script also produces validated actuals CSVs and a manifest with source and
+CSV integrity hashes. These files are included in the Docker image. On the next
+deployment, the normal dashboard start command automatically imports the bundled
+historical seasons into Postgres. No separate Railway job or command is needed.
+Restarting with identical files does not duplicate rows. All snapshot files are
+checked before writing; each season imports in one transaction, so interrupted
+deployments can resume. Historical auction prices and keepers remain untouched.
+The deployment log confirms completion with:
+  Historical stats ready: 12 seasons / 6,460 rows
+Data notes on the website also displays the loaded count. Live import completion
+must be confirmed there or in Railway logs; local tests do not verify Railway.
 
-Run it as a separate Railway job with the existing DATABASE_URL reference; keep
-the dashboard service start command unchanged. --history-only skips projections.
-All imports use the existing importer and are idempotent for the same data and
-snapshot date. The Excel file is an export, not a second database. Files generated
-inside Railway containers are ephemeral; imported Postgres records persist.
+To validate the bundled snapshot without any database connection:
+  python -m survivor.bundled_stats --validate-only
+To refresh future data, rerun stats_workbook, review the changed CSVs and manifest,
+then commit and push them. The Excel file is an export; editing it alone does not
+update Postgres. This is an import on deployment, not a scheduled data refresh.
+The incomplete projections are excluded from both the image and startup import.
+--history-only skips collecting projections. The optional --import-history flag
+remains available for a separate in-Railway collection job, but is not required.
 
 Start with output/stats_import_template.csv. Supply one row per NBA player;
 combine traded-player team splits before import. All *_pg columns are per game.
@@ -133,8 +150,9 @@ publication/snapshot date, source and season. Optional --coverage, --source-url
 and --notes retain provenance. A new dated release is a separate dataset.
 An identical file/source/date combination does not create duplicates.
 --validate-only checks CSV rows without a database connection.
-Stat files must be supplied to the worker separately; no projection source has
-been purchased, scraped, invented or bundled with this project.
+For manual projection imports, supply the complete CSV to the worker separately.
+The free partial projection snapshot in output/stats/ is for review only. No paid
+data has been purchased and no projected shooting volumes have been invented.
 
 CONFIRMED 2026-27 KEEPERS
 

@@ -127,6 +127,10 @@ Basketball Reference regular-season totals for 2014-15 through 2025-26 and the
 public FantasyPros 2026-27 projection table into Excel and CSVs. The preceding
 season supplies context for the first 2015-16 auction. Snapshot dates, raw-source
 hashes, source player IDs and archive name matches are retained for review.
+The dashboard now imports the bundled historical CSVs on startup, without
+fetching external data. Repeated startups skip identical datasets. Data notes
+shows the imported season and row counts; live completion still needs to be
+confirmed on the website or in Railway's deployment logs.
 
 FantasyPros' public projection table omits FGM/FGA/FTM/FTA. Those columns remain
 empty and the projection CSV is labeled incomplete. These records cannot enter
@@ -134,9 +138,9 @@ the eight-category valuation model until shooting volume is obtained or estimate
 by an explicitly labeled, tested model. Public free access does not imply that
 every field needed by the valuation model is available.
 
-Not yet completed: full provider identity reconciliation, deployment of the
-historical-stat import to Railway, complete preseason projection ingestion,
-trained valuation model or current player price forecasts.
+Not yet completed: full provider identity reconciliation, live verification of
+the historical-stat import, complete preseason projection ingestion, trained
+valuation model or current player price forecasts.
 https://www.basketball-reference.com/leagues/NBA_2026_totals.html
 https://www.fantasypros.com/nba/projections/overall.php
 

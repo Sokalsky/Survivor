@@ -10,7 +10,7 @@ import math
 from pathlib import Path
 import re
 
-from survivor.catalog import STAT_HEADERS, load_aliases, now, register_player, resolve_name
+from survivor.catalog import STAT_HEADERS, load_aliases, now, resolve_name
 from survivor.database import railway_database
 
 
@@ -69,11 +69,18 @@ def import_stats(db, path, *, kind, season, source_name, as_of_date, coverage='f
             return dataset_id
         db.execute('INSERT INTO stat_datasets VALUES (?,?,?,?,?,?,?,?,?,?)',
                    (dataset_id, kind, season, source_name, source_url, as_of_date, now(), digest, coverage, notes))
+        players, names, statistics = [], [], []
         for row in records:
-            player_id = register_player(db, row['player'], aliases)
+            player_id, canonical, method = resolve_name(row['player'], aliases)
+            players.append((player_id, canonical, 'local_name_identity; NBA ID not yet matched'))
+            names.append((row['player'], player_id, method))
             values = [dataset_id, player_id, row['player'], row['nba_team'], row['positions']]
             values.extend(row[field] for field in STAT_HEADERS[3:])
-            db.execute('INSERT INTO player_stats VALUES (' + ','.join('?' for _ in values) + ')', values)
+            statistics.append(values)
+        # Batch database writes to keep startup fast over Railway's private network.
+        db.executemany('INSERT INTO players VALUES (?,?,NULL,?) ON CONFLICT(player_id) DO NOTHING', players)
+        db.executemany('INSERT INTO player_aliases VALUES (?,?,?) ON CONFLICT(raw_name) DO NOTHING', names)
+        db.executemany('INSERT INTO player_stats VALUES (' + ','.join('?' for _ in statistics[0]) + ')', statistics)
     return dataset_id
 
 

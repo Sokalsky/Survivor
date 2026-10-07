@@ -23,6 +23,7 @@ from survivor.catalog import ROOT, STAT_HEADERS, build_catalog, load_aliases, re
 from survivor.database import preview_database, railway_database
 from survivor.import_stats import import_stats, validate_csv
 from survivor.keepers import keeper_summary, sync_bundled_keepers
+from survivor.bundled_stats import csv_hash
 
 PROJECTION_URL = 'https://www.fantasypros.com/nba/projections/overall.php'
 MISSING_SHOOTING = 'Missing projected FGM, FGA, FTM and FTA; not ready for eight-category valuation.'
@@ -271,7 +272,7 @@ def build_workbook(output_dir, first_start, last_start, target_season, *, refres
             validate_csv(path)
             source = dict(kind='actual', season=season, source_name='Basketball Reference',
                           as_of_date=metadata['retrieved_at'][:10], file=path.name,
-                          players=len(records), ready_for_import=True, **metadata)
+                          players=len(records), ready_for_import=True, csv_sha256=csv_hash(path), **metadata)
             sources.append(source)
             datasets.append((season, records))
             print(f'{season}: {len(records)} historical players', flush=True)

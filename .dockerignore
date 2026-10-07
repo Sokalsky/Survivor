@@ -5,5 +5,9 @@
 !survivor/**
 !config/
 !config/**
+!output/
+!output/stats/
+!output/stats/manifest.json
+!output/stats/actuals-*.csv
 !Survivor keeper log 2025.xlsx
 **/__pycache__

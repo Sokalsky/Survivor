@@ -202,6 +202,18 @@ function renderStatsTable() {
   $('#data-table').innerHTML = `<div class="table-scroll"><table><thead><tr>${headings.map((h,i)=>`<th ${i>0?'class="right"':''}>${h}</th>`).join('')}</tr></thead><tbody>${data.map(row=>`<tr><td class="player-cell">${playerButton(row)}</td>${valuations ? `<td class="money-cell">${money(row.fair_value)}</td><td class="money-cell">${money(row.expected_auction_price)}</td><td class="money-cell">${row.draft_status==='kept'?'—':money(row.recommended_bid_ceiling)}</td><td class="right">${money(row.lower_estimate)} – ${money(row.upper_estimate)}</td><td class="right">${money(row.confirmed_keeper_cost)}</td><td class="right">${money(row.confirmed_keeper_surplus)}</td>` : `<td class="right">${esc(row.nba_team || '—')}</td><td class="right">${esc(row.positions || '—')}</td>${['games','minutes_pg','pts_pg','reb_pg','ast_pg','stl_pg','blk_pg','fg3m_pg'].map(k=>`<td class="right">${number(row[k],k==='games'?0:1)}</td>`).join('')}<td class="right" title="${number(row.fgm_pg,1)} makes / ${number(row.fga_pg,1)} attempts">${row.fga_pg ? number(row.fgm_pg/row.fga_pg*100,1)+'%' : '—'}</td><td class="right" title="${number(row.ftm_pg,1)} makes / ${number(row.fta_pg,1)} attempts">${row.fta_pg ? number(row.ftm_pg/row.fta_pg*100,1)+'%' : '—'}</td>`}</tr>`).join('') || `<tr><td colspan="${headings.length}"><div class="no-results">No matching players.</div></td></tr>`}</tbody></table></div>`;
 }
 
+function historicalStatsStatus() {
+  // Bootstrap orders datasets newest first; count one snapshot per season.
+  const latest = new Map();
+  for (const dataset of state.bootstrap.datasets) {
+    if (dataset.kind==='actual' && !latest.has(dataset.season)) latest.set(dataset.season,dataset);
+  }
+  const seasons = [...latest.keys()].sort();
+  const rows = [...latest.values()].reduce((sum,dataset)=>sum+Number(dataset.players),0);
+  const message = seasons.length ? `<strong>Historical NBA stats loaded: ${number(seasons.length)} seasons / ${number(rows)} player-season records.</strong><br>${esc(seasonLabel(seasons[0]))} through ${esc(seasonLabel(seasons.at(-1)))}. Counts use the latest stored dataset for each season.` : 'No historical NBA stats have been loaded yet.';
+  return `<div class="status-banner" id="historical-stats-status">${icon('chart')}<span>${message}</span></div>`;
+}
+
 async function loadView() {
   if (!state.bootstrap) return initialize();
   const token = ++state.sequence;
@@ -248,6 +260,7 @@ async function loadView() {
       const labels = {final_cost_differs_from_opening:'Cost differs between opening and final roster',opening_roster_size:'Opening roster has fewer recorded players',ambiguous_player_name:'Player name needs confirmation',finish_order_inconsistent:'Finishing positions need review',duplicate_on_same_roster:'Player listed twice on a roster',explicit_vacancy:'A vacant roster slot was recorded'};
       $('#view-content').innerHTML = `<div class="status-banner">${icon('note')}<span>${state.bootstrap.issue_count} items need review. Original workbook entries are preserved so every correction can be traced back to its source.</span></div><div class="issue-list">${data.rows.map(row=>`<article class="issue-row"><div class="issue-title"><span class="tag ${row.severity==='info'?'final':'keeper'}">${row.severity==='info'?'Recorded':'Review'}</span>${esc(labels[row.code] || row.code.replaceAll('_',' '))}<span class="issue-source">${esc(seasonLabel(row.season))}${row.sheet ? ' · '+esc(row.sheet) : ''}${row.source_cell ? ' · '+esc(row.source_cell) : ''}</span></div><p>${esc(row.detail)}</p></article>`).join('') || '<div class="no-results">There are no data notes.</div>'}</div>`;
     }
+    if (state.view==='notes') $('#view-content').insertAdjacentHTML('afterbegin',historicalStatsStatus());
     if (token===state.sequence) connected();
   } catch (error) { if (token===state.sequence) {setError(error);$('#view-content').innerHTML='<div class="no-results">League data couldn’t be loaded. Use “Try again” above to reconnect.</div>';} }
 }

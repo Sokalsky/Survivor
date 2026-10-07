@@ -16,7 +16,8 @@
       "ready_for_import": true,
       "url": "https://www.basketball-reference.com/leagues/NBA_2015_totals.html",
       "retrieved_at": "2026-10-06T23:48:41.071563+00:00",
-      "sha256": "575c2e0f865d9fa4af6723051ed2adc790c52de4fb742cbdfb783802f844be82"
+      "sha256": "575c2e0f865d9fa4af6723051ed2adc790c52de4fb742cbdfb783802f844be82",
+      "csv_sha256": "0ad81ed85c72a465a58e9299d961756d7f59b94ba2be7285aede035dad864e26"
     },
     {
       "kind": "actual",
@@ -28,7 +29,8 @@
       "ready_for_import": true,
       "url": "https://www.basketball-reference.com/leagues/NBA_2016_totals.html",
       "retrieved_at": "2026-10-06T23:48:44.808582+00:00",
-      "sha256": "77173c7f1fae208155553948415b7439df562f4cd922a04af861b6624e1131c5"
+      "sha256": "77173c7f1fae208155553948415b7439df562f4cd922a04af861b6624e1131c5",
+      "csv_sha256": "026e119814d8ae17c755164b8b414ba358c44f406e42179c12eb18028a3fbf5c"
     },
     {
       "kind": "actual",
@@ -40,7 +42,8 @@
       "ready_for_import": true,
       "url": "https://www.basketball-reference.com/leagues/NBA_2017_totals.html",
       "retrieved_at": "2026-10-06T23:48:48.496328+00:00",
-      "sha256": "98ff5f3c754c9426e2d5fa2e757d49c8064ee3c090c57ad5e6973b87c980705b"
+      "sha256": "98ff5f3c754c9426e2d5fa2e757d49c8064ee3c090c57ad5e6973b87c980705b",
+      "csv_sha256": "13b0a5a6e865356df7a6e025245224360d261365ba70dd7efdb30e08a9b990af"
     },
     {
       "kind": "actual",
@@ -52,7 +55,8 @@
       "ready_for_import": true,
       "url": "https://www.basketball-reference.com/leagues/NBA_2018_totals.html",
       "retrieved_at": "2026-10-06T23:48:52.214498+00:00",
-      "sha256": "515a67d33e45da5bfdbed6f773ecca9f2b0d789cb5d78800106a49f3b4ce9613"
+      "sha256": "515a67d33e45da5bfdbed6f773ecca9f2b0d789cb5d78800106a49f3b4ce9613",
+      "csv_sha256": "e454348e942e69b8c5b9161538f43944d9406523bd3c246a7469fdec159dbffe"
     },
     {
       "kind": "actual",
@@ -64,7 +68,8 @@
       "ready_for_import": true,
       "url": "https://www.basketball-reference.com/leagues/NBA_2019_totals.html",
       "retrieved_at": "2026-10-06T23:48:55.975050+00:00",
-      "sha256": "ae93d830946cf669c676fb1fd39c33ed68bd48c21d72bc728bd2388c9082d40b"
+      "sha256": "ae93d830946cf669c676fb1fd39c33ed68bd48c21d72bc728bd2388c9082d40b",
+      "csv_sha256": "a08403b01dfab70e5582c42ce977671dec98da733933e11e82dd0374228aa796"
     },
     {
       "kind": "actual",
@@ -76,7 +81,8 @@
       "ready_for_import": true,
       "url": "https://www.basketball-reference.com/leagues/NBA_2020_totals.html",
       "retrieved_at": "2026-10-06T23:48:59.737120+00:00",
-      "sha256": "acdbf0f15ed01117b387e1c900cd4617fafd639da4090b49b75df50208e4d53e"
+      "sha256": "acdbf0f15ed01117b387e1c900cd4617fafd639da4090b49b75df50208e4d53e",
+      "csv_sha256": "cd4555a32174d473cd6d55014278dc53d40ec0616c0b8fcea73340a6470efaaf"
     },
     {
       "kind": "actual",
@@ -88,7 +94,8 @@
       "ready_for_import": true,
       "url": "https://www.basketball-reference.com/leagues/NBA_2021_totals.html",
       "retrieved_at": "2026-10-06T23:49:03.484923+00:00",
-      "sha256": "90c572d1de4b34ea8e5299d7fe922488709b60b1a96bb79fc41d745c2902a3d1"
+      "sha256": "90c572d1de4b34ea8e5299d7fe922488709b60b1a96bb79fc41d745c2902a3d1",
+      "csv_sha256": "0bcfb326543fb5ffe0938120b8dd914a27b5cb3a466b654e704e55c902d5cc43"
     },
     {
       "kind": "actual",
@@ -100,7 +107,8 @@
       "ready_for_import": true,
       "url": "https://www.basketball-reference.com/leagues/NBA_2022_totals.html",
       "retrieved_at": "2026-10-06T23:49:07.324471+00:00",
-      "sha256": "743a14338d65dc24f56eba56a0222ec70c8cf166b748b1267d6acb282f3038ee"
+      "sha256": "743a14338d65dc24f56eba56a0222ec70c8cf166b748b1267d6acb282f3038ee",
+      "csv_sha256": "5fe3ef31f740153998844b1264d7214c1e838ac9640c85929ba11971566e0083"
     },
     {
       "kind": "actual",
@@ -112,7 +120,8 @@
       "ready_for_import": true,
       "url": "https://www.basketball-reference.com/leagues/NBA_2023_totals.html",
       "retrieved_at": "2026-10-06T23:49:11.135830+00:00",
-      "sha256": "ff9b7a0f184acf17882ac87741d110850d861d0a24be1878a8bfe038c3f46459"
+      "sha256": "ff9b7a0f184acf17882ac87741d110850d861d0a24be1878a8bfe038c3f46459",
+      "csv_sha256": "5ec27f40e97eec9f2de88239e1ad76812d0b5ebe4039853283e29c9ad52d6e5d"
     },
     {
       "kind": "actual",
@@ -124,7 +133,8 @@
       "ready_for_import": true,
       "url": "https://www.basketball-reference.com/leagues/NBA_2024_totals.html",
       "retrieved_at": "2026-10-06T23:49:14.922259+00:00",
-      "sha256": "56e60556aa3dadadfa9baf5b8e68c9bb4c2d4be16197f2a68f05efde7e52ffa5"
+      "sha256": "56e60556aa3dadadfa9baf5b8e68c9bb4c2d4be16197f2a68f05efde7e52ffa5",
+      "csv_sha256": "1bccf8b9a2b7401466c82df09450c61a572dafa1e54d1d2474f6154d39877f1b"
     },
     {
       "kind": "actual",
@@ -136,7 +146,8 @@
       "ready_for_import": true,
       "url": "https://www.basketball-reference.com/leagues/NBA_2025_totals.html",
       "retrieved_at": "2026-10-06T23:49:18.714807+00:00",
-      "sha256": "9af373ee7bf4ef7070e1214b8e51e00e485837154cea14248ae57958f912bcd2"
+      "sha256": "9af373ee7bf4ef7070e1214b8e51e00e485837154cea14248ae57958f912bcd2",
+      "csv_sha256": "a07875bea98718adb5b00c962ba54550d81aef203ceb279f1c39dc76549327e4"
     },
     {
       "kind": "actual",
@@ -148,7 +159,8 @@
       "ready_for_import": true,
       "url": "https://www.basketball-reference.com/leagues/NBA_2026_totals.html",
       "retrieved_at": "2026-10-06T23:49:22.590581+00:00",
-      "sha256": "07b8cddfa6904ff1eec098774802b3c247a84453ff9def4c0628da89597f5746"
+      "sha256": "07b8cddfa6904ff1eec098774802b3c247a84453ff9def4c0628da89597f5746",
+      "csv_sha256": "ff8747f4dd5e52de620a00f22caf01ecc4b306c87b4777dfa4f4f677efa0df3f"
     },
     {
       "kind": "projection",
