@@ -118,6 +118,7 @@ class ComparableTests(unittest.TestCase):
 
     def test_local_price_reconciles_to_weighted_actual_minus_model_residuals(self):
         model = self.model(age=True)
+        model.settings.pop('comp_profile_adjustment',None)  # Reproduce stored v8 runs.
         profile = self.profile(.3)
         components = model.local_components(profile)
         expected = sum(w['weight']*(model.observations[w['index']]['target']-
@@ -127,6 +128,26 @@ class ComparableTests(unittest.TestCase):
         self.assertAlmostEqual(model.predictions(profile)['local'],max(0,components['base']+expected))
         self.assertGreaterEqual(components['effective_comps'],1)
         self.assertLessEqual(components['effective_comps'],len(model.observations))
+
+    def test_comp_transport_preserves_observed_premium_without_removing_base_curve(self):
+        model = self.model(age=True)
+        target,other = self.profile(1.2,27),self.profile(1.3,25)
+        change = model.profile_adjustment(target,other)
+        self.assertEqual(change['curve'],0)
+        self.assertNotEqual(change['full_curve'],0)
+        self.assertNotEqual(change['stat'],0)
+        self.assertNotEqual(change['age'],0)
+        self.assertAlmostEqual(change['total'],-model.profile_adjustment(other,target)['total'])
+        self.assertEqual(model.profile_adjustment(target,target)['total'],0)
+        base = model.raw_prediction(target)
+        model.beta[len(CATEGORIES)+1] += 100
+        # A steeper global elite curve changes the base, but cannot magnify
+        # small differences when transporting an actual qualifying auction bid.
+        self.assertNotAlmostEqual(base,model.raw_prediction(target))
+        self.assertAlmostEqual(change['total'],model.profile_adjustment(target,other)['total'])
+        model.settings.pop('comp_profile_adjustment')
+        self.assertAlmostEqual(model.profile_adjustment(target,other)['total'],
+                               model.raw_prediction(target)-model.raw_prediction(other))
 
     def test_one_to_three_qualified_matches_dominate_without_promoting_distant_ones(self):
         for count in (1,2,3):
@@ -342,8 +363,12 @@ class PublishedValueIntegrationTests(unittest.TestCase):
                 else:
                     self.assertLess(comp['stats_season'],comp['season'])
                 self.assertLess(comp['season'],self.result['season'])
-                self.assertAlmostEqual(comp['price_adjustment'],market['correction_share']*comp['weight']*(comp['budget_adjusted_price']-comp['model_price']))
-                self.assertAlmostEqual(comp['implied_price'],comp['budget_adjusted_price']+market['base_price']-comp['model_price'])
+                self.assertAlmostEqual(comp['price_adjustment'],market['correction_share']*comp['weight']*(comp['implied_price']-market['base_price']))
+                self.assertAlmostEqual(comp['implied_price'],comp['budget_adjusted_price']+comp['profile_adjustment'])
+                self.assertAlmostEqual(comp['profile_adjustment'],comp['stat_adjustment']+comp['age_adjustment']+comp['curve_adjustment'])
+                self.assertEqual(comp['profile_curve_share'],0)
+                self.assertEqual(comp['curve_adjustment'],0)
+                self.assertAlmostEqual(comp['profile_adjustment']+comp['full_curve_adjustment'],market['base_price']-comp['model_price'])
                 self.assertAlmostEqual(comp['implied_price'],comp['actual_price']+comp['cash_adjustment']+comp['supply_adjustment']+comp['profile_adjustment'])
                 self.assertAlmostEqual(comp['final_price_weight'],comp['weight']*market['correction_share'])
                 limits = settings()['comp_rules'][comp['match_quality']]
@@ -403,6 +428,17 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         self.assertAlmostEqual(precise[0]['final_price_weight'],.855)
         self.assertGreater(brunson['expected_auction_price'],43)
         self.assertEqual(brunson['fair_value'],25.52)
+
+    def test_luka_close_comp_keeps_elite_premium_and_transparent_adjustments(self):
+        luka = next(v for v in self.result['values'] if v['player_id']=='lukadoncic')
+        self.assertEqual(len(luka['comps']),1)
+        comp = luka['comps'][0]
+        self.assertEqual((comp['player_id'],comp['season'],comp['actual_price']),('lukadoncic','2024-25',65))
+        self.assertAlmostEqual(comp['profile_adjustment'],-5.15,places=2)
+        self.assertAlmostEqual(comp['full_curve_adjustment'],-8.31,places=2)
+        self.assertAlmostEqual(comp['implied_price'],57.74,places=2)
+        self.assertEqual(luka['expected_auction_price'],58.58)
+        self.assertEqual(luka['fair_value'],59.95)
 
     def test_injury_exceptions_removed_from_fit_and_every_comp_but_history_preserved(self):
         from survivor.preseason import load_preseason_evidence

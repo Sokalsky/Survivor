@@ -218,12 +218,28 @@ class PriceModel:
         self.beta = solve(matrix,rhs)
         self.mean_price = sum(w*o['target'] for w,o in zip(self.weights,observations))/sum(self.weights)
         self.residuals = [o['target']-self.raw_prediction(o['profile']) for o in observations]
+        self.curve_features = [max(0,o['profile']['score'])**2/8 for o in observations]
 
     def standardize(self, vector):
         return [1]+[(v-m)/s for v,m,s in zip(vector,self.means,self.scales)]
 
     def raw_prediction(self, profile):
         return sum(a*b for a,b in zip(self.beta,self.standardize(feature_vector(profile,self.full,self.age))))
+
+    def profile_adjustment(self, profile, other):
+        """Transport a qualified auction bid without reapplying the global star curve.
+
+        The regression base still uses every fitted feature. Local category/age
+        differences retain their slopes; the squared-score difference has its
+        own development-tested strength. Dollar scaling happens at the caller.
+        """
+        left,right = (feature_vector(p,self.full,self.age) for p in (profile,other))
+        effects = [b*(a-c)/s for b,a,c,s in zip(self.beta[1:],left,right,self.scales)]
+        count = len(CATEGORIES) if self.full else 1
+        share = self.settings.get('comp_profile_adjustment',{}).get('curve_share',1)
+        stat,curve,age = sum(effects[:count]),effects[count],sum(effects[count+1:])
+        return {'stat':stat,'age':age,'full_curve':curve,'curve':curve*share,
+                'curve_share':share,'total':stat+curve*share+age}
 
     def match(self, profile, other, *, season=None):
         """Compare both stat lines on the target's scale, without era/age dilution."""
@@ -342,8 +358,17 @@ class PriceModel:
             share = self.settings['comp_rules']['near_identical']['correction_share']
         elif self.settings.get('comp_rules') and not strong_count:
             share = self.settings['comp_rules']['supporting_correction_share'] if weighted else 0
-        correction = share*sum(w['weight']*self.residuals[w['index']] for w in weighted)
-        return {'base':self.raw_prediction(profile),'correction':correction,'neighbors':weighted,
+        base = self.raw_prediction(profile)
+        curve_index = len(CATEGORIES) if self.full else 1
+        curve_share = self.settings.get('comp_profile_adjustment',{}).get('curve_share',1)
+        curve_slope = (1-curve_share)*self.beta[curve_index+1]/self.scales[curve_index]
+        target_curve = max(0,profile['score'])**2/8
+        # Algebraically: comp bid + profile_adjustment(target, comp) - base.
+        # Reuse fitted residuals instead of rebuilding every comp feature vector
+        # during each chronological backtest prediction.
+        correction = share*sum(w['weight']*(self.residuals[w['index']]-
+                                curve_slope*(target_curve-self.curve_features[w['index']])) for w in weighted)
+        return {'base':base,'correction':correction,'neighbors':weighted,
                 'correction_share':share,'strong_count':strong_count,'near_identical_count':precise_count,
                 'effective_comps':1/sum(w['weight']**2 for w in weighted) if weighted else 0}
 
@@ -487,7 +512,7 @@ def evaluate(observations,settings):
     candidates = ('score_curve',)+plain_candidates+tuple('age_'+name for name in plain_candidates if name!='mean')+('market_local','market_age_local')
     results = {name:[] for name in candidates}
     previous_results = []
-    previous_settings = {**settings,'comp_rules':{k:v for k,v in settings['comp_rules'].items() if k!='near_identical'}}
+    previous_settings = {k:v for k,v in settings.items() if k!='comp_profile_adjustment'}
     seasons = sorted({o['season'] for o in observations})
     selected = None
     for season in seasons:
@@ -542,7 +567,7 @@ def evaluate(observations,settings):
         radius = error_radius(earlier,record['predicted'],record['scale'],settings['interval_coverage'])
         covered += abs(record['predicted']-record['actual'])<=radius
     return selected, {'selected_model':selected,'development':development,'holdout':holdout,
-                     'previous_comp_method':{'model_version':'survivor-8cat-v7',
+                     'previous_comp_method':{'model_version':'survivor-8cat-v8',
                                              'development':metrics([r for r in previous_results if r['season']<settings['holdout_first_season']]),
                                              'holdout':metrics([r for r in previous_results if r['season']>=settings['holdout_first_season']])},
                      'holdout_by_actual_price_tier':{tier:metrics([r for r in selected_holdout if price_tier(r['actual'])==tier]) for tier in ('under_10','10_to_30','30_plus')},
@@ -616,6 +641,8 @@ def build_valuations(db, season, settings=None):
             regression_price = settings['minimum_bid']+player_model.raw_prediction(comp['profile'])*scale
             adjusted_price = settings['minimum_bid']+comp['target']*scale
             target_base = settings['minimum_bid']+components['base']*scale
+            profile_change = player_model.profile_adjustment(profile,comp['profile'])
+            implied_price = adjusted_price+profile_change['total']*scale
             cash_price = settings['minimum_bid']+(comp['recorded_cost']-settings['minimum_bid'])*(
                 current_market['discretionary_per_slot']/comp['auction_context']['discretionary_per_slot'])
             comps.append({'player':comp['player'],'player_id':comp['player_id'],'season':comp['season'],
@@ -634,12 +661,17 @@ def build_valuations(db, season, settings=None):
                           'budget_adjusted_price':adjusted_price,'model_price':regression_price,
                           'cash_adjustment':cash_price-comp['recorded_cost'],
                           'supply_adjustment':adjusted_price-cash_price,
-                          'profile_adjustment':target_base-regression_price,
-                          'implied_price':adjusted_price+target_base-regression_price,
+                          'profile_adjustment':profile_change['total']*scale,
+                          'stat_adjustment':profile_change['stat']*scale,
+                          'age_adjustment':profile_change['age']*scale,
+                          'curve_adjustment':profile_change['curve']*scale,
+                          'full_curve_adjustment':profile_change['full_curve']*scale,
+                          'profile_curve_share':profile_change['curve_share'],
+                          'implied_price':implied_price,
                           'match_quality':weighted.get('match_quality'),
                           'match_details':{k:weighted.get(k) for k in ('category_rms','production_gap','largest_category_gap','age_gap','games_gap')},
                           'stats':comp['profile']['stats'],
-                          'price_adjustment':components['correction_share']*weighted['weight']*(adjusted_price-regression_price) if prediction_key=='local' else None,
+                          'price_adjustment':components['correction_share']*weighted['weight']*(implied_price-target_base) if prediction_key=='local' else None,
                           'category_z':comp['profile']['z']})
         keeper = keepers.get(key)
         fair = base[key]

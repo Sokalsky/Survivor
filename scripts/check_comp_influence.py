@@ -18,6 +18,7 @@ from survivor.auction_context import market_observations
 variants={'v6':(.8,.5),'strong_75':(.8,.75),'strong_100':(.8,1.),
           'close_90_75':(.9,.75),'close_90_100':(.9,1.)}
 settings=json.loads(CONFIG.read_text()); rules=json.loads((ROOT/'config/league.json').read_text())
+settings.pop('comp_profile_adjustment',None)
 # Fit the same ridge model for every influence candidate; only the blend changes.
 settings['comp_rules'].pop('near_identical',None)
 settings['comp_rules']['strong_minimum_weight']=.8

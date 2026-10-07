@@ -1,4 +1,4 @@
-SURVIVOR VALUATION v8
+SURVIVOR VALUATION v9
 
 THREE DISTINCT OUTPUTS
 
@@ -158,7 +158,7 @@ changes, retirements and unavailable players limit this proxy. Today's supply
 uses the complete ESPN set. Team budget dispersion is recorded, not simulated.
 
 Selected model: market_age_local. Selection uses development auctions from
-2018-19 through 2022-23 (610 purchases, MAE $4.6733), then stays fixed for the
+2018-19 through 2022-23 (610 purchases, MAE $4.6284), then stays fixed for the
 later three seasons. Each fitted model uses only earlier auctions. No target
 player's desired price is an input to comp selection. The v6 thresholds below
 are explicit working rules. v8 adds the narrower near-identical tier below.
@@ -229,7 +229,9 @@ least 95% * 90% = 85.5% of the final estimate. The other comps share at most 4.5
 and the regression base contributes 10%. Weights can exceed those minimums when
 natural inverse-distance concentration is already stronger.
 
-  residual = normalized actual price - regression price for the comp profile
+  profile change = category effects + age effects + curve share * squared-score effect
+  comp implied price = normalized actual price + profile change
+  residual = comp implied price - target regression price
   correction share = 0.90 if near-identical forecasts exist;
                      otherwise 0.75 for close forecasts, or 0.25 for supporting only
   adjustment = correction share * sum(weight * residual) * current market scale
@@ -242,12 +244,57 @@ a fitted injury-price curve or dated return model.
 
 In the drawer, the top three by weight sit beside the target's real projections,
 including attempt volume and unknown GP. Adjusted price = budget/supply-adjusted
-bid + (target regression price - comp regression price). It is a comp-implied price
+bid + the fitted profile change below. It is a comp-implied price
 before weighting and shrinkage, not the comp's actual bid or a new forecast.
 Price effect = correction share * weight * (adjusted price - target base).
 Individual price effects sum to the displayed comp correction. All qualifying
 comps retain original bids, source basis, stats, match gaps and weights in the API
 and workbook. Sorting changes display order only.
+
+PROFILE ADJUSTMENT (v9)
+
+Keep the entire fitted regression, including positive-score-squared / 8, for the
+base estimate. For the profile difference used to transport an actual qualifying
+auction bid, keep the eight category slopes and age terms but set the squared-score
+difference strength to zero. The observed bid carries its own elite-player premium;
+we do not apply the global curve's steep slope again to local profile differences.
+This is a calibrated local adjustment, not a claim that auction dollars are
+proportional to raw box-score totals. Negative percentage impact and attempt
+volume remain part of category pricing. Each profile retains its season-relative
+reference; rebasing both profiles to today's distribution was also tested.
+
+Using the same fitted coefficients and training-only feature scales:
+  category effect = sum(category coefficient * standardized category difference)
+  age effect = age coefficient * age difference + age/score interaction difference
+  full curve effect = squared-score coefficient * standardized squared-score difference
+  applied profile change = category effect + age effect + 0 * full curve effect
+Scale these normalized effects into current auction dollars. Budget and available
+talent adjustments precede this profile change. The rule is symmetric for better
+and worse forecasts; names, keeper prices and desired current prices do not set
+it. Players without comps retain the full regression estimate. Comp qualification
+and v8 near-identical influence are unchanged. Neutral values stay separate.
+
+An initial experiment uniformly shrank all common-reference profile differences
+by 0%, 25%, 50%, 75% or 100%. None beat v8 on development MAE; retain that rejected
+experiment in profile-adjustment-initial-check.json. After identifying the large
+squared-score contribution, a second exploratory audit compared curve strengths
+0, .25, .5, .75, 1 on original and common references, with all other model choices
+fixed. Development auctions (610, 2018-19 through 2022-23) selected original
+references with zero curve difference: MAE $4.6733 -> $4.6284; $30+ MAE $8.19 ->
+$7.76 (87 cases). The 468 reused later checks give MAE $4.0853 -> $4.0454; $30+
+MAE $9.24 -> $8.71 (61 cases). Repeatedly reviewed seasons are not independent
+validation, and these modest gains do not establish an objective fair price.
+Both experiments can be reproduced with scripts/check_profile_adjustments.py,
+adding --initial for the rejected first experiment. Current player examples are
+evaluated after the development-only selection; they are not tuning targets.
+
+Luka example: original bid $65; cash -$1.70; supply -$0.41. The previous $13.46
+profile discount comprised category effects -$6.69, squared-score effect -$8.31,
+and age terms +$1.54. Keeping category and age effects gives a $5.15 discount,
+adjusted comp $57.74 and final expected price $58.58 (formerly $52.35). The base
+stays $61.10 and neutral value $59.95. The new API/workbook retain the unapplied
+full curve effect for audit; the drawer's price bridge separates category and
+age effects. A price percentage change is not a raw statistical percentage change.
 
 FINAL ESTIMATE INFLUENCE
 
@@ -283,7 +330,7 @@ The revised audit is exploratory after reviewing the failed broad rule, not an
 independent holdout. Both audits are preserved. Reproduce the deployed rule with:
   python scripts/check_near_identical_comps.py
 
-Brunson example: his own 2025-26 auction has category RMS 0.1595, largest category
+v8 Brunson example (historical rollout): his own 2025-26 auction has category RMS 0.1595, largest category
 gap 0.2756, production gap 0.7700, age difference 1 and projected GP difference 2.
 Combined distance is 0.2774 versus 0.5103 for the nearest alternative, satisfying
 the 65% separation limit. This record gets 95% of comp weight and 85.5% final
@@ -293,7 +340,7 @@ the current $46 keeper salary is not another auction observation or a price floo
 The historical bid adjusted for current cash, supply and profile still implies
 $48.28. The remaining 10% base and 4.5% other comps explain the smaller final price.
 
-Ant example: 2020-21 Beal projects 27.61 PTS, 4.0 REB, 5.3 AST, 1.3 STL,
+v7/v8 Ant example (historical rollout): 2020-21 Beal projects 27.61 PTS, 4.0 REB, 5.3 AST, 1.3 STL,
 0.4 BLK and 2.9 3PM, with unknown GP. He remains the one close forecast, receives
 80% of comp weight and now has 60% final influence. Miller stays supporting.
 
@@ -311,9 +358,9 @@ $38.63 regression base gives $43.51 (previously $41.88). His neutral value stays
 $41.62. A single historical winning bid is not a hard minimum price; uncertainty
 and the rest of the evidence still matter. These are results, not tuning targets.
 
-Recent retrospective checks: 468 purchases, MAE $4.09, essentially unchanged
-from v7 on the identical cohort. $30+ purchases have MAE $9.24 (unchanged from v7) and
-bias -$4.54; stars remain underpriced on average. Nominal 80% bands cover 82.3%.
+Recent v9 retrospective checks: 468 purchases, MAE $4.05 versus $4.09 in v8.
+$30+ purchases have MAE $8.71; stars remain underpriced on average. Coverage of
+the nominal 80% bands is recorded in output/valuations/model-report.json.
 Bands use earlier normalized absolute errors by price tier, falling back to all
 errors when samples are sparse. These seasons have been reviewed before; they
 are reused retrospective checks, not fresh independent holdouts. The supplied

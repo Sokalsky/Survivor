@@ -232,24 +232,38 @@ The drawer compares the target with the three highest-weight stat lines and show
 comp-implied prices adjusted for profile and auction context. See the explicit
 limits, weights and adjustment formulas in valuation_design.txt.
 
-v8 adds a near-identical tier: very small stat gaps, known age within two years,
+v8 introduced a near-identical tier: very small stat gaps, known age within two years,
 known projected GP within five games, an auction within three seasons, and a
 group at least 35% closer than the nearest alternative. Those matches receive
 at least 95% of comp weight and a 90% final blend: 85.5% effective influence.
 This is based on forecast similarity, not player name or keeper salary. Brunson's
-own recent auction qualifies; his expected price moves from $33.72 to $45.39,
+own recent auction qualifies; in v8 his expected price moved from $33.72 to $45.39,
 while neutral value stays $25.52. Ordinary close matches retain v7 weights.
 
 The first broad version worsened historical errors and was rejected. The stricter
 rule has no qualifying development records (missing archived GP) and only one
 qualifying retrospective test auction. Its weights implement the requested
 stronger influence; they are not statistically calibrated. Overall retrospective
-MAE remains about $4.09. See both retained audits and valuation_design.txt:
+MAE in v8 was about $4.09. See both retained audits and valuation_design.txt:
   python scripts/check_near_identical_comps.py
   python scripts/check_near_identical_comps.py --broad
 The earlier v7 comparison remains reproducible:
   python scripts/check_comp_influence.py
 No current projections or neutral values were altered.
+
+v9 keeps the full elite-player price curve in the base estimate, but removes its
+squared-score difference when adjusting qualifying auction comps. Category and
+age differences still apply, in either direction. This prevents the broad price
+curve from magnifying small within-tier differences on top of an observed bid.
+Luka's profile discount changes from $13.46 to $5.15, adjusted comp from $49.43
+to $57.74, and expected price from $52.35 to $58.58. No player-specific override,
+hard price floor, projection change or neutral-value change is involved.
+Development MAE improves from $4.673 to $4.628; reused recent checks from $4.085
+to $4.045. Recent $30+ auction MAE improves from $9.24 to $8.71. These are modest
+exploratory gains, not independent validation. A rejected all-feature shrinkage
+experiment is retained alongside the selected curve-only comparison:
+  python scripts/check_profile_adjustments.py --initial
+  python scripts/check_profile_adjustments.py
 
 The supplied workbook contains 200 forecast rows and is stored losslessly as
 original cells plus normalized rates in output/stats/preseason-2025-26.json.

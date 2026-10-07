@@ -1,5 +1,5 @@
 {
-  "model_version": "survivor-8cat-v8",
+  "model_version": "survivor-8cat-v9",
   "roster_size": 15,
   "minimum_bid": 1,
   "minimum_bid_basis": "Working assumption; lowest recorded auction purchase is $1. Formal rule not confirmed.",
@@ -12,6 +12,10 @@
   "comp_distance_power": 3,
   "comp_correction_share": 0.75,
   "comp_blend_share": 0.25,
+  "comp_profile_adjustment": {
+    "curve_share": 0,
+    "basis": "Retain the full fitted elite curve in the regression base; translate qualified auction bids using category and age effects without the squared-score difference. Selected by development auction MAE from fixed curve strengths after a rejected uniform-shrinkage audit. Symmetric for better/worse profiles, no name or price floor. See output/valuations/profile-adjustment-check.json; later seasons are reused retrospective checks."
+  },
   "age_distance_years": 5,
   "projection_games_distance_scale": 20,
   "market_age_basis": "Recorded historical season age advanced to the auction season. Missing ages use the corresponding statistics-only model; no age is guessed. Age is a pricing feature, not a predetermined youth or keeper premium.",

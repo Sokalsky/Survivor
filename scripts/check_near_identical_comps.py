@@ -20,6 +20,7 @@ from survivor.auction_context import market_observations
 # never a qualification input. Only the development split selects a setting.
 variants={'v7':None,'near_90_90':(.9,.9),'near_95_90':(.95,.9),'near_95_95':(.95,.95)}
 settings=json.loads(CONFIG.read_text())
+settings.pop('comp_profile_adjustment',None)
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--broad',action='store_true',help='Reproduce the rejected initial rule without known-GP or separation requirements.')
 args=parser.parse_args()
