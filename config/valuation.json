@@ -1,5 +1,5 @@
 {
-  "model_version": "survivor-8cat-v9",
+  "model_version": "survivor-8cat-v10",
   "roster_size": 15,
   "minimum_bid": 1,
   "minimum_bid_basis": "Working assumption; lowest recorded auction purchase is $1. Formal rule not confirmed.",
@@ -12,6 +12,16 @@
   "comp_distance_power": 3,
   "comp_correction_share": 0.75,
   "comp_blend_share": 0.25,
+  "keeper_evidence": {
+    "scope": "same_player",
+    "maximum_share": 0.4,
+    "maximum_seasons_ago": 3,
+    "repeat_share": 0.25,
+    "supporting_share": 0.35,
+    "claim_share": 0.5,
+    "auction_overlap_share": 0.5,
+    "basis": "Same-player keeper decisions are secondary upward evidence. Scope/cap selected on development auctions; repeated same-contract decisions and overlap with an auction comp are discounted. Contributions saturate below the 40% ceiling. Current claims use each claimant's own calculated cost; 50% claim reliability is an uncalibrated working assumption because earlier unsuccessful-claim logs are unknown. See keeper-influence-check.json."
+  },
   "comp_profile_adjustment": {
     "curve_share": 0,
     "basis": "Retain the full fitted elite curve in the regression base; translate qualified auction bids using category and age effects without the squared-score difference. Selected by development auction MAE from fixed curve strengths after a rejected uniform-shrinkage audit. Symmetric for better/worse profiles, no name or price floor. See output/valuations/profile-adjustment-check.json; later seasons are reused retrospective checks."

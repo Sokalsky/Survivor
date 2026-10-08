@@ -1,10 +1,11 @@
-SURVIVOR VALUATION v9
+SURVIVOR VALUATION v10
 
 THREE DISTINCT OUTPUTS
 
 1. Survivor value score: season-equivalent eight-category advantage over a
    replacement pool that improves as teams are eliminated. Higher is better.
-2. Expected league price: estimated winning bid from actual historical auctions,
+2. Expected league price: estimated winning bid from actual historical auctions
+   with secondary, upward-only evidence from the player's own keeper decisions,
    conditional on a player being drafted. A kept player's estimate is hypothetical.
 3. Neutral auction value: an allocation of $3,000 across 225 slots in a fresh
    15-team, $200-per-team draft. No keepers, category punts or manager preferences.
@@ -84,7 +85,8 @@ the other $2,775 linearly by positive value above the first undrafted score.
 Largest-remainder cent rounding makes the total exactly $3,000. Other players
 receive $0. No price-fitted exponent changes neutral values. Keeper surplus is
 neutral value minus the confirmed current keeper charge. It is not a prediction
-of future keeper escalation, which is not yet specified.
+of future keeper escalation. An inferred escalation rule is used only to price
+explicit blocked keeper choices from known prior contracts (see v10 below).
 
 MARKET PRICE MODEL AND COMPARABLES
 
@@ -403,6 +405,72 @@ All nine partial archives are selectable on the projections page. Their JSON
 files are imported idempotently into historical_projection_sets on normal Railway
 startup. Current bundled IDs select model sources; stored prior versions remain
 immutable. Published source dates and workbook received dates remain distinct.
+
+SECONDARY KEEPER EVIDENCE (v10)
+
+The auction regression and close auction-comp machinery remain v9. Keeper costs
+do not become auction training labels. For each player, consider that player's
+keeper decisions from the current season and preceding three seasons. Require
+a usable preseason forecast and the existing strong/supporting match rules;
+prior actuals alone cannot qualify. No future-season record is eligible.
+Historical keeper profiles use the same dated availability exclusions as auctions.
+
+Adjust each keeper cost to current available cash/talent and the target forecast
+using the same v9 category/age change, without the squared elite-curve penalty.
+Only adjusted costs above the auction estimate support an increase. A bargain
+keeper salary cannot lower an auction estimate. No salary becomes a hard floor.
+The same player's known current keeper price is an observed preauction decision,
+so its contribution is descriptive evidence, not an independent prediction.
+
+For each qualifying record, reliability is:
+  recency_decay^years / (1 + match_distance)^2
+Multiply by 0.35 for supporting rather than strong matches, 0.5 for conditional
+blocked claims, and 0.5 if its originating auction already appears among this
+player's auction comps. Last actual auction identifies the salary lineage.
+Within each player/owner/lineage group, strength is the largest reliability plus
+25% of the remaining reliabilities. Another owner or new auction contract creates
+a separate group; different years of the same contract add less evidence.
+
+Let A be the auction estimate. At price x > A, S(x) is the grouped strength of
+records whose adjusted price reaches x. Keeper uplift is the integral from A to
+the largest supported price of 0.4*S(x)/(1+S(x)). Compute it exactly over the
+intervals between observed adjusted prices. This gives diminishing returns and
+ensures a cheaper extra claim only increases its supported price range. It cannot
+lower an existing signal or turn a $67 claim into $69 support.
+
+The effective keeper share is w=0.4*S(A)/(1+S(A)), always below the 40% cap. Its
+equivalent signal is A+uplift/w, giving final=(1-w)*A+w*signal. The existing base
+and auction-comp percentages are now shares of A; their final-price percentages
+are multiplied by (1-w). These weights are working rules, not probabilities.
+Neutral auction value and projected basketball statistics remain unchanged.
+
+Fixed candidate grid: all-player or same-player scope, caps 10/20/30/40%, plus v9.
+Choose on 610 development auctions only; selected same_player_40. Adding other
+players' keeper prices worsened overall MAE. Development MAE moves from 4.6284
+to 4.6245; the 468 reused recent checks move from 4.0454 to 4.0347. Only 34 and
+28 auctions respectively are affected, so this is modest supporting evidence.
+Historical checks use known preauction keeper selections; no older failed claims
+exist here. The 0.5 claim multiplier is explicitly uncalibrated. Later checks
+are reused retrospective checks, not fresh independent validation. The full
+scope/cap comparison is output/valuations/keeper-influence-check.json.
+
+The supplied 2026 list records 13 blocked choices across 10 players. These are
+ranked, conditional preferences, not simultaneous bids or implied auction wins.
+Do not invent claims from final roster appearances, commentary, or unreached
+extra names. Keep raw eligible_cost null if not explicitly quoted. Separately
+derive eligible cost from that claimant's previous final roster: cost+n*(n+1)/2
+for supported recorded years n=1..5 (+1,+3,+6,+10,+15). This matches 290/299 linked
+historical prices and all 30 current winners. Missing/ambiguous contracts remain
+unpriced and add no valuation weight. Source cells and raw choices are preserved.
+Fox's Max 2019-20 opening year3 versus final year4 is flagged in the source audit;
+no recorded paid cost or contract year is silently corrected.
+
+Current examples: Luka has three qualifying keeper decisions and Alvin's derived
+$67 claim (versus Kerry's $69). Effective keeper share is 17.9%, adding $1.96 to
+the $58.58 auction estimate for $60.54. Jokic moves to $85.61, Ant to $43.80, and
+Brunson to $45.39. These are evidence-weighted estimates, not enforced salaries.
+Detailed evidence is persisted per run/player in keeper_value_evidence, returned
+only in the player drawer API, and flattened into Excel and keeper-evidence.csv.
 
 SOURCE REFERENCES
 https://fantasy.espn.com/basketball/players/projections

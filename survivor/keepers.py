@@ -68,6 +68,8 @@ def sync_keepers(db, payload):
 def sync_bundled_keepers(db):
     for path in sorted((ROOT / 'config/keepers').glob('*.json')):
         sync_keepers(db, json.loads(path.read_text(encoding='utf-8')))
+    from survivor.keeper_evidence import sync_keeper_claims
+    sync_keeper_claims(db)
 
 
 def keeper_summary(db, season):

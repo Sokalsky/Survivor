@@ -48,3 +48,4 @@
 @media(max-width:600px){.comp-price-breakdown{flex-wrap:wrap}.comp-price-breakdown>span{flex:1 1 40%}.comp-price-breakdown strong{font-size:20px}.comp-context-table th,.comp-context-table td{padding:9px 7px;font-size:10px}}
 
 .comp-quality.near_identical{color:#2d6025;font-weight:750}
+.keeper-evidence>p,.keeper-records>summary{font-size:12px}.keeper-records summary{cursor:pointer}.keeper-records>.table-scroll{margin-top:12px}.keeper-evidence-table{table-layout:fixed;white-space:normal}.keeper-evidence-table td,.keeper-evidence-table th{padding:12px 9px;overflow-wrap:anywhere}.keeper-evidence-table small{display:block;margin-top:6px;font-size:9px;color:var(--muted);line-height:1.5}.keeper-evidence-table details{margin-top:8px;font-size:10px}

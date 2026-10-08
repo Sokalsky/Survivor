@@ -1,0 +1,22 @@
+{
+  "season": "2026-27",
+  "source_name": "2026 Keeper Pick Summary supplied by league member in this conversation",
+  "coverage": "Explicit unsuccessful ranked keeper choices in the supplied summary; historical seasons unknown.",
+  "price_basis": "No unsuccessful claimant's eligible price was stated. Do not copy the successful keeper's price or infer an auction bid.",
+  "interpretation": "Ranked fallback interest is conditional on earlier choices being unavailable. Multiple claims do not imply simultaneous affordable commitments. Unreached names mentioned after the final selections and hypothetical alternatives are excluded.",
+  "claims": [
+    {"franchise": "Joe", "choice_rank": 2, "player": "Keyonte George", "status": "blocked_by_keeper", "kept_by": "Ian", "eligible_cost": null},
+    {"franchise": "Kerry", "choice_rank": 1, "player": "Dejounte Murray", "status": "blocked_by_keeper", "kept_by": "Max", "eligible_cost": null},
+    {"franchise": "Kerry", "choice_rank": 2, "player": "Kon Knueppel", "status": "blocked_by_keeper", "kept_by": "Joe", "eligible_cost": null},
+    {"franchise": "Peter", "choice_rank": 1, "player": "Cade Cunningham", "status": "blocked_by_keeper", "kept_by": "Ron", "eligible_cost": null},
+    {"franchise": "Peter", "choice_rank": 2, "player": "Cooper Flagg", "status": "blocked_by_keeper", "kept_by": "Jason", "eligible_cost": null},
+    {"franchise": "Peter", "choice_rank": 3, "player": "Kon Knueppel", "status": "blocked_by_keeper", "kept_by": "Joe", "eligible_cost": null},
+    {"franchise": "Peter", "choice_rank": 5, "player": "Chet Holmgren", "status": "blocked_by_keeper", "kept_by": "Kerry", "eligible_cost": null},
+    {"franchise": "Alvin", "choice_rank": 2, "player": "Scottie Barnes", "status": "blocked_by_keeper", "kept_by": "Brent", "eligible_cost": null},
+    {"franchise": "Alvin", "choice_rank": 3, "player": "Jayson Tatum", "status": "blocked_by_keeper", "kept_by": "Ian", "eligible_cost": null},
+    {"franchise": "Alvin", "choice_rank": 4, "player": "Cooper Flagg", "status": "blocked_by_keeper", "kept_by": "Jason", "eligible_cost": null},
+    {"franchise": "Alvin", "choice_rank": 5, "player": "Cade Cunningham", "status": "blocked_by_keeper", "kept_by": "Ron", "eligible_cost": null},
+    {"franchise": "Alvin", "choice_rank": 6, "player": "Nikola Jokic", "status": "blocked_by_keeper", "kept_by": "Max", "eligible_cost": null},
+    {"franchise": "Alvin", "choice_rank": 7, "player": "Luka Doncic", "status": "blocked_by_keeper", "kept_by": "Kerry", "eligible_cost": null}
+  ]
+}

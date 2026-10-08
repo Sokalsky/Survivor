@@ -17,6 +17,7 @@ from survivor.market_context import load_context
 from survivor.preseason import load_preseason_evidence
 from survivor.historical_projections import sync_historical_projections
 from survivor.auction_context import auction_context, historical_contexts, market_observations
+from survivor.keeper_evidence import attach_contracts,add_claims,keeper_adjustment
 
 CATEGORIES = ('PTS','REB','AST','STL','BLK','3PM','FG%','FT%')
 COUNT_FIELDS = ('pts_pg','reb_pg','ast_pg','stl_pg','blk_pg','fg3m_pg')
@@ -403,7 +404,7 @@ def load_inputs(db, season):
         if row['dataset_id'] in ids:
             statistics[row['dataset_id']].append(row)
     auctions = rows(db, 'SELECT season,player_id,player,franchise_sheet,recorded_cost FROM auction_sales WHERE season<? ORDER BY season,player_id', (season,))
-    historical_keepers = rows(db, 'SELECT season,player_id,franchise_sheet,recorded_cost FROM keeper_costs WHERE season<? ORDER BY season,player_id', (season,))
+    historical_keepers = rows(db, 'SELECT season,player_id,player,franchise_sheet,recorded_cost,contract_year_recorded,source_cell FROM keeper_costs WHERE season<? ORDER BY season,player_id', (season,))
     draft = keeper_summary(db,season)
     if not draft:
         raise ValueError('A complete keeper list is required for auction-dollar allocation.')
@@ -420,7 +421,7 @@ def historical_keeper_groups(keeper_history):
     return groups
 
 
-def training_observations(actuals, statistics, auctions, keeper_history, rules, settings, context=None, availability=None, forecasts=None):
+def training_observations(actuals, statistics, auctions, keeper_history, rules, settings, context=None, availability=None, forecasts=None, profile_rows=None):
     availability = load_preseason_evidence()[1] if availability is None else availability
     forecasts = forecasts or {}
     historical = {}
@@ -433,7 +434,7 @@ def training_observations(actuals, statistics, auctions, keeper_history, rules, 
     keepers = historical_keeper_groups(keeper_history)
     markets = historical_contexts(actuals,statistics,auctions,keeper_history,rules,settings,profiles)
     observations, missing = [], []
-    for sale in auctions:
+    for sale in (auctions if profile_rows is None else profile_rows):
         prior = season_name(int(sale['season'][:4])-1)
         evidence = availability.get((sale['season'],sale['player_id']))
         if evidence:
@@ -506,13 +507,13 @@ def error_radius(records, expected, scale, coverage):
     return quantile([abs(r['predicted']-r['actual'])/r['scale'] for r in band],coverage)*scale
 
 
-def evaluate(observations,settings):
+def evaluate(observations,settings,keeper_records=()):
     """Choose on development years; lock the choice before the final three seasons."""
     plain_candidates = ('mean','ridge','comps','blend','uniform_comps','weighted_comps','weighted_blend','local')
     candidates = ('score_curve',)+plain_candidates+tuple('age_'+name for name in plain_candidates if name!='mean')+('market_local','market_age_local')
     results = {name:[] for name in candidates}
     previous_results = []
-    previous_settings = {k:v for k,v in settings.items() if k!='comp_profile_adjustment'}
+    previous_settings = {k:v for k,v in settings.items() if k!='keeper_evidence'}
     seasons = sorted({o['season'] for o in observations})
     selected = None
     for season in seasons:
@@ -566,8 +567,8 @@ def evaluate(observations,settings):
         earlier = [r for r in results[selected] if r['season']<record['season']]
         radius = error_radius(earlier,record['predicted'],record['scale'],settings['interval_coverage'])
         covered += abs(record['predicted']-record['actual'])<=radius
-    return selected, {'selected_model':selected,'development':development,'holdout':holdout,
-                     'previous_comp_method':{'model_version':'survivor-8cat-v8',
+    validation = {'selected_model':selected,'development':development,'holdout':holdout,
+                     'previous_comp_method':{'model_version':'survivor-8cat-v9',
                                              'development':metrics([r for r in previous_results if r['season']<settings['holdout_first_season']]),
                                              'holdout':metrics([r for r in previous_results if r['season']>=settings['holdout_first_season']])},
                      'holdout_by_actual_price_tier':{tier:metrics([r for r in selected_holdout if price_tier(r['actual'])==tier]) for tier in ('under_10','10_to_30','30_plus')},
@@ -576,7 +577,44 @@ def evaluate(observations,settings):
                      'model_selection_basis':'Candidate choice uses development-year MAE only. Later seasons have been reviewed during earlier model development and are reused retrospective checks, not fresh independent holdouts.',
                      'holdout_tiers_by_model':{name:{tier:metrics([r for r in records if r['season']>=settings['holdout_first_season'] and price_tier(r['actual'])==tier]) for tier in ('under_10','10_to_30','30_plus')} for name,records in results.items()},
                      'by_season':{s:metrics([r for r in results[selected] if r['season']==s]) for s in seasons if any(r['season']==s for r in results[selected])},
-                     'interpretation':'Seasons with archived forecasts use their preseason stat profiles; other seasons use prior-year actuals as explicit proxies. Published per-game-only archives have unknown projected GP. The 2025-26 user workbook has unverified provider/date. Missing or invalid forecasts and documented availability exceptions are excluded, changing the evaluation cohort. Exact league auction dates are unknown. Current estimates are not independently validated.'}, results[selected]
+                     'interpretation':'Seasons with archived forecasts use their preseason stat profiles; other seasons use prior-year actuals as explicit proxies. Published per-game-only archives have unknown projected GP. The 2025-26 user workbook has unverified provider/date. Missing or invalid forecasts and documented availability exceptions are excluded, changing the evaluation cohort. Exact league auction dates are unknown. Current estimates are not independently validated.'}
+    backtest=results[selected]
+    if settings.get('keeper_evidence'):
+        backtest,keeper_validation=evaluate_keeper_layer(observations,backtest,selected,settings,keeper_records)
+        validation['keeper_evidence']=keeper_validation
+        validation['auction_only_interval_coverage']=validation['holdout_interval_coverage']
+        later=[r for r in backtest if r['season']>=settings['holdout_first_season']]
+        validation['holdout_interval_coverage']=sum(abs(r['predicted']-r['actual'])<=error_radius([old for old in backtest if old['season']<r['season']],r['predicted'],r['scale'],settings['interval_coverage']) for r in later)/len(later) if later else None
+    return selected,validation,backtest
+
+
+def evaluate_keeper_layer(observations,baseline,selected,settings,keeper_records):
+    records=[];lookup={(o['season'],o['player_id']):o for o in observations}
+    method=selected.removeprefix('market_');use_market=selected.startswith('market_')
+    for season in sorted({r['season'] for r in baseline}):
+        train=[o for o in observations if o['season']<season]
+        if use_market:train=market_observations(train)
+        models={age:PriceModel(train,settings,int(season[:4]),full=method!='score_curve',age=age) for age in (False,True)}
+        for old in [r for r in baseline if r['season']==season]:
+            item=lookup[(season,old['player_id'])]
+            model=models[method.startswith('age_') and item['profile'].get('age') is not None]
+            neighbors=model.weighted_neighbors(item['profile']) if method.endswith('local') else []
+            detail=keeper_adjustment(model,item['player_id'],item['profile'],season,item['auction_context'],old['predicted'],
+                                     keeper_records,settings['keeper_evidence'],neighbors,profile_scale=old['scale'])
+            contributing=[r for r in detail['records'] if r['supports_uplift']]
+            records.append({**old,'auction_estimate':old['predicted'],'predicted':old['predicted']+detail['adjustment'],
+                            'keeper_adjustment':detail['adjustment'],
+                            'keeper_evidence_latest_season':max((r['season'] for r in contributing),default=None),
+                            'keeper_claim_count':detail['supporting_claims']})
+    def split(data,later):
+        return [r for r in data if (r['season']>=settings['holdout_first_season'])==later]
+    return records,{'development':metrics(split(records,False)),'holdout':metrics(split(records,True)),
+                    'baseline_development':metrics(split(baseline,False)),'baseline_holdout':metrics(split(baseline,True)),
+                    'holdout_price_tiers':{tier:metrics([r for r in split(records,True) if price_tier(r['actual'])==tier]) for tier in ('under_10','10_to_30','30_plus')},
+                    'affected_development':sum(r['keeper_adjustment']>0 for r in split(records,False)),
+                    'affected_holdout':sum(r['keeper_adjustment']>0 for r in split(records,True)),
+                    'claim_coverage':'Only explicitly recorded claims; older unsuccessful-claim logs are unknown. Current claim weight is not calibrated by the earlier auction checks.',
+                    'basis':'Auction-only regression; secondary same-player keeper evidence. Same-season decisions precede auctions, with no future-season records or realized auction-season statistics.'}
 
 
 def build_valuations(db, season, settings=None):
@@ -596,7 +634,10 @@ def build_valuations(db, season, settings=None):
                                   'players':{p['player_id']:p for p in archive['records']}}
                  for archive in archives if archive['season']<season}
     observations,missing = training_observations(actuals,statistics,auctions,keeper_history,rules,settings,context,evidence_index,forecasts)
-    selected,validation,backtest = evaluate(observations,settings)
+    keeper_records,keeper_missing=training_observations(actuals,statistics,auctions,keeper_history,rules,settings,context,evidence_index,forecasts,profile_rows=keeper_history)
+    claim_rows=rows(db,'SELECT * FROM keeper_claims WHERE season<=? ORDER BY season,franchise,choice_rank',(season,))
+    keeper_records=attach_contracts(add_claims(keeper_records,claim_rows),auctions)
+    selected,validation,backtest = evaluate(observations,settings,keeper_records)
     rate_profiles,rate_reference = profiles(players,pool_size=settings['reference_pool_size'],weights=settings['category_weights'])
     scenarios = {}
     for scenario in settings['survivor']['scenarios']:
@@ -616,6 +657,13 @@ def build_valuations(db, season, settings=None):
     model_rows = market_observations(observations) if market_adjusted else observations
     if market_adjusted:
         scale = current_market['market_scale']
+    current_profiles={p['player_id']:{**rate_profiles[p['player_id']],
+        'age':(context.before(p['player_id'],season) or {}).get('target_season_age'),'projected_games':p['games'],
+        'stats':{k:p[k] for k in COMPARISON_FIELDS},'comparison_reference':rate_reference,'outlook_basis':'projection'} for p in players}
+    current_keepers=[{'season':season,'player_id':k['player_id'],'player':k['player'],'franchise_sheet':k['franchise'],
+        'recorded_cost':k['keeper_cost'],'profile':current_profiles[k['player_id']],
+        'auction_context':current_market,'forecast_dataset_id':projection['dataset_id']} for k in draft['rows']]
+    current_evidence=attach_contracts(keeper_records+add_claims(current_keepers,[c for c in claim_rows if c['season']==season]),auctions)
     model = PriceModel(model_rows,settings,int(season[:4]),full=method!='score_curve',age=method.startswith('age_'))
     fallback = PriceModel(model_rows,settings,int(season[:4]),full=method!='score_curve') if model.age else model
     latest_prior = season_name(int(season[:4])-1)
@@ -624,16 +672,19 @@ def build_valuations(db, season, settings=None):
     for p in players:
         key = p['player_id']
         age_record = context.before(key,season)
-        profile = {**rate_profiles[key],'age':age_record['target_season_age'] if age_record else None,'projected_games':p['games'],
-                   'stats':{k:p[k] for k in COMPARISON_FIELDS},'comparison_reference':rate_reference,'outlook_basis':'projection'}
+        profile = current_profiles[key]
         player_model = model if age_record or not model.age else fallback
         prediction_key = 'ridge' if method=='score_curve' else method.removeprefix('age_')
         expected = min(200,max(settings['minimum_bid'],settings['minimum_bid']+player_model.predictions(profile)[prediction_key]*scale))
-        radius = error_radius(backtest,expected,scale,settings['interval_coverage'])
         power = 0 if prediction_key=='uniform_comps' else 2 if prediction_key in ('comps','blend') else settings['comp_distance_power']
         weighted = player_model.weighted_neighbors(profile,power=power)
         components = player_model.local_components(profile,weighted)
         nearest = components['neighbors']
+        keeper_detail=keeper_adjustment(player_model,key,profile,season,current_market,expected,current_evidence,
+                                        settings.get('keeper_evidence',{'maximum_share':0,'maximum_seasons_ago':3,'repeat_share':.25,'supporting_share':.35,'claim_share':.5,'auction_overlap_share':.5,'scope':'same_player'}),
+                                        nearest if prediction_key=='local' else [],profile_scale=scale)
+        expected+=keeper_detail['adjustment']
+        radius = error_radius(backtest,expected,scale,settings['interval_coverage'])
         comps = []
         for weighted in nearest:
             distance,i = weighted['distance'],weighted['index']
@@ -651,7 +702,8 @@ def build_valuations(db, season, settings=None):
                           'projected_games':comp['profile'].get('projected_games'),'forecast_dataset_id':comp['forecast_dataset_id'],
                           'franchise':comp['franchise_sheet'],'distance':round(distance,4),
                           'weight':weighted['weight'],'target_season_age':comp['profile'].get('age'),
-                          'final_price_weight':weighted['weight']*components['correction_share'] if prediction_key=='local' else None,
+                          'auction_estimate_weight':weighted['weight']*components['correction_share'] if prediction_key=='local' else None,
+                          'final_price_weight':weighted['weight']*components['correction_share']*(1-keeper_detail['share']) if prediction_key=='local' else None,
                           'average_team_budget':comp['auction_context']['average_team_budget'],
                           'remaining_budget':comp['auction_context']['remaining_budget'],
                           'open_slots':comp['auction_context']['open_slots'],
@@ -693,7 +745,10 @@ def build_valuations(db, season, settings=None):
         elif fair == 0:
             flags.append('Outside the 225-player neutral allocation. Market price is conditional on being drafted.')
         flags.append('Survivor score assumes reaching the final and neutral access to replacements; no actual waiver winners, positions, dated injuries or category resets are simulated.')
+        if keeper_detail['supporting_claims']:
+            flags.append('Keeper claim prices use claimant-specific contracts. Claim reliability is a working assumption; earlier unsuccessful-claim logs are unavailable.')
         values.append({'player_id':key,'player':p['player'],'fair_value':fair,'expected_auction_price':round(expected,2),
+                       'keeper_evidence':keeper_detail,
                        'recommended_bid_ceiling':None,'lower_estimate':round(max(settings['minimum_bid'],expected-radius),2),
                        'upper_estimate':round(min(200,expected+radius),2),'keeper_cost':keeper['keeper_cost'] if keeper else None,
                        'keeper_surplus':round(fair-keeper['keeper_cost'],2) if keeper else None,
@@ -712,6 +767,10 @@ def build_valuations(db, season, settings=None):
                                                     'base_price':settings['minimum_bid']+components['base']*scale,
                                                     'comp_estimate':sum(w['weight']*comp['implied_price'] for w,comp in zip(nearest,comps)) if nearest else None,
                                                     'base_weight':1-components['correction_share'],
+                                                    'auction_estimate':keeper_detail['auction_estimate'],
+                                                    'keeper_adjustment':keeper_detail['adjustment'],'keeper_share':keeper_detail['share'],
+                                                    'keeper_signal':keeper_detail['signal'],'keeper_decisions':keeper_detail['supporting_decisions'],
+                                                    'keeper_claims':keeper_detail['supporting_claims'],
                                                     'comp_adjustment':components['correction']*scale if prediction_key=='local' else None,
                                                     'effective_comps':components['effective_comps'],
                                                     'comp_count':len(nearest),'weight_power':power,
@@ -726,6 +785,10 @@ def build_valuations(db, season, settings=None):
                                           'scenario_values':{name:s['dollars'][key] for name,s in scenarios.items()}},
                        'comps':comps,'risk_notes':' '.join(flags)})
     excluded_availability = [r for r in missing if r['reason_code']=='preseason_availability']
+    if settings.get('keeper_evidence'):
+        validation['keeper_evidence'].update(historical_profiles=len(keeper_records)-sum(r.get('kind')=='claim' for r in keeper_records),
+            excluded_historical_profiles=len(keeper_missing),recorded_claims=len(claim_rows),
+            priced_claims=sum(c['eligible_cost'] is not None for c in claim_rows),settings=settings['keeper_evidence'])
     validation.update(training_rows=len(observations),unmatched_or_low_sample_rows=sum(r['reason_code']=='prior_sample' for r in missing),
                       excluded_rows=len(missing),preseason_excluded_rows=len(excluded_availability),
                       preseason_evidence={**evidence,'excluded_sales':excluded_availability},historical_sales=len(auctions),
@@ -770,6 +833,8 @@ def save_run(db, result):
                        [(result['run_id'],v['player_id'],v['fair_value'],v['expected_auction_price'],v['recommended_bid_ceiling'],
                          v['lower_estimate'],v['upper_estimate'],v['keeper_cost'],v['keeper_surplus'],canonical(v['category_values']),
                          canonical(v['comps']),v['risk_notes']) for v in result['values']])
+        db.executemany('INSERT INTO keeper_value_evidence VALUES (?,?,?)',
+                       [(result['run_id'],v['player_id'],canonical(v['keeper_evidence'])) for v in result['values']])
     return result['run_id']
 
 
@@ -793,6 +858,11 @@ def export_results(result, folder):
              'market_method':row['category_values']['market']['method'],
              'price_before_comp_adjustment':row['category_values']['market']['base_price'],
              'comp_price_adjustment':row['category_values']['market']['comp_adjustment'],
+             'auction_estimate':row['keeper_evidence']['auction_estimate'],
+             'keeper_price_adjustment':row['keeper_evidence']['adjustment'],
+             'keeper_share':row['keeper_evidence']['share'],
+             'supporting_keeper_decisions':row['keeper_evidence']['supporting_decisions'],
+             'supporting_keeper_claims':row['keeper_evidence']['supporting_claims'],
              'effective_comps':row['category_values']['market']['effective_comps'],
              'useful_games_scenario':row['category_values']['useful_games'],
              **{f'neutral_{name}':value for name,value in row['category_values']['scenario_values'].items()},
@@ -808,6 +878,12 @@ def export_results(result, folder):
     comp_rows = [{'target_player':v['player'],**{k:c for k,c in comp.items() if k not in ('category_z','match_details','stats')},
                   **comp.get('stats',{}),**comp.get('match_details',{})} for v in result['values'] for comp in v['comps']]
     add_sheet(workbook,'Historical comps',comp_rows,list(comp_rows[0]))
+    keeper_rows=[{'target_player':v['player'],**{k:x for k,x in r.items() if k not in ('stats','claim_details')},
+                  **r['stats'],'claim_details':canonical(r['claim_details']) if r['claim_details'] else ''}
+                 for v in result['values'] for r in v['keeper_evidence']['records']]
+    if keeper_rows:
+        add_sheet(workbook,'Keeper evidence',keeper_rows,list(keeper_rows[0]))
+        write_csv(folder/'keeper-evidence.csv',keeper_rows,list(keeper_rows[0]))
     contexts = [{k:v for k,v in c.items() if k not in ('teams','available_top_players','available_top_counts','unmatched_keeper_ids')} |
                 {f'available_top_{n}':count for n,count in c['available_top_counts'].items()} |
                 {'unmatched_keepers':len(c['unmatched_keeper_ids'])} for c in result['validation']['auction_contexts']]

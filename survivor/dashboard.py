@@ -256,7 +256,7 @@ def create_app(preview_db=None):
             projections = rows(db, "SELECT s.*,d.season,d.source_name,d.source_url,d.as_of_date,d.notes FROM player_stats s JOIN stat_datasets d USING(dataset_id) WHERE s.player_id=? AND d.kind='projection' ORDER BY d.as_of_date DESC,d.imported_at DESC", (player_id,))
             for archive in stored_archives(db):
                 projections += [{**p,**archive_metadata(archive)} for p in archive['records'] if p['player_id']==player_id]
-            values = rows(db, 'SELECT v.*,r.model_version,r.created_at,r.projection_dataset_id,d.season FROM projected_values v JOIN valuation_runs r USING(run_id) JOIN stat_datasets d ON r.projection_dataset_id=d.dataset_id WHERE v.player_id=? ORDER BY r.created_at DESC', (player_id,))
+            values = rows(db, 'SELECT v.*,r.model_version,r.created_at,r.projection_dataset_id,d.season,e.payload_json AS keeper_evidence_json FROM projected_values v JOIN valuation_runs r USING(run_id) JOIN stat_datasets d ON r.projection_dataset_id=d.dataset_id LEFT JOIN keeper_value_evidence e ON e.run_id=v.run_id AND e.player_id=v.player_id WHERE v.player_id=? ORDER BY r.created_at DESC', (player_id,))
             current = rows(db, 'SELECT season,franchise,keeper_cost FROM keeper_selections WHERE player_id=? AND season=?', (player_id, RULES['target_season']))
         return jsonify(**player[0], history=history, finals=finals, projections=projections, valuations=values,
                        confirmed_keeper=current[0] if current else None)
@@ -324,7 +324,8 @@ def create_app(preview_db=None):
             writer.writerow(['Player','Survivor value score','Expected league price','Neutral auction value',
                              'Price band low','Price band high','Draft status','Keeper owner','Confirmed keeper cost',
                              'Neutral faster cuts','Neutral slower cuts','Run ID','Market season age','Price before comps','Comp adjustment',
-                             'Position','NBA team',*STAT_COLUMNS,'FG%','FT%'])
+                             'Position','NBA team',*STAT_COLUMNS,'FG%','FT%',
+                             'Auction estimate','Keeper contribution','Keeper share','Supporting keeper decisions','Supporting keeper claims'])
             for row in entries:
                 details = json.loads(row['category_values_json'])
                 scenarios = details.get('scenario_values',{})
@@ -333,7 +334,8 @@ def create_app(preview_db=None):
                          row['lower_estimate'],row['upper_estimate'],row['draft_status'],row['keeper_franchise'],
                          row['confirmed_keeper_cost'],scenarios.get('faster'),scenarios.get('slower'),run_id,
                          (market.get('age_source') or {}).get('target_season_age'),market.get('base_price'),market.get('comp_adjustment'),
-                         row.get('positions'),row.get('nba_team'),*[row.get(k) for k in STAT_COLUMNS],row['fg_pct'],row['ft_pct']]
+                         row.get('positions'),row.get('nba_team'),*[row.get(k) for k in STAT_COLUMNS],row['fg_pct'],row['ft_pct'],
+                         market.get('auction_estimate'),market.get('keeper_adjustment'),market.get('keeper_share'),market.get('keeper_decisions'),market.get('keeper_claims')]
                 writer.writerow(["'"+v if isinstance(v,str) and v.startswith(('=','+','-','@','\t','\r')) else v for v in cells])
             return Response('\ufeff'+stream.getvalue(),mimetype='text/csv',
                             headers={'Content-Disposition':'attachment; filename=survivor-valuations.csv'})

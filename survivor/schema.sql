@@ -112,6 +112,19 @@ CREATE TABLE IF NOT EXISTS keeper_selections (
     keeper_cost INTEGER NOT NULL CHECK(keeper_cost >= 0),
     PRIMARY KEY(season, player_id), UNIQUE(season, franchise, keeper_slot)
 );
+CREATE TABLE IF NOT EXISTS keeper_claim_sources (
+    season TEXT PRIMARY KEY, source_sha256 TEXT NOT NULL, payload_json TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS keeper_claims (
+    season TEXT NOT NULL REFERENCES keeper_claim_sources, franchise TEXT NOT NULL,
+    choice_rank INTEGER NOT NULL CHECK(choice_rank > 0), player_id TEXT NOT NULL REFERENCES players,
+    eligible_cost NUMERIC(10,2), details_json TEXT NOT NULL,
+    PRIMARY KEY(season,franchise,player_id), UNIQUE(season,franchise,choice_rank)
+);
+CREATE TABLE IF NOT EXISTS keeper_value_evidence (
+    run_id TEXT NOT NULL REFERENCES valuation_runs, player_id TEXT NOT NULL REFERENCES players,
+    payload_json TEXT NOT NULL, PRIMARY KEY(run_id,player_id)
+);
 CREATE OR REPLACE VIEW draft_team_budgets AS
 SELECT k.season,k.franchise,d.budget_per_team,COUNT(*) AS keeper_count,
        SUM(k.keeper_cost) AS keeper_spend,

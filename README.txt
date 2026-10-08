@@ -190,6 +190,42 @@ Keeper spend totals $790, leaving $2,210 of the $3,000 league budget for auction
 Max keeps Dejounte Murray for $3 and Nikola Jokic for $88, leaving $109.
 Every team's remaining budget reconciles to the supplied summary.
 
+config/keeper_claims/2026-27.json separately preserves 13 explicit unsuccessful
+ranked choices across 10 players. Older unsuccessful claims are unknown; appearing
+on a final roster does not establish that an owner tried to keep the player.
+Run python scripts/check_keeper_prices.py to audit contract increases and export
+claimant-specific prices to output/keeper_evidence/. The observed increases are
++$1, +$3, +$6, +$10 and +$15 after recorded contract years 1 through 5. This inferred
+rule matches 290/299 linked historical prices and all 30 current confirmed prices.
+Exceptions and opening/final contract-year disagreements retain exact source cells.
+For Luka, Kerry's confirmed price is $69 while Alvin's calculated price is $67.
+Claims are conditional preference evidence, not auction bids. Startup imports
+them into keeper_claim_sources and keeper_claims, preserving the supplied list
+and the claimant's prior salary, contract year and source cells. Unknown prices
+stay unpriced. Original historical salaries, including the Fox disagreement,
+are preserved. No older unsuccessful claims are inferred from roster ownership.
+
+v10 adds secondary evidence from a player's own keeper decisions in the current
+season and preceding three seasons, using qualifying preseason forecasts only.
+Prices are adjusted for available money, available talent and forecast changes.
+Only evidence above the auction estimate can increase expected league price.
+Repeated decisions add influence with diminishing returns; repeated contract
+years, salary lineages already represented by auction comps, and conditional
+claims receive discounts. A cheaper claim supports only its own price range.
+Keeper influence is capped at 40%; actual influence depends on available evidence.
+The player drawer shows the auction estimate, keeper contribution, source records
+and claimant-specific prices. The export workbook adds a Keeper evidence sheet.
+
+Scope and cap were selected on earlier auction errors: same-player evidence
+slightly improved development MAE ($4.6284 to $4.6245); cross-player keeper evidence
+made overall errors worse. Later reused checks improved $4.0454 to $4.0347. The
+claim weight is a working assumption because older unsuccessful logs are missing.
+Audit: output/valuations/keeper-influence-check.json. Rebuild with
+  python scripts/check_keeper_influence.py
+Current examples: Luka $58.58 auction estimate + $1.96 keeper contribution =
+$60.54 expected price; Jokic $85.61, Ant $43.80 and Brunson $45.39. Projections,
+survivor scores and neutral auction values are unaffected by this price layer.
+
 The Keepers & budgets page lists all 15 teams, searchable by team or player and
 sortable by budget. Player files show current ownership/cost alongside history.
 Projection and valuation boards default to available players when that season's
@@ -321,7 +357,7 @@ On deployment, the normal startup computes and saves the run transactionally.
 Identical inputs produce the same run ID; old runs remain available. Public web
 requests cannot write valuations. No manual Railway import is needed. Completion
 is reported in startup logs as:
-  Valuations ready: 2026-27 / 348 players / survivor-8cat-v8
+  Valuations ready: 2026-27 / 348 players / survivor-8cat-v10
 Development checks do not verify that Railway has deployed the update.
 Age context can also be rebuilt offline from verified HTML caches with:
   python -m survivor.market_context

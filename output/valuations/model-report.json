@@ -1,10 +1,10 @@
 {
-  "run_id": "b90ed7219ca8995e42a769797b427115e2d5ce2523c0daee4a39bacd27e6deb4",
+  "run_id": "c17eaa0548f21ab1fb1675bb5649503b96a6ab00dd5fb6ae671ae301efee1636",
   "projection_dataset_id": "8512725602d60917be54e9dac88175045afbe9157138db58b85e6affc9379fba",
   "season": "2026-27",
-  "model_version": "survivor-8cat-v9",
+  "model_version": "survivor-8cat-v10",
   "settings": {
-    "model_version": "survivor-8cat-v9",
+    "model_version": "survivor-8cat-v10",
     "roster_size": 15,
     "minimum_bid": 1,
     "minimum_bid_basis": "Working assumption; lowest recorded auction purchase is $1. Formal rule not confirmed.",
@@ -17,6 +17,16 @@
     "comp_distance_power": 3,
     "comp_correction_share": 0.75,
     "comp_blend_share": 0.25,
+    "keeper_evidence": {
+      "scope": "same_player",
+      "maximum_share": 0.4,
+      "maximum_seasons_ago": 3,
+      "repeat_share": 0.25,
+      "supporting_share": 0.35,
+      "claim_share": 0.5,
+      "auction_overlap_share": 0.5,
+      "basis": "Same-player keeper decisions are secondary upward evidence. Scope/cap selected on development auctions; repeated same-contract decisions and overlap with an auction comp are discounted. Contributions saturate below the 40% ceiling. Current claims use each claimant's own calculated cost; 50% claim reliability is an uncalibrated working assumption because earlier unsuccessful-claim logs are unknown. See keeper-influence-check.json."
+    },
     "comp_profile_adjustment": {
       "curve_share": 0,
       "basis": "Retain the full fitted elite curve in the regression base; translate qualified auction bids using category and age effects without the squared-score difference. Selected by development auction MAE from fixed curve strengths after a rejected uniform-shrinkage audit. Symmetric for better/worse profiles, no name or price floor. See output/valuations/profile-adjustment-check.json; later seasons are reused retrospective checks."
@@ -189,7 +199,7 @@
         "n": 610,
         "mae": 4.734117759266338,
         "rmse": 6.132122489334176,
-        "bias": 0.14733906853719214
+        "bias": 0.1473390685371922
       },
       "age_ridge": {
         "n": 610,
@@ -231,19 +241,19 @@
         "n": 610,
         "mae": 4.656594593877296,
         "rmse": 6.1203748069061055,
-        "bias": 0.03322041450814128
+        "bias": 0.033220414508141304
       },
       "market_local": {
         "n": 610,
         "mae": 4.717981900187761,
         "rmse": 6.123167591997275,
-        "bias": 0.25894675817766677
+        "bias": 0.25894675817766655
       },
       "market_age_local": {
         "n": 610,
         "mae": 4.628414279436155,
         "rmse": 6.088698325924465,
-        "bias": 0.12064795422447161
+        "bias": 0.12064795422447162
       }
     },
     "holdout": {
@@ -299,7 +309,7 @@
         "n": 468,
         "mae": 4.129115348855589,
         "rmse": 5.892907825166666,
-        "bias": 0.2475106087444455
+        "bias": 0.24751060874444544
       },
       "age_ridge": {
         "n": 468,
@@ -341,34 +351,34 @@
         "n": 468,
         "mae": 4.049482984153936,
         "rmse": 5.888772422814573,
-        "bias": 0.08429733546230854
+        "bias": 0.08429733546230846
       },
       "market_local": {
         "n": 468,
         "mae": 4.123642454855032,
         "rmse": 5.907247483063005,
-        "bias": 0.3975846626949008
+        "bias": 0.39758466269490067
       },
       "market_age_local": {
         "n": 468,
-        "mae": 4.045363288107794,
+        "mae": 4.0453632881077946,
         "rmse": 5.9034026774068025,
         "bias": 0.2280668665844482
       }
     },
     "previous_comp_method": {
-      "model_version": "survivor-8cat-v8",
+      "model_version": "survivor-8cat-v9",
       "development": {
         "n": 610,
-        "mae": 4.6733365146744745,
-        "rmse": 6.215067902578787,
-        "bias": 0.008698502267079269
+        "mae": 4.628414279436155,
+        "rmse": 6.088698325924465,
+        "bias": 0.12064795422447162
       },
       "holdout": {
         "n": 468,
-        "mae": 4.085288607825952,
-        "rmse": 5.982234547846556,
-        "bias": 0.09961864630570058
+        "mae": 4.0453632881077946,
+        "rmse": 5.9034026774068025,
+        "bias": 0.2280668665844482
       }
     },
     "holdout_by_actual_price_tier": {
@@ -376,7 +386,7 @@
         "n": 247,
         "mae": 2.857465766872342,
         "rmse": 4.102308397740711,
-        "bias": 2.055062069549173
+        "bias": 2.0550620695491726
       },
       "10_to_30": {
         "n": 160,
@@ -387,11 +397,11 @@
       "30_plus": {
         "n": 61,
         "mae": 8.71095077825795,
-        "rmse": 11.10277702147893,
+        "rmse": 11.102777021478932,
         "bias": -4.4527039131119235
       }
     },
-    "holdout_interval_coverage": 0.8226495726495726,
+    "holdout_interval_coverage": 0.8205128205128205,
     "holdout_first_season": "2023-24",
     "model_selection_basis": "Candidate choice uses development-year MAE only. Later seasons have been reviewed during earlier model development and are reused retrospective checks, not fresh independent holdouts.",
     "holdout_tiers_by_model": {
@@ -698,7 +708,7 @@
       "age_local": {
         "under_10": {
           "n": 247,
-          "mae": 2.834015202320638,
+          "mae": 2.8340152023206375,
           "rmse": 4.05786581570793,
           "bias": 2.0243086408385804
         },
@@ -706,7 +716,7 @@
           "n": 160,
           "mae": 4.101157708791554,
           "rmse": 5.384471685511305,
-          "bias": -0.9880556599120169
+          "bias": -0.9880556599120168
         },
         "30_plus": {
           "n": 61,
@@ -732,7 +742,7 @@
           "n": 61,
           "mae": 8.538695183390741,
           "rmse": 10.936105755282037,
-          "bias": -4.487938824156703
+          "bias": -4.4879388241567035
         }
       },
       "market_age_local": {
@@ -740,7 +750,7 @@
           "n": 247,
           "mae": 2.857465766872342,
           "rmse": 4.102308397740711,
-          "bias": 2.055062069549173
+          "bias": 2.0550620695491726
         },
         "10_to_30": {
           "n": 160,
@@ -751,7 +761,7 @@
         "30_plus": {
           "n": 61,
           "mae": 8.71095077825795,
-          "rmse": 11.10277702147893,
+          "rmse": 11.102777021478932,
           "bias": -4.4527039131119235
         }
       }
@@ -761,19 +771,19 @@
         "n": 122,
         "mae": 4.943278916347955,
         "rmse": 6.694555547940335,
-        "bias": 0.25493051035384073
+        "bias": 0.25493051035384084
       },
       "2019-20": {
         "n": 122,
         "mae": 4.144701982964313,
-        "rmse": 5.47100205690616,
-        "bias": -0.1737967140724582
+        "rmse": 5.471002056906161,
+        "bias": -0.17379671407245792
       },
       "2020-21": {
         "n": 123,
         "mae": 4.643742882905207,
         "rmse": 5.811268410486177,
-        "bias": -1.1149727735708144
+        "bias": -1.1149727735708146
       },
       "2021-22": {
         "n": 123,
@@ -785,28 +795,93 @@
         "n": 120,
         "mae": 4.575209313325078,
         "rmse": 6.054778274209311,
-        "bias": 1.0044943306940375
+        "bias": 1.0044943306940373
       },
       "2023-24": {
         "n": 125,
         "mae": 4.373602385100633,
-        "rmse": 5.450168019368265,
+        "rmse": 5.450168019368266,
         "bias": 0.9647292038469366
       },
       "2024-25": {
         "n": 180,
-        "mae": 3.8440242657211465,
+        "mae": 3.844024265721147,
         "rmse": 6.372329214622998,
-        "bias": -0.20668906461648306
+        "bias": -0.206689064616483
       },
       "2025-26": {
         "n": 163,
         "mae": 4.015983759920626,
         "rmse": 5.695574971045501,
-        "bias": 0.14324033565412048
+        "bias": 0.14324033565412037
       }
     },
     "interpretation": "Seasons with archived forecasts use their preseason stat profiles; other seasons use prior-year actuals as explicit proxies. Published per-game-only archives have unknown projected GP. The 2025-26 user workbook has unverified provider/date. Missing or invalid forecasts and documented availability exceptions are excluded, changing the evaluation cohort. Exact league auction dates are unknown. Current estimates are not independently validated.",
+    "keeper_evidence": {
+      "development": {
+        "n": 610,
+        "mae": 4.624502450634566,
+        "rmse": 6.073089606030877,
+        "bias": 0.1461051275462034
+      },
+      "holdout": {
+        "n": 468,
+        "mae": 4.034736954160311,
+        "rmse": 5.885182387855959,
+        "bias": 0.24321693966952598
+      },
+      "baseline_development": {
+        "n": 610,
+        "mae": 4.628414279436155,
+        "rmse": 6.088698325924465,
+        "bias": 0.12064795422447162
+      },
+      "baseline_holdout": {
+        "n": 468,
+        "mae": 4.0453632881077946,
+        "rmse": 5.9034026774068025,
+        "bias": 0.2280668665844482
+      },
+      "holdout_price_tiers": {
+        "under_10": {
+          "n": 247,
+          "mae": 2.8574097542014125,
+          "rmse": 4.10286791430578,
+          "bias": 2.05840626486911
+        },
+        "10_to_30": {
+          "n": 160,
+          "mae": 4.096032935835249,
+          "rmse": 5.37156040975165,
+          "bias": -0.7952653931600168
+        },
+        "30_plus": {
+          "n": 61,
+          "mae": 8.641170746321915,
+          "rmse": 11.040081573890367,
+          "bias": -4.38292388117589
+        }
+      },
+      "affected_development": 34,
+      "affected_holdout": 28,
+      "claim_coverage": "Only explicitly recorded claims; older unsuccessful-claim logs are unknown. Current claim weight is not calibrated by the earlier auction checks.",
+      "basis": "Auction-only regression; secondary same-player keeper evidence. Same-season decisions precede auctions, with no future-season records or realized auction-season statistics.",
+      "historical_profiles": 292,
+      "excluded_historical_profiles": 8,
+      "recorded_claims": 13,
+      "priced_claims": 13,
+      "settings": {
+        "scope": "same_player",
+        "maximum_share": 0.4,
+        "maximum_seasons_ago": 3,
+        "repeat_share": 0.25,
+        "supporting_share": 0.35,
+        "claim_share": 0.5,
+        "auction_overlap_share": 0.5,
+        "basis": "Same-player keeper decisions are secondary upward evidence. Scope/cap selected on development auctions; repeated same-contract decisions and overlap with an auction comp are discounted. Contributions saturate below the 40% ceiling. Current claims use each claimant's own calculated cost; 50% claim reliability is an uncalibrated working assumption because earlier unsuccessful-claim logs are unknown. See keeper-influence-check.json."
+      }
+    },
+    "auction_only_interval_coverage": 0.8226495726495726,
     "training_rows": 1589,
     "unmatched_or_low_sample_rows": 34,
     "excluded_rows": 584,

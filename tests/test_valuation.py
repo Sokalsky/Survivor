@@ -313,6 +313,9 @@ class PublishedValueIntegrationTests(unittest.TestCase):
             else:
                 self.assertLess(r['stats_season'],r['season'])
             self.assertLess(r['training_last_season'],r['season'])
+            if r['keeper_evidence_latest_season']:
+                self.assertLessEqual(r['keeper_evidence_latest_season'],r['season'])
+            self.assertEqual(r['keeper_claim_count'],0)
             if r['age_source_season']:
                 self.assertLess(r['age_source_season'],r['season'])
         v = result['validation']
@@ -342,17 +345,19 @@ class PublishedValueIntegrationTests(unittest.TestCase):
             self.assertEqual(market['near_identical_comp_count'],len(precise))
             if precise:
                 self.assertGreaterEqual(sum(c['weight'] for c in precise),.95-1e-12)
-                self.assertGreaterEqual(sum(c['final_price_weight'] for c in precise),.855-1e-12)
+                self.assertGreaterEqual(sum(c['auction_estimate_weight'] for c in precise),.855-1e-12)
             if strong:
                 self.assertGreaterEqual(sum(c['weight'] for c in strong),.8-1e-12)
             self.assertAlmostEqual(sum(c['price_adjustment'] for c in row['comps']),market['comp_adjustment'])
-            self.assertAlmostEqual(sum(c['final_price_weight'] for c in row['comps'])+market['base_weight'],1)
+            self.assertAlmostEqual(sum(c['final_price_weight'] for c in row['comps'])+market['base_weight']*(1-market['keeper_share'])+market['keeper_share'],1)
             if row['comps']:
                 self.assertAlmostEqual(market['comp_estimate'],sum(c['weight']*c['implied_price'] for c in row['comps']))
                 blend = market['base_weight']*market['base_price']+market['correction_share']*market['comp_estimate']
-                self.assertAlmostEqual(row['expected_auction_price'],round(min(200,max(1,blend)),2))
+                self.assertAlmostEqual(market['auction_estimate'],min(200,max(1,blend)))
             expected = min(200,max(1,market['base_price']+market['comp_adjustment']))
-            self.assertAlmostEqual(row['expected_auction_price'],round(expected,2))
+            self.assertAlmostEqual(row['expected_auction_price'],round(expected+market['keeper_adjustment'],2))
+            if market['keeper_share']:
+                self.assertAlmostEqual(row['expected_auction_price'],round((1-market['keeper_share'])*expected+market['keeper_share']*market['keeper_signal'],2))
             for comp in row['comps']:
                 if comp['forecast_dataset_id']:
                     self.assertEqual(comp['stats_season'],comp['season'])
@@ -370,7 +375,8 @@ class PublishedValueIntegrationTests(unittest.TestCase):
                 self.assertEqual(comp['curve_adjustment'],0)
                 self.assertAlmostEqual(comp['profile_adjustment']+comp['full_curve_adjustment'],market['base_price']-comp['model_price'])
                 self.assertAlmostEqual(comp['implied_price'],comp['actual_price']+comp['cash_adjustment']+comp['supply_adjustment']+comp['profile_adjustment'])
-                self.assertAlmostEqual(comp['final_price_weight'],comp['weight']*market['correction_share'])
+                self.assertAlmostEqual(comp['auction_estimate_weight'],comp['weight']*market['correction_share'])
+                self.assertAlmostEqual(comp['final_price_weight'],comp['auction_estimate_weight']*(1-market['keeper_share']))
                 limits = settings()['comp_rules'][comp['match_quality']]
                 for key in ('category_rms','production_gap','largest_category_gap','age_gap','games_gap'):
                     gap = comp['match_details'][key]
@@ -403,7 +409,7 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         strong = [c for c in ant['comps'] if c['match_quality']=='strong']
         self.assertEqual([(c['player_id'],c['season']) for c in strong],[('bradleybeal','2020-21')])
         self.assertGreaterEqual(strong[0]['weight'],.8-1e-12)
-        self.assertAlmostEqual(strong[0]['final_price_weight'],.6)
+        self.assertAlmostEqual(strong[0]['auction_estimate_weight'],.6)
         self.assertEqual(ant['category_values']['market']['base_weight'],.25)
         self.assertEqual(strong[0]['remaining_budget'],2148)
         self.assertEqual(strong[0]['available_top_30'],13)
@@ -418,14 +424,15 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         self.assertEqual(miller['match_quality'],'supporting')
         self.assertLess(miller['weight'],.05)
 
-    def test_brunson_prior_auction_dominates_and_keeper_cost_is_not_a_comp(self):
+    def test_brunson_prior_auction_dominates_auction_estimate(self):
         brunson = next(v for v in self.result['values'] if v['player_id']=='jalenbrunson')
         precise = [c for c in brunson['comps'] if c['match_quality']=='near_identical']
         self.assertEqual([(c['player_id'],c['season']) for c in precise],[('jalenbrunson','2025-26')])
         self.assertEqual(precise[0]['actual_price'],45)
         self.assertEqual(brunson['keeper_cost'],46)
         self.assertAlmostEqual(precise[0]['weight'],.95)
-        self.assertAlmostEqual(precise[0]['final_price_weight'],.855)
+        self.assertAlmostEqual(precise[0]['auction_estimate_weight'],.855)
+        self.assertLess(brunson['keeper_evidence']['adjustment'],1)
         self.assertGreater(brunson['expected_auction_price'],43)
         self.assertEqual(brunson['fair_value'],25.52)
 
@@ -437,7 +444,16 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         self.assertAlmostEqual(comp['profile_adjustment'],-5.15,places=2)
         self.assertAlmostEqual(comp['full_curve_adjustment'],-8.31,places=2)
         self.assertAlmostEqual(comp['implied_price'],57.74,places=2)
-        self.assertEqual(luka['expected_auction_price'],58.58)
+        self.assertAlmostEqual(luka['keeper_evidence']['auction_estimate'],58.58,places=2)
+        self.assertEqual(luka['expected_auction_price'],60.54)
+        evidence=luka['keeper_evidence']
+        self.assertEqual((evidence['supporting_decisions'],evidence['supporting_claims']),(3,1))
+        current={r['franchise']:r for r in evidence['records'] if r['season']=='2026-27'}
+        self.assertEqual(current['Kerry']['cost'],69)
+        self.assertEqual(current['Alvin']['cost'],67)
+        self.assertEqual(current['Alvin']['kind'],'claim')
+        self.assertTrue(current['Alvin']['auction_overlap'])
+        self.assertEqual(current['Alvin']['claim_details']['price_status'],'derived')
         self.assertEqual(luka['fair_value'],59.95)
 
     def test_injury_exceptions_removed_from_fit_and_every_comp_but_history_preserved(self):
@@ -541,12 +557,14 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         save_run(self.db,self.result)
         self.assertEqual(self.db.execute('SELECT COUNT(*) FROM valuation_runs').fetchone()[0],1)
         self.assertEqual(self.db.execute('SELECT COUNT(*) FROM projected_values').fetchone()[0],348)
+        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM keeper_value_evidence').fetchone()[0],348)
         broken = copy.deepcopy(self.result)
         broken['run_id']='failed-test-run'
         broken['values'][1]['player_id']='missing-player-for-rollback-test'
         with self.assertRaises(Exception):
             save_run(self.db,broken)
         self.assertEqual(self.db.execute('SELECT COUNT(*) FROM valuation_runs').fetchone()[0],1)
+        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM keeper_value_evidence').fetchone()[0],348)
         self.assertFalse(self.db.execute('PRAGMA foreign_key_check').fetchall())
 
     def test_latest_data_excludes_future_actuals_and_sales(self):
@@ -561,6 +579,7 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         self.assertIn('league_rules',payload['run']['settings'])
         self.assertEqual(len(payload['rows']),348)
         self.assertNotIn('comps_json',payload['rows'][0])
+        self.assertNotIn('keeper_evidence_json',payload['rows'][0])
         detail = self.client.get('/api/players/anthonyedwards').json
         self.assertEqual(len(json.loads(detail['valuations'][0]['comps_json'])),20)
         self.assertEqual(len(self.client.get('/api/valuations?availability=available').json['rows']),318)
@@ -571,6 +590,11 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         jokic = next(r for r in exported if r['Player']=='Nikola Jokic')
         self.assertEqual(float(jokic['Confirmed keeper cost']),88)
         self.assertGreater(float(jokic['Survivor value score']),0)
+        self.assertGreater(float(jokic['Keeper contribution']),0)
+        self.assertAlmostEqual(float(jokic['Expected league price']),float(jokic['Auction estimate'])+float(jokic['Keeper contribution']),places=2)
+        luka_detail=self.client.get('/api/players/lukadoncic').json['valuations'][0]
+        expected=next(v['keeper_evidence'] for v in self.result['values'] if v['player_id']=='lukadoncic')
+        self.assertEqual(json.loads(luka_detail['keeper_evidence_json']),expected)
         self.assertEqual(self.client.post('/api/valuations').status_code,405)
         self.assertEqual(self.client.get('/api/valuations?run=missing').json,{'run':None,'rows':[]})
 
