@@ -243,6 +243,28 @@ a simultaneous budget allocation. No personalized bid ceiling is produced.
 
 VALUATION MODEL
 
+Draft targets and row colors are a display layer over the saved v10 prices.
+The values board defaults to largest value gap: neutral auction value minus
+expected league price. White means evenly valued; light green solid value;
+light blue elite value; light orange slight overvaluation; light red overvaluation.
+Solid requires both a $3 gap and 10% of neutral value. Elite requires $8 and 25%.
+The same bands apply to negative gaps. These are transparent display thresholds,
+not fitted forecasts or guarantees. Missing prices stay unrated, including
+historical projection sets without valuations. Keeper prices remain hypothetical
+if available; this comparison never substitutes the actual keeper salary.
+
+Category profile is separate from price value. Positive cats counts per-game
+category contributions above the saved 225-player reference pool. FG/FT impact
+uses volume-weighted makes minus baseline percentage times attempts, standardized
+on that pool. A positive sign therefore reflects team-percentage impact, rather
+than ranking a tiny-volume percentage as elite. Exactly zero is neutral.
+Filters: 8/8 positive, 7+ positive with both shooting categories positive, or both
+percentages positive. Sort by positive-category count, either shooting impact,
+the weaker shooting impact, weakest category, value gap or any existing metric.
+The color and text label show price value independently of these profile badges.
+Both boards, player detail and CSV exports expose the signals. Filtered CSVs
+match the displayed rows. Existing forecasts, comps and valuation runs are intact.
+
 survivor/valuation.py uses all eight per-game categories, volume-weighted shooting
 impact, published availability, rising replacement levels as teams are eliminated,
 and the 1,000-game/100-move limits under explicit neutral scenarios. Waiver and

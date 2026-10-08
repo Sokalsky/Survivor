@@ -100,12 +100,28 @@ const tableColumns = [
   ['player','Player','text'],['positions','Position','text'],['nba_team','Team','text'],
   ['survivor_score','Survivor value','score'],['expected_auction_price','Expected league price','money'],
   ['fair_value','Neutral auction value','money'],['confirmed_keeper_surplus','Keeper surplus','money'],
+  ['value_gap','Value gap','signed_money'],['value_gap_pct','Value gap %','percent'],
+  ['positive_categories','Positive cats','categories'],['category_floor','Weakest category','score'],
+  ['fg_impact','FG impact','score'],['ft_impact','FT impact','score'],['shooting_floor','Weaker % impact','score'],
   ['games','GP','integer'],['minutes_pg','MIN','number'],['pts_pg','PTS','number'],['reb_pg','REB','number'],
   ['ast_pg','AST','number'],['stl_pg','STL','number'],['blk_pg','BLK','number'],['fg3m_pg','3PM','number'],
   ['fg_pct','FG%','percent'],['ft_pct','FT%','percent'],['fgm_pg','FGM','number'],['fga_pg','FGA','number'],
   ['ftm_pg','FTM','number'],['fta_pg','FTA','number']
 ];
 const normalizedName = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+const valueLabels={elite:'Elite value',solid:'Solid value',even:'Evenly valued',slight_over:'Slightly overvalued',overvalued:'Overvalued',unrated:'Unrated'};
+function targetMatches(row,value,profile) {
+  const price=value==='all' || row.value_tier===value || value==='undervalued' && ['solid','elite'].includes(row.value_tier);
+  const fit=profile==='all' || profile==='all_eight' && row.all_categories_positive===true || profile==='percentages' && row.both_percentages_positive===true || profile==='balanced' && row.positive_categories>=7 && row.both_percentages_positive===true;
+  return price && fit;
+}
+function targetLegend() {
+  return `<div class="target-legend" aria-label="Draft value colors">${['even','solid','elite','slight_over','overvalued'].map(key=>`<span><i class="value-${key}" aria-hidden="true"></i>${valueLabels[key]}</span>`).join('')}<span class="target-basis" title="Value gap = neutral auction value minus expected league price. Solid value needs at least $3 and 10% of neutral value; elite needs $8 and 25%. The same bands apply to overvaluation. These are display bands, not confidence levels.">Color: neutral value − expected price</span></div>`;
+}
+function profileBadges(row) {
+  if(row.positive_categories==null)return '';
+  return `<span class="category-count" title="Categories above the 225-player reference pool; percentages use volume-weighted makes and attempts">${row.positive_categories}/8 positive</span><small class="shooting-signs"><span class="${row.fg_impact>1e-9?'helps':row.fg_impact < -1e-9?'hurts':'flat'}" title="Volume-weighted FG impact: ${number(row.fg_impact,2)}">FG ${row.fg_impact>1e-9?'+':row.fg_impact < -1e-9?'−':'='}</span><span class="${row.ft_impact>1e-9?'helps':row.ft_impact < -1e-9?'hurts':'flat'}" title="Volume-weighted FT impact: ${number(row.ft_impact,2)}">FT ${row.ft_impact>1e-9?'+':row.ft_impact < -1e-9?'−':'='}</span></small>`;
+}
 function positionOptions(selected='') {
   return [['','All positions'],['PG','PG'],['SG','SG'],['SF','SF'],['PF','PF'],['C','C'],['G','All guards'],['F','All forwards'],['unknown','Position unavailable']].map(([key,label])=>`<option value="${key}" ${key===selected?'selected':''}>${label}</option>`).join('');
 }
@@ -197,14 +213,16 @@ function emptyHTML(kind) {
 function statsToolbar(kind) {
   const values=kind==='valuations';
   const known=state.dataRows.length?state.dataRows.every(r=>r.draft_status && r.draft_status!=='unknown'):state.bootstrap.draft?.season===state.dataSeason;
-  const sort=values?'survivor_score':'pts_pg';
+  const sort=values?'value_gap':'pts_pg';
   return `<div class="table-title-row"><h2 class="table-heading">${values?'Values':'Projections'} <span class="count-badge" id="data-count"></span></h2><a id="values-export" class="text-button" href="#">${icon('download')} Export CSV</a></div>
     <div class="filter-row"><label class="search-box">${icon('search')}<input id="data-search" type="search" placeholder="Search players…" aria-label="Search ${kind}"></label>
     <select id="data-position" class="select-filter" aria-label="Position">${positionOptions()}</select>
     <select id="draft-filter" class="select-filter" aria-label="Draft availability"><option value="available" ${known?'selected':''}>Available to draft</option><option value="all" ${known?'':'selected'}>All players</option><option value="kept">Keepers only</option></select>
+    <select id="data-value" class="select-filter" aria-label="Draft value"><option value="all">All price values</option><option value="undervalued">Undervalued</option>${Object.entries(valueLabels).map(([key,label])=>`<option value="${key}">${label}</option>`).join('')}</select>
+    <select id="data-profile" class="select-filter" aria-label="Category profile"><option value="all">All category profiles</option><option value="all_eight">8/8 positive</option><option value="balanced">7+ positive + both %</option><option value="percentages">Both percentages positive</option></select>
     <select id="data-columns" class="select-filter" aria-label="Table columns"><option value="values" ${values?'selected':''}>Values</option><option value="projections" ${values?'':'selected'}>Projections · per game</option><option value="all">Values + projections</option></select>
     <select id="data-sort" class="select-filter" aria-label="Sort ${kind}">${tableColumns.map(([key,label])=>`<option value="${key}" ${key===sort?'selected':''}>${label}</option>`).join('')}</select>
-    <select id="data-direction" class="select-filter direction-filter" aria-label="Sort direction"><option value="desc">Descending</option><option value="asc">Ascending</option></select></div>`;
+    <select id="data-direction" class="select-filter direction-filter" aria-label="Sort direction"><option value="desc">Descending</option><option value="asc">Ascending</option></select></div>${targetLegend()}`;
 }
 
 function datasetHeading(metadata,kind) {
@@ -224,6 +242,7 @@ function valuationDetail(valuation, keeper) {
   const max=Math.max(1,...Object.values(z).map(Math.abs));
   const kept=keeper && keeper.season===valuation.season;
   return `<div class="drawer-metrics valuation-metrics"><div><small>SURVIVOR VALUE</small><strong>${number(c.score,2)}</strong></div><div><small>EXPECTED LEAGUE PRICE${kept?' · IF AVAILABLE':''}</small><strong>${money(valuation.expected_auction_price)}</strong></div><div><small>NEUTRAL AUCTION VALUE</small><strong>${money(valuation.fair_value)}</strong></div></div>
+    <div class="draft-value-detail value-${esc(valuation.value_tier || 'unrated')}"><span><strong>${esc(valueLabels[valuation.value_tier] || 'Unrated')}</strong>${valuation.value_gap!=null?`<small>${valuation.value_gap>0?'+':''}${preciseMoney(valuation.value_gap)} vs expected price${kept?' · if available':''}</small>`:''}</span><span>${profileBadges(valuation)}</span></div>
     <div class="detail-facts"><span>Price band ${money(valuation.lower_estimate)}–${money(valuation.upper_estimate)}</span>${kept?`<span>Keeper surplus ${money(valuation.fair_value-keeper.keeper_cost)}</span>`:''}${c.useful_games!=null?`<span>Useful GP ${number(c.useful_games,1)} / ${number(c.games)}</span>`:''}</div>
     ${Array.isArray(comps)&&(comps.length || c.market)?comparableDetail(comps,c.market):''}
     ${keeperEvidenceDetail(object(valuation.keeper_evidence_json),valuation.expected_auction_price)}
@@ -292,28 +311,29 @@ function renderStatsTable() {
   const sort=$('#data-sort').value,direction=$('#data-direction').value;
   const availability=$('#draft-filter').value,position=$('#data-position').value;
   const q=$('#data-search').value,mode=$('#data-columns').value;
-  const data=state.dataRows.filter(r=>normalizedName(r.player).includes(normalizedName(q)) && hasPosition(r.positions,position) && (availability==='all' || r.draft_status===availability));
+  const value=$('#data-value').value,profile=$('#data-profile').value;
+  const data=state.dataRows.filter(r=>normalizedName(r.player).includes(normalizedName(q)) && hasPosition(r.positions,position) && (availability==='all' || r.draft_status===availability) && targetMatches(r,value,profile));
   data.sort((a,b)=>{
     const av=a[sort],bv=b[sort];
     if(av==null || bv==null) return av==null && bv==null?a.player.localeCompare(b.player):av==null?1:-1;
     const comparison=['player','positions','nba_team'].includes(sort)?String(av).localeCompare(String(bv)):Number(av)-Number(bv);
     return comparison*(direction==='asc'?1:-1) || a.player.localeCompare(b.player);
   });
-  const valueKeys=['survivor_score','expected_auction_price','fair_value'];
-  const statKeys=['nba_team','positions','games','minutes_pg','pts_pg','reb_pg','ast_pg','stl_pg','blk_pg','fg3m_pg','fg_pct','ft_pct'];
-  const keys=['player',...(mode==='values'?valueKeys:mode==='projections'?statKeys:[...valueKeys,...statKeys])];
+  const valueKeys=['survivor_score','expected_auction_price','fair_value','value_gap','positive_categories'];
+  const statKeys=['nba_team','positions','games','minutes_pg','pts_pg','reb_pg','ast_pg','stl_pg','blk_pg','fg3m_pg','fg_pct','ft_pct','positive_categories'];
+  const keys=[...new Set(['player',...(mode==='values'?valueKeys:mode==='projections'?statKeys:[...valueKeys,...statKeys])])];
   if(!keys.includes(sort))keys.push(sort);
   const columns=keys.map(k=>tableColumns.find(c=>c[0]===k));
   $('#data-count').textContent=number(data.length);
-  const parameters=new URLSearchParams({[state.view==='valuations'?'run':'dataset']:state.view==='valuations'?state.activeRun:state.activeDataset,q,position,availability,sort,direction});
+  const parameters=new URLSearchParams({[state.view==='valuations'?'run':'dataset']:state.view==='valuations'?state.activeRun:state.activeDataset,q,position,availability,sort,direction,value,profile});
   $('#values-export').href=`/api/${state.view}.csv?${parameters}`;
   const cell=(r,[key,label,type])=>{
-    if(key==='player')return `<td class="player-cell">${playerButton(r)}</td>`;
+    if(key==='player')return `<td class="player-cell">${playerButton(r)}<small class="value-label">${esc(valueLabels[r.value_tier] || 'Unrated')}</small></td>`;
     const v=r[key];
-    const formatted=type==='text'?esc(v || '—'):type==='money'?money(v):type==='percent'?(v==null?'—':number(v*100,1)+'%'):number(v,type==='score'?2:type==='integer'?0:1);
+    const formatted=type==='text'?esc(v || '—'):type==='categories'?(v==null?'—':profileBadges(r)):type==='signed_money'?(v==null?'—':(v>0?'+':'')+preciseMoney(v)):type==='money'?money(v):type==='percent'?(v==null?'—':number(v*100,1)+'%'):number(v,type==='score'?2:type==='integer'?0:1);
     return `<td class="${type==='money'||type==='score'?'money-cell':'right'}" data-label="${esc(label)}" data-value="${esc(v)}">${key==='expected_auction_price'&&v!=null?`<button class="price-comps-button" data-player="${esc(r.player_id)}" data-focus="comps" aria-label="View price comps for ${esc(r.player)}">${formatted}<span>View comps</span></button>`:formatted}</td>`;
   };
-  $('#data-table').innerHTML=`<div class="table-scroll"><table class="${mode==='values'&&keys.length===4?'value-table':'stat-table'}"><thead><tr>${columns.map(([k,l,t])=>sortHeader(k,l,sort,direction,'data',t!=='text')).join('')}</tr></thead><tbody>${data.map(r=>`<tr>${columns.map(c=>cell(r,c)).join('')}</tr>`).join('') || `<tr><td colspan="${keys.length}"><div class="no-results">No matching players.</div></td></tr>`}</tbody></table></div>`;
+  $('#data-table').innerHTML=`<div class="table-scroll"><table class="draft-board ${mode==='values'?'value-table':'stat-table'}"><thead><tr>${columns.map(([k,l,t])=>sortHeader(k,l,sort,direction,'data',t!=='text')).join('')}</tr></thead><tbody>${data.map(r=>`<tr class="value-${esc(r.value_tier || 'unrated')}" data-value-tier="${esc(r.value_tier || 'unrated')}" data-player-id="${esc(r.player_id)}">${columns.map(c=>cell(r,c)).join('')}</tr>`).join('') || `<tr><td colspan="${keys.length}"><div class="no-results">No matching players. Try changing the value, category or availability filters.</div></td></tr>`}</tbody></table></div>`;
 }
 
 function historicalStatsStatus() {
@@ -480,7 +500,7 @@ document.addEventListener('change',event=>{
   if(event.target.id==='season-select'){state.season=value;state.page=1;loadView();}
   if(event.target.id==='team-filter'){state.team=value;state.page=1;loadHistoryTable();}
   if(event.target.id==='sort-filter'){state.sort=value;state.page=1;loadHistoryTable();}
-  if(['data-sort','draft-filter','data-position','data-direction','data-columns'].includes(event.target.id))renderStatsTable();
+  if(['data-sort','draft-filter','data-position','data-direction','data-columns','data-value','data-profile'].includes(event.target.id))renderStatsTable();
   if(event.target.id==='history-position'){state.position=value;state.page=1;loadHistoryTable();}
   if(event.target.id==='history-direction'){state.direction=value;state.page=1;loadHistoryTable();}
   if(event.target.id==='keeper-sort')keeperCards();

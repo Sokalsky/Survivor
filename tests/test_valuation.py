@@ -598,6 +598,37 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         self.assertEqual(self.client.post('/api/valuations').status_code,405)
         self.assertEqual(self.client.get('/api/valuations?run=missing').json,{'run':None,'rows':[]})
 
+    def test_draft_value_and_category_filters_match_exports_and_do_not_change_prices(self):
+        from survivor.draft_targets import target_metrics
+        for route in ('valuations','projections'):
+            query='?availability=available&value=undervalued&sort=value_gap&direction=desc'
+            data=self.client.get('/api/'+route+query).json['rows']
+            self.assertTrue(data)
+            self.assertTrue(all(r['value_tier'] in ('solid','elite') for r in data))
+            self.assertEqual([r['value_gap'] for r in data],sorted((r['value_gap'] for r in data),reverse=True))
+            exported=list(csv.DictReader(io.StringIO(self.client.get('/api/'+route+'.csv'+query).data.decode('utf-8-sig'))))
+            self.assertEqual([r.get('Player',r.get('player')) for r in exported],[r['player'] for r in data])
+            self.assertEqual([float(r.get('Value gap',r.get('value_gap'))) for r in exported],[r['value_gap'] for r in data])
+            for row in data:
+                saved=next(v for v in self.result['values'] if v['player_id']==row['player_id'])
+                self.assertEqual(row['expected_auction_price'],saved['expected_auction_price'])
+                self.assertEqual(row['fair_value'],saved['fair_value'])
+            balanced=self.client.get('/api/'+route+'?availability=available&profile=balanced&sort=shooting_floor&direction=desc').json['rows']
+            self.assertIn('anthonyedwards',{r['player_id'] for r in balanced})
+            self.assertTrue(all(r['positive_categories']>=7 and r['fg_impact']>0 and r['ft_impact']>0 for r in balanced))
+            self.assertEqual(self.client.get('/api/'+route+'?availability=available&profile=all_eight').json['rows'],[])
+            all_eight=self.client.get('/api/'+route+'?profile=all_eight').json['rows']
+            self.assertEqual([r['player_id'] for r in all_eight],['nikolajokic'])
+            self.assertEqual(self.client.get('/api/'+route+'?value=bogus').status_code,400)
+            self.assertEqual(self.client.get('/api/'+route+'?profile=bogus').status_code,400)
+        george=self.client.get('/api/players/paulgeorge').json['valuations'][0]
+        self.assertEqual(george['value_tier'],'elite')
+        self.assertEqual(george['value_gap'],14.24)
+        self.assertEqual(george['expected_auction_price'],9.27)
+        self.assertEqual(george['positive_categories'],5)
+        prior=self.client.get('/api/projections?season=2024-25').json['rows']
+        self.assertTrue(all(r['value_tier']=='unrated' and r['positive_categories'] is None for r in prior))
+
 
 if __name__=='__main__':
     unittest.main()

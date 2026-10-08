@@ -22,12 +22,14 @@ from survivor.keepers import annotate_availability, keeper_summary, sync_bundled
 from survivor.bundled_stats import sync_bundled_stats, sync_bundled_projections
 from survivor.valuation import sync_valuations
 from survivor.historical_projections import archive_metadata, stored_archives
+from survivor.draft_targets import TARGET_FIELDS,VALUE_FILTERS,PROFILE_FILTERS,target_metrics,target_matches
 
 ROOT = Path(__file__).resolve().parents[1]
 RULES = json.loads((ROOT / 'config/league.json').read_text(encoding='utf-8'))
 STAT_COLUMNS = ('games','minutes_pg','pts_pg','reb_pg','ast_pg','stl_pg','blk_pg','fg3m_pg','fgm_pg','fga_pg','ftm_pg','fta_pg')
 TABLE_SORTS = {'player','positions','nba_team','survivor_score','expected_auction_price','fair_value',
-               'confirmed_keeper_surplus','fg_pct','ft_pct',*STAT_COLUMNS}
+               'confirmed_keeper_surplus','fg_pct','ft_pct',*STAT_COLUMNS,
+               'value_gap','value_gap_pct','positive_categories','category_floor','fg_impact','ft_impact','shooting_floor'}
 POSITIONS = {'PG','SG','SF','PF','C','G','F','unknown'}
 
 
@@ -47,6 +49,7 @@ def table_metrics(entries):
         row['confirmed_keeper_surplus'] = row['fair_value']-row['confirmed_keeper_cost'] if row.get('fair_value') is not None and row.get('confirmed_keeper_cost') is not None else None
         row['fg_pct'] = row['fgm_pg']/row['fga_pg'] if row.get('fga_pg') else None
         row['ft_pct'] = row['ftm_pg']/row['fta_pg'] if row.get('fta_pg') else None
+        row.update(target_metrics(row))
     return entries
 
 
@@ -135,8 +138,11 @@ def create_app(preview_db=None):
         if sort not in TABLE_SORTS or direction not in ('asc','desc'):
             raise BadRequest('Unknown table sort.')
         query = name_key(request.args.get('q','')[:100])
+        value=request.args.get('value','all');profile=request.args.get('profile','all')
+        if value not in VALUE_FILTERS or profile not in PROFILE_FILTERS:
+            raise BadRequest('Unknown draft value or category profile filter.')
         entries = [r for r in table_metrics(entries) if position_matches(r.get('positions'),position)
-                   and (not query or query in name_key(r['player']))]
+                   and (not query or query in name_key(r['player'])) and target_matches(r,value,profile)]
         # Keep absent statistics/values last in both directions.
         present = sorted((r for r in entries if r.get(sort) is not None),key=lambda r:r['player'])
         present.sort(key=lambda r:r[sort].casefold() if isinstance(r[sort],str) else r[sort],reverse=direction=='desc')
@@ -258,6 +264,8 @@ def create_app(preview_db=None):
                 projections += [{**p,**archive_metadata(archive)} for p in archive['records'] if p['player_id']==player_id]
             values = rows(db, 'SELECT v.*,r.model_version,r.created_at,r.projection_dataset_id,d.season,e.payload_json AS keeper_evidence_json FROM projected_values v JOIN valuation_runs r USING(run_id) JOIN stat_datasets d ON r.projection_dataset_id=d.dataset_id LEFT JOIN keeper_value_evidence e ON e.run_id=v.run_id AND e.player_id=v.player_id WHERE v.player_id=? ORDER BY r.created_at DESC', (player_id,))
             current = rows(db, 'SELECT season,franchise,keeper_cost FROM keeper_selections WHERE player_id=? AND season=?', (player_id, RULES['target_season']))
+            for value in values:
+                value.update(target_metrics(value))
         return jsonify(**player[0], history=history, finals=finals, projections=projections, valuations=values,
                        confirmed_keeper=current[0] if current else None)
 
@@ -290,7 +298,7 @@ def create_app(preview_db=None):
             stream = io.StringIO(newline='')
             writer = csv.writer(stream)
             fields = ['player','positions','nba_team',*STAT_COLUMNS,'fg_pct','ft_pct','survivor_score',
-                      'expected_auction_price','fair_value','draft_status','dataset_id','run_id']
+                      'expected_auction_price','fair_value','draft_status','dataset_id','run_id',*TARGET_FIELDS]
             writer.writerow(fields)
             for row in entries:
                 writer.writerow(["'"+v if isinstance(v,str) and v.startswith(('=','+','-','@','\t','\r')) else v for v in [row.get(k) for k in fields]])
@@ -325,7 +333,9 @@ def create_app(preview_db=None):
                              'Price band low','Price band high','Draft status','Keeper owner','Confirmed keeper cost',
                              'Neutral faster cuts','Neutral slower cuts','Run ID','Market season age','Price before comps','Comp adjustment',
                              'Position','NBA team',*STAT_COLUMNS,'FG%','FT%',
-                             'Auction estimate','Keeper contribution','Keeper share','Supporting keeper decisions','Supporting keeper claims'])
+                             'Auction estimate','Keeper contribution','Keeper share','Supporting keeper decisions','Supporting keeper claims',
+                             'Value tier','Value gap','Value gap percent','Positive categories','Weakest category impact',
+                             'FG impact','FT impact','Weaker percentage impact','All eight positive','Both percentages positive'])
             for row in entries:
                 details = json.loads(row['category_values_json'])
                 scenarios = details.get('scenario_values',{})
@@ -335,7 +345,8 @@ def create_app(preview_db=None):
                          row['confirmed_keeper_cost'],scenarios.get('faster'),scenarios.get('slower'),run_id,
                          (market.get('age_source') or {}).get('target_season_age'),market.get('base_price'),market.get('comp_adjustment'),
                          row.get('positions'),row.get('nba_team'),*[row.get(k) for k in STAT_COLUMNS],row['fg_pct'],row['ft_pct'],
-                         market.get('auction_estimate'),market.get('keeper_adjustment'),market.get('keeper_share'),market.get('keeper_decisions'),market.get('keeper_claims')]
+                         market.get('auction_estimate'),market.get('keeper_adjustment'),market.get('keeper_share'),market.get('keeper_decisions'),market.get('keeper_claims'),
+                         *[row.get(k) for k in TARGET_FIELDS]]
                 writer.writerow(["'"+v if isinstance(v,str) and v.startswith(('=','+','-','@','\t','\r')) else v for v in cells])
             return Response('\ufeff'+stream.getvalue(),mimetype='text/csv',
                             headers={'Content-Disposition':'attachment; filename=survivor-valuations.csv'})
