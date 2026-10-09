@@ -46,6 +46,8 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
         if(!['https:','http:'].includes(url.protocol)||url.protocol==='http:'&&!['localhost','127.0.0.1'].includes(url.hostname))throw Error('Use HTTPS, or a local Survivor preview.');
         const result=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>document.querySelector('meta[name="survivor-app"]')?.content});
         if(result[0]?.result!=='draft-v1')throw Error('Open the Survivor Draft page before pairing.');
+        c.watching=false;c.status={ready:false,message:'Survivor paired. Choose Watch Yahoo tab explicitly before capturing into this session.'};
+        if(c.yahooTab)await injectYahoo(c);
         c.appTab=tab.id;c.appOrigin=url.origin;c.nonce=crypto.randomUUID();await save(c);await injectApp(c);return {ok:true};
       }
       if(message.type==='watch'){
@@ -56,7 +58,7 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
       if(message.type==='pick') {if(!c.yahooTab)throw Error('Choose Watch Yahoo tab first.');await chrome.tabs.update(c.yahooTab,{active:true});await chrome.tabs.sendMessage(c.yahooTab,{type:'pick',field:message.field});}
       if(message.type==='pause'){c.watching=!c.watching;if(c.yahooTab)await injectYahoo(c);}
       if(message.type==='selectors'){if(!message.selectors||typeof message.selectors!=='object'||Array.isArray(message.selectors))throw Error('Selectors must be an object.');c.selectors=message.selectors;if(c.yahooTab)await injectYahoo(c);}
-      if(message.type==='clear'){c.queue=[];c.seen=[];c.source=crypto.randomUUID();c.sessionId=null;c.status={ready:false,message:'Queue cleared. Pair Survivor and review any missed activity.'};if(c.appTab)await injectApp(c);if(c.yahooTab)await injectYahoo(c);}
+      if(message.type==='clear'){c.watching=false;c.queue=[];c.seen=[];c.source=crypto.randomUUID();c.sessionId=null;c.status={ready:false,message:'Queue cleared. Pair Survivor and review any missed activity.'};if(c.appTab)await injectApp(c);if(c.yahooTab)await injectYahoo(c);}
     }
     await save(c);return {ok:true};
   }).then(sendResponse,error=>sendResponse({error:error.message}));

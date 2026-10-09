@@ -164,3 +164,25 @@ GROUP BY t.team_season_id;
 CREATE INDEX IF NOT EXISTS roster_player_stage_idx ON roster_entries(player_id,stage);
 CREATE INDEX IF NOT EXISTS team_season_idx ON team_seasons(season);
 CREATE INDEX IF NOT EXISTS stats_player_idx ON player_stats(player_id);
+
+-- Recorded real drafts are separate from imported workbook evidence and forecasts.
+CREATE TABLE IF NOT EXISTS recorded_drafts (
+    draft_id TEXT PRIMARY KEY, season TEXT NOT NULL UNIQUE,
+    purpose TEXT NOT NULL CHECK(purpose='real'),
+    baseline_json TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL CHECK(status IN ('recording','complete')),
+    created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS recorded_draft_events (
+    draft_id TEXT NOT NULL REFERENCES recorded_drafts,
+    sequence INTEGER NOT NULL, event_id TEXT NOT NULL,
+    event_type TEXT NOT NULL, payload_json TEXT NOT NULL, received_at TEXT NOT NULL,
+    PRIMARY KEY(draft_id,event_id), UNIQUE(draft_id,sequence)
+);
+CREATE TABLE IF NOT EXISTS recorded_team_snapshots (
+    draft_id TEXT NOT NULL REFERENCES recorded_drafts,
+    sequence INTEGER NOT NULL, team TEXT NOT NULL, payload_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY(draft_id,sequence,team)
+);
+CREATE INDEX IF NOT EXISTS draft_event_sequence_idx ON recorded_draft_events(draft_id,sequence);

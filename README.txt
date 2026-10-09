@@ -6,7 +6,13 @@ There is no local database to maintain. Export-only previews and tests use memor
 READY NOW
 
 - Draft is the default page: live auction board, adaptive price estimates,
-  personal bid caps, all-team budgets/interest, watchlist and private practice mode.
+  personal bid caps, all-team budgets/interest, watchlist and isolated practice mode.
+- Real-draft recording archives every accepted observed bid (including losing bids),
+  purchases, rosters, budgets and versioned team projection snapshots in Postgres.
+  Saved drafts and Manager history are available on the Draft toolbar.
+- Manager history tracks premium-player participation, repeated raises and bids
+  without wins across recorded seasons. Prior premium participation informs opponent
+  interest with bounded adjustments and visible sample sizes.
 - Player stat arrows show your owned roster's before/after averages. Team outlook
   shows owned-player season totals, current-roster overall/category ranks and roto points,
   gaps and a with-player comparison. Separate per-game averages and league medians
@@ -52,10 +58,32 @@ RAILWAY SETUP
 6. Inspect survivor.auction_sales, survivor.keeper_costs, survivor.roster_history
    and survivor.data_issues from the database.
 
+REAL-DRAFT RECORDING SETUP
+
+Add DRAFT_RECORDING_KEY to the dashboard service yourself. Use a random private
+value of at least 24 characters, then deploy that variable change. Do not put the
+key in Git, screenshots, a URL or chat. There is no new database service to add;
+startup creates the three additive archive tables in the existing survivor schema.
+On the real Draft page, configure roster settings, choose Save real draft, and
+enter that same key. Once enabled, accepted events save automatically in batches.
+The recording key is needed for writes only and stays in the browser tab's session
+storage. Saved drafts, rosters, projections and manager summaries are readable
+without a login. The save-status strip reports progress or pending local events.
+
+Use Open Yahoo mock test before connecting a Yahoo mock room. It has separate
+browser storage, configurable test teams/budgets, no keepers, and no real-recording
+writes. The server also rejects mock/practice sessions and simulated events.
+Re-pair the updated 0.2.0 Chrome watcher and explicitly choose Watch Yahoo tab when
+switching destinations; pairing pauses capture to avoid routing the old room into
+the newly selected session. Real Yahoo DOM calibration still needs a Yahoo room.
+
+See docs-live-draft.txt for recovery, snapshots and manager-profile definitions.
+
 The initial historical import succeeded on Railway on 2026-10-06, as confirmed
 by the deployment logs: 2,173 auction purchases, 300 keepers and 2,621 final entries.
 The dashboard reads those records directly from Postgres. Startup does not rerun
-the workbook import. Each web request uses a read-only database connection.
+the workbook import. League read routes use read-only database connections.
+Only protected real-draft recording endpoints write draft archive tables.
 Startup syncs config/keepers/*.json into draft_seasons and keeper_selections.
 Identical lists are no-ops; corrected complete lists replace only that season's
 keeper selections in one transaction. Historical prices and saved model runs

@@ -32,7 +32,7 @@
     const roster = keepers.rows.map(k=>({playerId:k.player_id,team:k.franchise,amount:Number(k.keeper_cost),keeper:true}));
     if (roster.some(k=>!players.some(p=>p.player_id===k.playerId))) throw Error('Every keeper needs a projection before draft advice can be calculated.');
     return {version:1,id:options.id || (globalThis.crypto?.randomUUID?.() || 'draft-'+Date.now()), mode:options.mode || 'live',
-      createdAt:new Date().toISOString(),season:keepers.season,baselineRunId:options.runId || rows[0].run_id || '',
+      purpose:options.purpose || (options.mode==='practice'?'mock':'real'),createdAt:new Date().toISOString(),season:keepers.season,baselineRunId:options.runId || rows[0].run_id || '',
       players,teams,keepers:roster,settings:{rosterSize:15,minimumBid:1,reservePerSlot:1,rosterSlots:[],gamesCap:1000},events:[]};
   }
   function positions(p) { return (p.positions || '').toUpperCase().match(/PG|SG|SF|PF|C|(?<![A-Z])G|(?<![A-Z])F/g) || []; }
@@ -299,7 +299,7 @@
       fgBefore:profile.owned.averages['FG%'],ftBefore:profile.owned.averages['FT%'],fgAfter:after.averages['FG%'],ftAfter:after.averages['FT%']};
     ctx.fits.set(cacheKey,result);return result;
   }
-  function board(s,name) {
+  function board(s,name,history=null) {
     if (!s.teams[name]) name=Object.keys(s.teams)[0];
     const rows=available(s).map(p=>({...p,market:market(s,p),fit:fit(s,p,name)}));
     rows.sort((a,b)=>b.fair_value-a.fair_value || a.player.localeCompare(b.player));
@@ -308,17 +308,22 @@
     const teams=Object.values(s.teams).map(t=>{
       const prof=teamProfile(s,t.name),legal=legalMax(s,t.name),f=current?fit(s,current,t.name):null;
       const bids=current?s.bids.filter(b=>b.playerId===current.player_id && b.team===t.name):[];
+      const past=history?.teams?.[t.name]||null;
+      const premium=current&&current.expected_auction_price>=t.budget*.2;
+      const historyFactor=premium&&past?.premiumOpportunities>=5?clamp(finite(past.premiumInterestFactor,1),.8,1.2):1;
+      const interestCap=current?Math.min(legal,f.cap*historyFactor):0;
       let interest='Waiting',reason='No active nomination.';
       if (current) {
         if (s.nomination.leader===t.name) {interest='Leading';reason='Currently holds the highest observed bid.';}
         else if (legal<next || !f.positionFit) {interest='Cannot bid';reason=legal<next?'Tracked budget cannot cover the next bid.':'No eligible roster slot under configured settings.';}
         else if (bids.length) {interest='Has bid';reason='Observed bidding on this player; their maximum is unknown.';}
-        else if (f.cap>=next && f.cap>=current.market.expected*.85) {interest='Likely';reason='Price is within estimated team value and available budget.';}
-        else if (f.cap>=next*.8) {interest='Possible';reason='Affordable, but price is near estimated team value.';}
+        else if (interestCap>=next && interestCap>=current.market.expected*.85) {interest='Likely';reason='Price is within estimated team value and available budget.';}
+        else if (interestCap>=next*.8) {interest='Possible';reason='Affordable, but price is near estimated team value.';}
         else {interest='Unlikely';reason='Next bid is above estimated team value. They may still bid.';}
       }
       const needs=f?f.needs:outlook(s,t.name).categories.slice().sort((a,b)=>(b.rank||0)-(a.rank||0)).slice(0,3).map(c=>c.category);
-      return {...t,open:prof.open,needs,legalMax:legal,interest,reason,highestObserved:bids.length?Math.max(...bids.map(b=>b.amount)):null,fg:prof.fg,ft:prof.ft};
+      if(current&&historyFactor!==1)reason+=' Prior observed premium-auction participation adjusts this interest estimate; budgets and roster limits still apply.';
+      return {...t,history:past,historyFactor,open:prof.open,needs,legalMax:legal,interest,reason,highestObserved:bids.length?Math.max(...bids.map(b=>b.amount)):null,fg:prof.fg,ft:prof.ft};
     });
     const decision=!current?'WAIT':s.nomination.leader===name?'HOLD':next<=current.fit.cap?'BID':'PASS';
     const alternatives=current?rows.filter(p=>p.player_id!==current.player_id && p.fit.cap>0 && (positions(current).some(pos=>positions(p).includes(pos)) || current.fit.helps.some(c=>p.z[c]>1)))

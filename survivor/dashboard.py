@@ -1,4 +1,4 @@
-"""Read-only league dashboard served on Railway's PORT."""
+"""League dashboard with protected real-draft recording, served on Railway's PORT."""
 from __future__ import annotations
 
 import argparse
@@ -23,6 +23,7 @@ from survivor.bundled_stats import sync_bundled_stats, sync_bundled_projections
 from survivor.valuation import sync_valuations
 from survivor.historical_projections import archive_metadata, stored_archives
 from survivor.draft_targets import TARGET_FIELDS,VALUE_FILTERS,PROFILE_FILTERS,target_metrics,target_matches
+from survivor.draft_records import register_draft_routes
 
 ROOT = Path(__file__).resolve().parents[1]
 RULES = json.loads((ROOT / 'config/league.json').read_text(encoding='utf-8'))
@@ -56,20 +57,29 @@ def table_metrics(entries):
 def create_app(preview_db=None):
     app = Flask(__name__, template_folder='web/templates', static_folder='web/static', static_url_path='/static')
     app.json.sort_keys = False
+    app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024
     preview_lock = threading.RLock()
 
     @contextmanager
-    def database():
+    def database(write=False):
         if preview_db is not None:
             with preview_lock:
-                yield preview_db
+                if write:
+                    with preview_db:
+                        yield preview_db
+                else:
+                    yield preview_db
             return
         url = os.environ.get('DATABASE_URL')
         if not url:
             raise RuntimeError('Database unavailable')
-        db = Postgres(url, initialize=False, readonly=True)
+        db = Postgres(url, initialize=False, readonly=not write)
         try:
-            yield db
+            if write:
+                with db:
+                    yield db
+            else:
+                yield db
         finally:
             db.close()
 
@@ -358,6 +368,7 @@ def create_app(preview_db=None):
             issues = rows(db, 'SELECT severity,code,season,sheet,source_cell,detail FROM data_issues ORDER BY season DESC,code,sheet')
         return jsonify(rows=issues)
 
+    register_draft_routes(app, database)
     return app
 
 

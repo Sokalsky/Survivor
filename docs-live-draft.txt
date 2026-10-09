@@ -85,9 +85,11 @@ No Yahoo passwords, cookies, OAuth tokens, network response bodies or full page
 DOM are read or sent. The extension has no Yahoo write operations. Host access is
 optional and requested for each tab's exact selected origin. The receiver tab is
 checked for the Survivor app marker and bound to a random nonce and session ID.
-Updates travel via Chrome messaging and an isolated-world page bridge, not a
-new public server endpoint. Existing Flask APIs and database requests remain
-read-only. Other website visitors do not see this browser's draft activity.
+Updates reach the selected Survivor tab via Chrome messaging and an isolated-world
+page bridge. When real recording is enabled, the page saves accepted normalized
+events through key-protected APIs. Existing forecast and imported-history routes
+remain read-only. Saved real drafts and manager summaries are visible to anyone
+who can open the app; unrecorded local drafts and Yahoo mock data are not uploaded.
 
 Draft state is stored under survivor.draft.v1 in this browser's localStorage.
 The first session freezes a compact snapshot of its saved forecast and confirmed
@@ -107,6 +109,85 @@ spending. A new session cannot silently receive the previous session's queued
 updates. Explicit queue clearing discards those unsent updates. Review gaps using
 Yahoo's completed results or manual entry. Multiple tabs cannot silently overwrite
 a changed draft: a storage conflict requires reloading before another edit.
+
+Real-draft recording and saved team projections
+The owner adds DRAFT_RECORDING_KEY (a random value of at least 24 characters) to
+Railway's dashboard service and deploys that configuration themselves. Nothing
+in this implementation provisions Railway access or changes account settings.
+The key is never returned by an API, included in exports or embedded in the page.
+All recording writes require the key as a bearer header. Public viewing needs no
+key. Without the variable, recording writes return a configuration error.
+
+Configure roster settings, choose Save real draft and enter the recording key.
+The baseline freezes player projections, values, keeper rosters, team identities,
+starting budgets, rules and the original projection run ID. Only one real draft
+per season can be registered, so another capture cannot silently overwrite or
+count the same draft twice. Settings for an enabled recording are frozen. Load the
+saved draft to continue it on another device, then enter the key to resume writes.
+Loading makes a browser backup of the current local workspace before switching.
+
+The local journal is saved immediately. A separate uploader batches up to 100
+events after a short 300 ms coalescing window and retries transient failures.
+It never blocks Yahoo capture or bid recommendations on a database round trip.
+The save strip distinguishes local-only, saving, saved, paused and error states.
+The key persists for the current browser tab, not inside the draft or its exports.
+After a page reload, already-saved event prefixes are verified before appending.
+Two conflicting writers stop with a conflict; they never overwrite the journal.
+A server acknowledgement occurs only after the transaction commits. The extension
+acknowledgement still follows the durable local browser save, independently of
+network availability. Browser deletion before pending uploads finish loses those
+local-only events; the saved archive contains only acknowledged server events.
+
+Postgres tables: recorded_drafts, recorded_draft_events, recorded_team_snapshots.
+Events preserve player, team, bid/sale amount, observation time, source, captured
+names and recovered/history flags. Losing bids are retained. Undo appends a new
+event; the original stays in the audit log and stops affecting effective rosters
+and manager summaries. Every sale/undo stores all teams' rosters, remaining cash,
+projected player-games, season totals, per-player-game averages, weighted shooting,
+category ranks/points and total roto score/rank. The pre-draft snapshot is retained.
+Snapshots use the same games-cap and tie rules as the live board. They never fill
+empty roster slots or treat projections as actual season results. Imported old
+workbook rows, keeper source files and frozen valuation runs are not modified.
+
+Saved drafts provides the full event log, including undone entries, every saved
+roster/projection snapshot, an export and a way to continue a saved draft. Mark
+draft complete only after all captures are reconciled and saved. Reopen explicitly
+before corrections; retries of already-stored events are safe after completion.
+
+Manager history uses real archived drafts only. For each named league franchise
+it retains seasons observed, total observed bids, completed auctions entered,
+wins/losses among those auctions, auctions with multiple distinct live bid amounts,
+premium participation, auctions reaching a premium bid, premium purchases and the
+highest observed bid. Premium is 20% of that team's original budget ($40 of $200).
+A premium opportunity requires a captured nomination with a saved expected price
+at least that threshold, enough legal cash at nomination to meet the threshold,
+and a confirmed sale. Recovered results without a captured nomination do not
+invent opportunities. Historical bid rows count as participation but do not invent
+live raise frequency. Missing bids can undercount all observed behavior.
+
+For future opponent interest, premium participation is shrunk toward the league
+rate using 12 prior opportunities. The factor is 1 + 0.6 * (smoothed participation
+minus league participation), bounded to 0.8-1.2 and used only after five eligible
+opportunities. It adjusts the existing estimated opponent interest cap for premium
+players, never affordability, observed leading bids, own recommendations or actual
+roto scoring. The active local draft is excluded from the prior-history signal.
+Repeat-bid and losing-auction rates appear as observed tendencies, not assertions
+of intent to inflate prices or calibrated probabilities. Imported purchase-only
+history cannot reconstruct losing bidders and is not presented as bid evidence.
+
+Safe Yahoo mock testing
+Open /?yahooMock=1#draft from the Open Yahoo mock test link. This uses the separate
+survivor.yahoo-mock.v1 storage key. Configure the mock room's actual team names,
+budget and roster size; it starts with no keepers. The built-in simulator remains
+separate from this watcher-driven mock. Neither mock type uploads to real archives
+or contributes to manager history. Real-recording endpoints reject non-real
+purpose, practice mode and simulated-source events. The normal Draft workspace
+and its local pending updates/maps are untouched by the mock workspace.
+
+Chrome watcher 0.2.0 pauses capture whenever a Survivor destination is paired and
+requires an explicit Watch Yahoo tab action afterward. Unsent events remain bound
+to their original session. Review them before clearing a stale queue. This avoids
+automatically carrying an old Yahoo room into a newly selected real/mock target.
 
 Model mechanics (draft-engine.js)
 Saved expected price, neutral value, production projections and survivor scores
@@ -217,7 +298,7 @@ for review; advice pauses while pending updates exist. Sold/kept players leave t
 available pool, and a keeper is never an auction-model training observation.
 
 Validation
-  node --test tests/draft-engine.test.cjs tests/draft-outlook.test.cjs tests/draft-practice.test.cjs tests/draft-watcher.test.cjs
+  node --test tests/draft-engine.test.cjs tests/draft-outlook.test.cjs tests/draft-practice.test.cjs tests/draft-watcher.test.cjs tests/draft-recorder.test.cjs
   python scripts/check_draft.py --url http://127.0.0.1:8080 --browser <chrome.exe>
   python scripts/check_dashboard.py --url http://127.0.0.1:8080 --browser <chrome.exe>
   python scripts/check_mock_draft.py --url http://127.0.0.1:8080 --browser <chrome.exe>
@@ -276,3 +357,28 @@ Browser checks verified independent average/median/volume arithmetic and the
 total footer at wide, desktop, split and mobile widths. An uneven five-player
 roster correctly showed first-place PTS totals alongside a weak PTS average and
 an extra-games explanation.
+
+Recording validation commands (local database only):
+  python -m unittest tests.test_draft_records -v
+  python scripts/preview_draft_recording.py
+  python scripts/check_draft_recording.py --browser <chrome.exe>
+The recording browser check refuses non-loopback URLs and requires the explicit
+in-memory QA reset endpoint, which is absent from the production application.
+The preview optionally accepts --fixture <bootstrap-and-valuations.json> to skip
+recomputing forecasts; all recording APIs still use the actual application code.
+
+Recording validation, October 9, 2026:
+The full Python suite passed 117 tests; a subsequent focused 13-test recording
+run includes the added near-tie/missing-rate projection case. The complete draft
+JavaScript suite includes 78 tests. Local browser checks cover real-event saving,
+losing bids, correction evidence, saved projection parity for all 15 teams, upload
+interruption and retry, reload, cross-profile archive access, separate Yahoo mock
+storage with zero recording writes, completion and responsive archive layouts.
+A full local recording replay saved 1,249 events (859 bids, 195 purchases), with
+196 all-team snapshot versions; final rosters, budgets, category totals/averages
+and roto standings exactly matched the live engine. The 13 batches took about
+3.0 seconds total locally, with a 782 ms maximum batch while other tests ran.
+This is in-memory SQLite performance, not a measured Yahoo or Railway latency.
+No synthetic test writes were sent to production and no Railway account access
+or configuration changes were performed. Real Yahoo capture still needs its
+first live mock-room calibration and end-to-end timing check.

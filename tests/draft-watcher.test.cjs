@@ -21,3 +21,5 @@ test('transport strips unrelated capture fields and rejects malformed amounts',a
 test('new empty session gets a fresh capture identity',async()=>{const w=await paired(),c=w.data.draftWatcher,oldSource=c.source;await w.call({type:'ready',nonce:c.nonce,sessionId:'fresh'},{tab:{id:1},origin:c.appOrigin});assert.notEqual(w.data.draftWatcher.source,oldSource);assert.equal(w.data.draftWatcher.sessionId,'fresh');});
 
 test('repeated app handshakes cannot turn a stale watcher heartbeat fresh',async()=>{const w=await paired(),c=w.data.draftWatcher;w.data.draftWatcher.status={ready:true,at:Date.now()-20000};await w.call({type:'ready',nonce:c.nonce,sessionId:c.sessionId},{tab:{id:1},origin:c.appOrigin});const latest=w.messages.filter(m=>m.type==='heartbeat').at(-1);assert.equal(latest.status.ready,false);});
+
+test('pairing another Survivor destination pauses capture until Yahoo is explicitly selected',async()=>{const w=await paired();assert.equal(w.data.draftWatcher.watching,true);await w.call({type:'pair',tabId:1});assert.equal(w.data.draftWatcher.watching,false);assert.equal(w.data.draftWatcher.status.ready,false);});

@@ -45,9 +45,10 @@ No Yahoo passwords, cookies, OAuth tokens, network response bodies or full page
 DOM are read or sent. The extension has no Yahoo write operations. Host access is
 optional and requested for each tab's exact selected origin. The receiver tab is
 checked for the Survivor app marker and bound to a random nonce and session ID.
-Updates travel via Chrome messaging and an isolated-world page bridge, not a
-new public server endpoint. Existing Flask APIs and database requests remain
-read-only. Other website visitors do not see this browser's draft activity.
+Updates travel via Chrome messaging and an isolated-world page bridge. Real drafts
+can be saved through Survivor's key-protected recording API. Saved bids, rosters,
+projections and manager summaries are visible to everyone using the app. The
+extension does not receive the recording key. Forecast inputs stay read-only.
 
 Draft state is stored under survivor.draft.v1 in this browser's localStorage.
 The first session freezes a compact snapshot of its saved forecast and confirmed
@@ -67,3 +68,10 @@ spending. A new session cannot silently receive the previous session's queued
 updates. Explicit queue clearing discards those unsent updates. Review gaps using
 Yahoo's completed results or manual entry. Multiple tabs cannot silently overwrite
 a changed draft: a storage conflict requires reloading before another edit.
+
+Version 0.2.0: pairing Survivor now pauses capture. Explicitly choose Watch Yahoo
+tab after pairing, including when switching between real and mock workspaces.
+For Yahoo mock testing use the Open Yahoo mock test link on Survivor's Draft page
+(/?yahooMock=1#draft), configure the test teams and budget, then pair that page.
+Mock activity is stored separately and cannot enter real draft history.
+For the actual league draft use the regular page and enable Save real draft.

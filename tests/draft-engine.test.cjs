@@ -33,3 +33,11 @@ test('noninteger or below-minimum bids are rejected',()=>{for(const amount of [0
 test('corrupt imports and invalid roster settings are rejected',()=>{const s=fixture();assert.throws(()=>E.replay({...s,version:2}));assert.throws(()=>E.replay({...s,settings:{...s.settings,rosterSlots:['C']}}));const e=ev('nominate',{playerId:'p0'});assert.throws(()=>E.replay({...s,events:[e,e]}),/Duplicate/);assert.throws(()=>E.append(s,ev('undo',{targetId:'missing'})),/earlier/);});
 
 test('a new nomination cannot silently erase an unconfirmed previous result',()=>{const s=fixture();E.append(s,ev('nominate',{playerId:'p0'}));E.append(s,ev('bid',{playerId:'p0',team:'A',amount:40}));assert.throws(()=>E.append(s,ev('nominate',{playerId:'p1'})),/previous nomination/);assert.equal(E.replay(s).nomination.playerId,'p0');E.append(s,ev('sale',{playerId:'p0',team:'A',amount:40}));E.append(s,ev('nominate',{playerId:'p1'}));assert.equal(E.replay(s).nomination.playerId,'p1');});
+
+test('historical premium interest stays bounded and leaves own bid caps unchanged',()=>{
+ const s=fixture();s.players.find(p=>p.player_id==='p0').expected_auction_price=50;E.append(s,ev('nominate',{playerId:'p0'}));
+ const old=E.board(E.replay(s),'Max');const h={teams:{A:{premiumOpportunities:20,premiumInterestFactor:1.2,observedBids:40,labels:['Frequent repeat bidder']}}};
+ const b=E.board(E.replay(s),'Max',h);assert.equal(b.teams.find(t=>t.name==='A').historyFactor,1.2);assert.equal(b.current.fit.cap,old.current.fit.cap);assert.deepEqual(b.outlook,old.outlook);
+ h.teams.A.premiumInterestFactor=100;assert.equal(E.board(E.replay(s),'Max',h).teams.find(t=>t.name==='A').historyFactor,1.2);
+ h.teams.A.premiumOpportunities=2;assert.equal(E.board(E.replay(s),'Max',h).teams.find(t=>t.name==='A').historyFactor,1);
+});
