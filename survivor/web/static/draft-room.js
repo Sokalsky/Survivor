@@ -25,6 +25,7 @@
   }
   function shell() {
     root.innerHTML='<div class="draft-room">'+banner()+'<div class="draft-toolbar"><label>Your team <select id="draft-team">'+session.teams.map(t=>'<option '+(t.name===room.team?'selected':'')+'>'+esc(t.name)+'</option>').join('')+'</select></label><button class="draft-button" data-draft="setup">Connect Yahoo</button><button class="draft-button '+(room.mode==='practice'?'selected':'')+'" data-draft="mode">'+(room.mode==='practice'?'Return to live draft':'Try practice draft')+'</button><button class="draft-button quiet" data-draft="export">Export session</button><label class="draft-button quiet file-label">Import session<input id="draft-import" type="file" accept="application/json,.json" hidden></label><button class="draft-button quiet" data-draft="settings">Roster & reserve</button><button class="draft-button quiet" data-draft="recording">Save real draft</button><button class="draft-button quiet" data-draft="archives">Saved drafts</button><button class="draft-button quiet" data-draft="managers">Manager history</button></div><div id="draft-recording-status" class="draft-recording-status" role="status"></div><div id="draft-error" class="draft-alert" role="alert" hidden></div><div id="draft-warning"></div><div class="draft-layout"><div class="draft-main"><div id="draft-nomination" aria-live="polite"></div><div id="draft-controls"></div><section id="draft-outlook" class="draft-panel team-outlook" aria-label="Your team outlook"></section><section class="draft-panel draft-board"><div class="draft-tabs" role="tablist">'+[['available','Available players'],['roster','My roster'],['sales','Draft results'],['bids','Observed bids']].map(([id,title])=>'<button role="tab" aria-selected="'+(tab===id)+'" class="'+(tab===id?'selected':'')+'" data-draft-tab="'+id+'">'+title+'</button>').join('')+'</div><div class="draft-filters"><input id="draft-search" type="search" placeholder="Find a player…" aria-label="Find a draft player" value="'+esc(search)+'"><select id="draft-position" aria-label="Position">'+['','PG','SG','SF','PF','C','G','F'].map(p=>'<option value="'+p+'" '+(position===p?'selected':'')+'>'+(p||'All positions')+'</option>').join('')+'</select><select id="draft-sort" aria-label="Draft board sort">'+[['fair_value','Neutral value'],['cap','Your bid cap'],['edge','Value vs. price'],['expected','Live price'],['player','Player name'],...E.CATS.map(k=>['need:'+k,k+' impact'])].map(([k,t])=>'<option value="'+k+'" '+(sort===k?'selected':'')+'>'+t+'</option>').join('')+'</select><button class="draft-button quiet" data-draft="stars" aria-pressed="'+onlyStars+'">'+(onlyStars?'★ Watchlist':'☆ Watchlist')+'</button></div><div id="draft-table"></div></section><p class="draft-baseline">Frozen forecast: '+esc(session.baselineRunId.slice(0,12))+' · Session started '+esc(new Date(session.createdAt).toLocaleDateString())+'<button class="draft-button quiet" data-draft="new-live">New live session</button></p><details class="draft-method"><summary>How live advice works</summary><p>Saved projections and neutral values stay fixed. Expected prices respond to money and talent left, plus completed sales of similar players. A six-sale prior keeps early results from dominating. Individual bids show interest; only a completed sale trains the price adjustment.</p><p>Your cap uses neutral value, remaining league money, attainable gains across eight categories and your reserve. Fit compares season projections for the players each team owns, with extra weight on weak categories and less reward for extending a comfortable lead. Rankings and scores update with every completed sale. Opponent interest is an estimate unless a bid was observed. Shooting fit combines projected makes and attempts over games, not averages of percentages.</p><p>Position eligibility comes from the projection source; confirm Yahoo’s slots and any differences. Connection gaps can miss bids. A selected status or completed-results row must explicitly confirm a sale.</p></details></div><aside class="draft-opponents"><div id="draft-wallet"></div><section class="draft-panel"><div class="draft-panel-heading"><h2>The room</h2><span>Cash / max bid</span></div><p class="draft-hint">Interest in the nominated player</p><div id="draft-teams"></div></section></aside></div><dialog id="draft-dialog" class="draft-dialog"><div class="draft-dialog-head"><h2 id="draft-dialog-title"></h2><button class="draft-button quiet" data-draft="close-dialog" aria-label="Close draft setup">✕</button></div><div id="draft-dialog-body"></div></dialog></div>';
+    if(!YAHOO_MOCK)root.querySelector('[data-draft="setup"]').insertAdjacentHTML('afterend','<button class="draft-button quiet" data-draft="teams">Yahoo teams</button>');
     renderLive();renderRecording();
   }
   const statValue=(k,v,average=false)=>v==null?'—':k.includes('%')?num(v*100,2)+'%':average?num(v,2):Math.round(v).toLocaleString('en-US');
@@ -246,11 +247,20 @@
   function download() {const blob=new Blob([JSON.stringify(session,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='survivor-'+session.season+'-'+session.mode+'-draft.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   function review() {
     const e=room.pending[0];if(!e)return;
+    if(room.pending.some(raw=>raw.team&&!mappedTeam(raw.team))){teamMappings();return;}
     const s=room.sessions.live;
     dialog('Reconcile Yahoo update','<p><b>'+esc(e.type)+'</b> · '+esc(e.player)+' · '+esc(e.team)+' '+dollar(e.amount)+'</p><p>'+esc(e.problem || 'Match the captured names to your league.')+'</p><form id="draft-map-form"><label>Player<select name="playerId"><option value="">Select matching player</option>'+s.players.slice().sort((a,b)=>a.player.localeCompare(b.player)).map(p=>'<option value="'+esc(p.player_id)+'" '+(E.resolvePlayer(s,e.player)===p.player_id?'selected':'')+'>'+esc(p.player)+'</option>').join('')+'</select></label><label>Yahoo team → Survivor franchise<select name="team"><option value="">Select franchise</option>'+s.teams.map(t=>'<option '+(t.name===e.team?'selected':'')+'>'+esc(t.name)+'</option>').join('')+'</select></label><button class="draft-button primary" type="submit">Save mapping & retry</button></form><hr><p class="draft-hint">If this is an incorrect capture, ignore it explicitly, then correct the watcher’s selected fields. Ignored updates remain in this browser’s review log.</p><button class="draft-button" data-draft="ignore">Ignore this captured update</button>');
   }
+  function mappedTeam(name) {
+    const s=room.sessions.live,alias=Object.entries(room.teamMap).find(([key])=>E.key(key)===E.key(name))?.[1];
+    return s.teams.find(t=>t.name===alias||E.key(t.name)===E.key(name))?.name;
+  }
+  function teamMappings() {
+    const names=[...new Set(room.pending.filter(raw=>raw.team&&!mappedTeam(raw.team)).map(raw=>raw.team))];
+    dialog('Match Yahoo teams','<p>Match each Yahoo team to its owner once. Saving retries the queued bids and purchases.</p><form id="draft-teams-form">'+names.map((name,i)=>'<label>'+esc(name)+'<select name="alias-'+i+'" data-yahoo-team="'+esc(name)+'" required><option value="">Select owner</option>'+room.sessions.live.teams.map(t=>'<option value="'+esc(t.name)+'">'+esc(t.name)+'</option>').join('')+'</select></label>').join('')+'<details><summary>Set other teams now</summary><p>Enter Yahoo team names beside their owners to avoid interruptions later. Leave unknown names blank.</p>'+room.sessions.live.teams.map((t,i)=>'<label>'+esc(t.name)+'<input name="owner-'+i+'" data-franchise="'+esc(t.name)+'" placeholder="Yahoo team name" value="'+esc(Object.entries(room.teamMap).find(([,owner])=>owner===t.name)?.[0]||'')+'"></label>').join('')+'</details><button class="draft-button primary" type="submit">Save teams & retry updates</button></form>');
+  }
   function normalize(raw) {
-    const s=room.sessions.live,playerId=room.playerMap[E.key(raw.player)]||E.resolvePlayer(s,raw.player),team=room.teamMap[raw.team] || s.teams.find(t=>E.key(t.name)===E.key(raw.team))?.name;
+    const s=room.sessions.live,playerId=room.playerMap[E.key(raw.player)]||E.resolvePlayer(s,raw.player),team=mappedTeam(raw.team);
     return {id:raw.id,type:raw.type,playerId,team,amount:raw.amount,at:raw.at,history:!!raw.history,recovered:!!raw.recovered,source:'yahoo-observed',sourcePlayer:raw.player,sourceTeam:raw.team};
   }
   function processPending() {
@@ -307,7 +317,7 @@
       if(action==='new-live'){if(YAHOO_MOCK){mockSettings();return;}if(recorder?.enabledId===session.id)throw Error('This real draft is archived. Open Saved drafts to continue it.');}if(action==='new-live')dialog('Start a fresh live draft','<p>This replaces the live session on this browser with the latest saved forecast and confirmed keepers. Export your current live session first if you want to retain it. Practice remains separate.</p><button class="draft-button primary" data-draft-new-confirm>Start fresh live session</button>');
       if(action==='outlook-details'){outlookExpanded=!outlookExpanded;renderOutlook();}
       if(action==='recording')recordingDialog();if(action==='archives')savedDrafts();if(action==='managers')managerDialog();if(action==='mock-settings')mockSettings();
-      if(action==='setup')setup();if(action==='settings')settings();if(action==='record')record();if(action==='review')review();
+      if(action==='setup')setup();if(action==='settings')settings();if(action==='record')record();if(action==='review')review();if(action==='teams')teamMappings();
       if(action==='close-dialog')document.getElementById('draft-dialog').close();
       if(action==='mode'){if(YAHOO_MOCK)throw Error('This workspace follows Yahoo mock activity. Use the regular Draft page for the built-in simulator.');pausePractice();mock=null;if(room.mode==='practice'){room.mode='live';persist();selectSession();shell();}else{if(room.sessions.practice){room.mode='practice';persist();selectSession();}else practice();shell();}}
       if(action==='reset-practice'){pausePractice();practice();shell();}
@@ -340,9 +350,25 @@
   });
   document.addEventListener('click',e=>{if(e.target.closest('[data-draft-restore]')){try{const s=room.importCandidate;delete room.importCandidate;room.sessions[s.mode]=s;room.mode=s.mode;room.pending=[];persist();selectSession();shell();}catch(err){error(err.message);}}});
   document.addEventListener('submit',e=>{
-    if(!['draft-mock-bid-form','draft-settings-form','draft-record-form','draft-map-form'].includes(e.target.id))return;e.preventDefault();
+    if(!['draft-mock-bid-form','draft-settings-form','draft-record-form','draft-map-form','draft-teams-form'].includes(e.target.id))return;e.preventDefault();
     try {
       const f=new FormData(e.target);
+      if(e.target.id==='draft-teams-form'){
+        const mappings={...room.teamMap},choices=[];
+        for(const field of e.target.querySelectorAll('[data-yahoo-team]')){
+          if(!field.value)throw Error('Choose the owner of '+field.dataset.yahooTeam+'.');
+          choices.push([field.dataset.yahooTeam,field.value]);
+        }
+        for(const field of e.target.querySelectorAll('[data-franchise]'))if(field.value.trim())choices.push([field.value.trim(),field.dataset.franchise]);
+        for(const [alias,owner] of choices){
+          const exact=room.sessions.live.teams.find(t=>E.key(t.name)===E.key(alias));
+          const existing=Object.entries(mappings).find(([name])=>E.key(name)===E.key(alias));
+          if(exact&&exact.name!==owner||existing&&existing[1]!==owner)throw Error(alias+' is already assigned to another owner.');
+          mappings[alias]=owner;
+        }
+        room.teamMap=mappings;processPending();persist();selectSession();renderLive();
+        if(room.pending.length){review();return;}
+      }
       if(e.target.id==='draft-mock-bid-form'){
         tickPractice();if(e.target.dataset.playerId!==mock.state.playerId)throw Error('That auction has ended.');
         mock.bid(Number(f.get('amount')));persist();selectSession();renderLive();return;
