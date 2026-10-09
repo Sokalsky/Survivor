@@ -1,12 +1,12 @@
 <!doctype html><html><head><meta charset="utf-8"><title>Survivor watcher</title><link rel="stylesheet" href="popup.css"><script src="popup.js" defer></script></head><body>
-<header><span>●</span><div><h1>Survivor watcher</h1><p>Open the draft. Your desk follows.</p></div></header>
+<header><span>●</span><div><h1>Survivor watcher</h1><p>Watcher 0.3.1 ? Automatic draft connection</p></div></header>
 <div id="status" role="status">Looking for your draft…</div>
 <p>Keep Survivor’s Yahoo mock page and the Yahoo draft room open. Teams, budgets and roster size connect automatically.</p>
 <div class="actions"><button id="pause">Pause capture</button><button id="refresh">Refresh status</button></div>
 <details><summary>Advanced setup &amp; recovery</summary>
 <p class="hint">Use only to choose a different destination, connect a real league draft, or adapt to a changed Yahoo layout.</p>
 <div class="actions"><button id="pair">Pair Survivor tab</button><button id="watch">Watch Yahoo tab</button></div>
-<h2>Field overrides</h2><p class="hint">Automatic detection is the default. Pick a field only if automatic reading fails. Escape cancels the picker.</p><button id="auto-fields">Use automatic fields</button><div id="fields"></div>
+<button id="diagnostics">Download diagnostics</button><h2>Field overrides</h2><p class="hint">Automatic detection is the default. Pick a field only if automatic reading fails. Escape cancels the picker.</p><button id="auto-fields">Use automatic fields</button><div id="fields"></div>
 <details><summary>Completed results</summary><div id="result-fields"></div></details>
 <details><summary>Optional bid history</summary><div id="log-fields"></div></details>
 <textarea id="selectors" aria-label="Selected CSS fields" rows="7" spellcheck="false"></textarea><button id="save-selectors">Save overrides</button>

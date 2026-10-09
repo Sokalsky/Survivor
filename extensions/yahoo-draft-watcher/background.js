@@ -30,7 +30,7 @@ async function connectAutomatic(c){
   c.appTab=destination.id;c.appOrigin=destination.origin;c.appPurpose='mock';c.nonce=crypto.randomUUID();c.automatic=true;c.roomReady=false;c.sessionId=null;
   await save(c);await injectApp(c);
  }
- c.watching=true;c.status={ready:false,message:c.room.complete?'Importing Yahoo teams and roster settings.':'Yahoo connected. Reading teams and starting budgets.'};
+ c.watching=true;if(!c.roomReady)c.status={ready:false,message:c.room.complete?'Importing Yahoo teams and roster settings.':'Yahoo connected. Reading teams and starting budgets.'};
  await save(c);await injectYahoo(c);
  if(c.sessionId&&c.room.complete&&!c.roomReady)await appMessage(c,{type:'room',room:c.room});
 }
@@ -98,6 +98,11 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
         if(message.type==='heartbeat') {c.status={ready:!!message.ready&&c.watching&&(!c.automatic||c.roomReady),connected:!!message.connected&&c.watching&&(!c.automatic||c.roomReady),message:String(message.message||'').slice(0,300),timer:String(message.timer||'').slice(0,40),partial:true,at:Date.now()};await appMessage(c,{type:'heartbeat',status:c.status});await flush(c);}
       }else throw Error('This tab is not paired with the watcher.');
     }else {
+      if(message.type==='diagnostics'){
+        let capture=null,error=null;
+        if(c.yahooTab){try{capture=await chrome.tabs.sendMessage(c.yahooTab,{type:'diagnostics'});}catch(e){error=e.message;}}
+        return {version:chrome.runtime.getManifest().version,recordedAt:new Date().toISOString(),automatic:c.automatic,userPaused:!!c.userPaused,watching:c.watching,roomReady:!!c.roomReady,queued:c.queue.length,status:c.status,capture,error};
+      }
       if(message.type==='get')return {...c,nonce:undefined,seen:undefined,players:undefined,queue:c.queue.length};
       if(message.type==='pair'){
         const tab=await chrome.tabs.get(message.tabId),url=new URL(tab.url);
@@ -114,9 +119,9 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
         c.yahooTab=tab.id;c.watching=true;c.userPaused=false;await save(c);await injectYahoo(c);return {ok:true};
       }
       if(message.type==='pick') {if(!c.yahooTab)throw Error('Choose Watch Yahoo tab first.');await chrome.tabs.update(c.yahooTab,{active:true});await chrome.tabs.sendMessage(c.yahooTab,{type:'pick',field:message.field});}
-      if(message.type==='pause'){c.watching=!c.watching;c.userPaused=!c.watching;if(c.yahooTab)await injectYahoo(c);}
+      if(message.type==='pause'){c.userPaused=!c.userPaused;c.watching=!c.userPaused&&!!c.yahooTab;if(c.yahooTab)await injectYahoo(c);if(!c.userPaused&&c.automatic)await connectAutomatic(c);}
       if(message.type==='selectors'){if(!message.selectors||typeof message.selectors!=='object'||Array.isArray(message.selectors))throw Error('Selectors must be an object.');c.selectors=message.selectors;if(c.yahooTab)await injectYahoo(c);}
-      if(message.type==='clear'){c.watching=false;c.queue=[];c.seen=[];c.source=crypto.randomUUID();c.sessionId=null;c.status={ready:false,message:'Queue cleared. Pair Survivor and review any missed activity.'};if(c.appTab)await injectApp(c);if(c.yahooTab)await injectYahoo(c);}
+      if(message.type==='clear'){c.watching=false;c.userPaused=true;c.queue=[];c.seen=[];c.source=crypto.randomUUID();c.sessionId=null;c.status={ready:false,message:'Queue cleared. Pair Survivor and review any missed activity.'};if(c.appTab)await injectApp(c);if(c.yahooTab)await injectYahoo(c);}
     }
     await save(c);return {ok:true};
   }).then(sendResponse,error=>sendResponse({error:error.message}));

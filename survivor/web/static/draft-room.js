@@ -9,7 +9,7 @@
   const uid=()=>crypto.randomUUID();
   let root,boot,room,session,snapshot,view,nonce,paired=false,lastHeartbeat=0,watcherInfo={},timer,mock,lastTick=0,lastMockSave=0,saveStamp='',search='',position='',sort='fair_value',tab='available',onlyStars=false,limit=60,manual=false,lastRenderedStatus='',outlookExpanded=false;
   const active=()=>!!root?.isConnected && location.hash.replace('#','')!=='history' && document.body.classList.contains('draft-page');
-  const status=()=>room?.mode==='practice'?'Practice':manual?'Manual entry':lastHeartbeat && Date.now()-lastHeartbeat<6000?'Watching Yahoo':watcherInfo.connected&&Date.now()-watcherInfo.at<6000?'Yahoo connected':paired?'Watcher paused':'Not connected';
+  const status=()=>room?.mode==='practice'?'Practice':manual?'Manual entry':lastHeartbeat && Date.now()-lastHeartbeat<6000?'Watching Yahoo':watcherInfo.connected&&Date.now()-watcherInfo.at<6000?'Yahoo connected':watcherInfo.message?watcherInfo.message:paired?'Waiting for Yahoo':'Not connected';
   function readRoom() { const text=localStorage.getItem(STORE);saveStamp=text||'';return text?JSON.parse(text):null; }
   function persist() {
     if ((localStorage.getItem(STORE)||'')!==saveStamp) throw Error('This draft changed in another tab. Reload this page before editing.');

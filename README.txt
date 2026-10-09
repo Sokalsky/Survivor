@@ -515,3 +515,8 @@ Teams, budgets and roster size are read automatically; field overrides are under
 Advanced setup. Reload the updated extension and both tabs once after installation.
 Mock sessions remain local and isolated from real records. See docs-live-draft.txt
 for validation, limitations, and real-draft setup.
+
+Watcher 0.3.1 fixes nomination-card discovery and last-bid badges that prevented
+live mock nominations from reaching Survivor after room import. Update the unpacked
+extension and refresh both tabs. Full local capture-to-app replay passes; the
+corrected live Yahoo behavior still needs verification.

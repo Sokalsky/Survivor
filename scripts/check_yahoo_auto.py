@@ -20,8 +20,12 @@ def main():
         initial=scan();assert initial['complete'] and len(initial['teams'])==14,initial
         assert initial['rosterSize']==13 and initial['ownTeam']=='You' and initial['player'] is None,initial
         # Automatic fields must distinguish current bid from offer input, max offer and wallet.
-        page.evaluate("document.querySelector('#player').textContent='N. JOKIĆ';document.querySelector('#price').textContent='$37';document.querySelector('#bidder').textContent='Emre'")
+        page.evaluate("document.querySelector('#player').textContent='N. JOKIĆ';document.querySelector('#price').textContent='$37';document.querySelector('#bidder').textContent='Emre';document.querySelector('#teams').children[1].insertAdjacentHTML('afterbegin','<span>$37</span> ')")
         current=scan();assert current['player']=='Nikola Jokic' and current['amount']==37 and current['team']=='Emre',current
+        assert len(current['teams'])==14,current
+        page.evaluate('window.readerBeforeReinjection=SurvivorYahooReader')
+        page.add_script_tag(path=str(ROOT/'extensions/yahoo-draft-watcher/yahoo-reader.js'))
+        assert page.evaluate('SurvivorYahooReader===readerBeforeReinjection')
         page.evaluate("document.querySelector('#last-pick').innerHTML='<strong>N. JOKIĆ</strong><span> Emre </span><b>$45</b>';document.querySelector('#player').textContent='V. WEMBANYAMA';document.querySelector('#price').textContent='$1';document.querySelector('#bidder').textContent='You'")
         result=scan();assert result['results']==[{'player':'Nikola Jokic','team':'Emre','amount':45}],result
         assert result['player']=='Victor Wembanyama' and result['amount']==1,result

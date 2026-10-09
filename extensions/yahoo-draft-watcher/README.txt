@@ -88,3 +88,27 @@ For Yahoo mock testing use the Open Yahoo mock test link on Survivor's Draft pag
 (/?yahooMock=1#draft), configure the test teams and budget, then pair that page.
 Mock activity is stored separately and cannot enter real draft history.
 For the actual league draft use the regular page and enable Save real draft.
+
+
+Watcher 0.3.1 ? nomination capture correction (October 9, 2026)
+The owner's actual Yahoo mock successfully imported 12 teams, $200 budgets and
+13 roster slots, but did not display the first nomination. The supplied screenshot
+shows Giannis at $6, Scott leading, projected price $55, and bid badges in team rows.
+
+Fixed reproduced parser failures:
+- Expand from the bidding-controls container to the enclosing nomination card.
+- Distinguish the actual current bid from the offer input, budget and projected price.
+- Preserve the team name and wallet when Yahoo adds a last-bid dollar badge.
+- Read visible player text even if its title attribute describes a UI action.
+- Keep the reader's completed-pick region across periodic script reinjection.
+
+The popup distinguishes waiting from an explicit user pause. Advanced setup adds
+Download diagnostics: local normalized observations, matched field candidates and
+connection state, without the recording key, cookies or full-page HTML.
+
+Validation: 87 JavaScript cases pass. The full local browser flow runs the actual
+background, reader, capture, bridge and app scripts with emulated Chrome messaging
+and an illustrative Yahoo fixture. It verifies automatic import, Giannis $6/Scott,
+a bid ladder, an explicit sale, the $159 winning budget, the next nomination, and
+zero real-recording writes. This fixture is not the actual Yahoo DOM; corrected
+live nomination/bid/sale capture remains to be verified by the owner.
