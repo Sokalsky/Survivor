@@ -7,6 +7,9 @@ READY NOW
 
 - Draft is the default page: live auction board, adaptive price estimates,
   personal bid caps, all-team budgets/interest, watchlist and private practice mode.
+- Player stat arrows show your owned roster's before/after averages. Team outlook
+  shows season totals, provisional category ranks, gaps and a with-player comparison;
+  click a category to find players who improve it. Fit and bid caps use those needs.
 - Practice runs a full mock auction: top-to-bottom nominations, 10-second clocks,
   simulated opponents, your own bid controls, pause/resume and automatic results.
 - Configurable Chrome Yahoo watcher with local queue, replay, identity mapping

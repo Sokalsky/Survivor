@@ -7,6 +7,9 @@
   'use strict';
   const CATS = ['PTS','REB','AST','STL','BLK','3PM','FG%','FT%'];
   const STATS = ['games','minutes_pg','pts_pg','reb_pg','ast_pg','stl_pg','blk_pg','fg3m_pg','fgm_pg','fga_pg','ftm_pg','fta_pg'];
+  const COUNT = ['pts_pg','reb_pg','ast_pg','stl_pg','blk_pg','fg3m_pg'];
+  const TOTAL_FIELDS = [...COUNT,'fgm_pg','fga_pg','ftm_pg','fta_pg'];
+  const outlookCache = new WeakMap();
   const clamp = (n,lo,hi) => Math.min(hi,Math.max(lo,n));
   const round = n => Math.round(n*100)/100;
   const key = name => String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -30,7 +33,7 @@
     if (roster.some(k=>!players.some(p=>p.player_id===k.playerId))) throw Error('Every keeper needs a projection before draft advice can be calculated.');
     return {version:1,id:options.id || (globalThis.crypto?.randomUUID?.() || 'draft-'+Date.now()), mode:options.mode || 'live',
       createdAt:new Date().toISOString(),season:keepers.season,baselineRunId:options.runId || rows[0].run_id || '',
-      players,teams,keepers:roster,settings:{rosterSize:15,minimumBid:1,reservePerSlot:1,rosterSlots:[]},events:[]};
+      players,teams,keepers:roster,settings:{rosterSize:15,minimumBid:1,reservePerSlot:1,rosterSlots:[],gamesCap:1000},events:[]};
   }
   function positions(p) { return (p.positions || '').toUpperCase().match(/PG|SG|SF|PF|C|(?<![A-Z])G|(?<![A-Z])F/g) || []; }
   function eligible(p,slot) {
@@ -55,6 +58,7 @@
     if (!Number.isInteger(rosterSize) || rosterSize<1 || rosterSize>30 || !Number.isInteger(minimumBid) || minimumBid<1 || minimumBid>20 ||
         !Number.isInteger(reservePerSlot) || reservePerSlot<minimumBid || reservePerSlot>200 || !Array.isArray(rosterSlots)) throw Error('Invalid roster or reserve settings.');
     if (rosterSlots.length && (rosterSlots.length!==rosterSize || rosterSlots.some(s=>!['PG','SG','SF','PF','C','G','F','UTIL','BN'].includes(s)))) throw Error('Enter exactly one valid position per roster slot, including bench slots as BN.');
+    if (settings.gamesCap!==undefined && (!Number.isInteger(settings.gamesCap) || settings.gamesCap<1 || settings.gamesCap>3000)) throw Error('Invalid season games limit.');
   }
   function initial(session) {
     validateSettings(session.settings);
@@ -173,23 +177,120 @@
     return {z,fg:fgA?roster.reduce((n,p)=>n+p.fgm_pg*p.games,0)/fgA:null,ft:ftA?roster.reduce((n,p)=>n+p.ftm_pg*p.games,0)/ftA:null,
       needs:CATS.slice().sort((a,b)=>z[a]-z[b]).slice(0,3),open:s.session.settings.rosterSize-roster.length,roster};
   }
+  function rawTotals(players) {
+    const raw=Object.fromEntries(['games',...TOTAL_FIELDS].map(k=>[k,0]));
+    for (const p of players) {raw.games+=p.games;for(const k of TOTAL_FIELDS)raw[k]+=p[k]*p.games;}
+    return raw;
+  }
+  function projection(raw,cap=1000) {
+    const use=raw.games>cap?cap/raw.games:1;
+    const values=Object.fromEntries(CATS.map((k,i)=>[k,i<6?raw[COUNT[i]]*use:k==='FG%'?(raw.fga_pg?raw.fgm_pg/raw.fga_pg:null):(raw.fta_pg?raw.ftm_pg/raw.fta_pg:null)]));
+    const averages=Object.fromEntries(CATS.map((k,i)=>[k,i<6?(raw.games?raw[COUNT[i]]/raw.games:null):values[k]]));
+    return {values,averages,games:raw.games*use,rawGames:raw.games,capped:use<1};
+  }
+  // Fractional inclusion weights describe a pool average, never predicted individual picks.
+  // At most one copy of each player, exactly the fillable slots, and expected spend <= cash.
+  function portfolio(pool,slots,budget) {
+    const cheapest=[...pool].sort((a,b)=>a.price-b.price || a.p.player_id.localeCompare(b.p.player_id));
+    let fill=0,cost=0;
+    while(fill<slots && fill<cheapest.length && cost+cheapest[fill].price<=budget+1e-8)cost+=cheapest[fill++].price;
+    if(!fill)return {entries:[],unfilled:slots,cost:0};
+    const fallback=()=>({entries:cheapest.slice(0,fill).map(q=>({...q,weight:1})),unfilled:slots-fill,cost});
+    if(fill<slots || fill===pool.length || Math.abs(cost-budget)<1e-7)return fallback();
+    const scale=Math.max(1,budget/slots);
+    function weighted(penalty) {
+      const logs=pool.map(q=>1.5*Math.log(1+q.p.fair_value)-penalty*q.price/scale),max=Math.max(...logs);
+      const weights=logs.map(v=>Math.exp(Math.max(-60,v-max))),allocation=weights.map(()=>0);
+      let remaining=slots,active=weights.map((_,i)=>i);
+      while(active.length && remaining>1e-9) {
+        const sum=active.reduce((n,i)=>n+weights[i],0),over=active.filter(i=>weights[i]*remaining/sum>=1);
+        if(!over.length){for(const i of active)allocation[i]=weights[i]*remaining/sum;break;}
+        for(const i of over)allocation[i]=1;
+        remaining-=over.length;const full=new Set(over);active=active.filter(i=>!full.has(i));
+      }
+      return {entries:pool.map((q,i)=>({...q,weight:allocation[i]})),unfilled:0,cost:pool.reduce((n,q,i)=>n+q.price*allocation[i],0)};
+    }
+    let low=0,high=1,result=weighted(0);
+    if(result.cost<=budget)return result;
+    while(high<4096 && weighted(high).cost>budget)high*=2;
+    result=weighted(high);if(result.cost>budget+1e-6)return fallback();
+    for(let i=0;i<16;i++){const mid=(low+high)/2,trial=weighted(mid);if(trial.cost>budget)low=mid;else{high=mid;result=trial;}}
+    return result;
+  }
+  function completedProfile(s,ctx,roster,cash,exclude=null) {
+    const open=Math.max(0,s.session.settings.rosterSize-roster.length),raw=rawTotals(roster);
+    const pool=open?ctx.pool.filter(q=>q.p.player_id!==exclude && canFit([...roster,q.p],s.session.settings.rosterSlots)):[];
+    const fill=portfolio(pool,open,cash);
+    for(const q of fill.entries){raw.games+=q.p.games*q.weight;for(const k of TOTAL_FIELDS)raw[k]+=q.p[k]*q.p.games*q.weight;}
+    return {...projection(raw,s.session.settings.gamesCap??1000),unfilled:fill.unfilled,fillCost:fill.cost,open};
+  }
+  function outlookContext(s) {
+    if(s.outlook)return s.outlook;
+    // Bid ladders do not change rosters or forecasts. Reuse the expensive estimates until a sale/settings change.
+    const signature=JSON.stringify([s.session.settings,Object.values(s.teams).map(t=>[t.name,t.remaining,t.roster]),s.sales.map(t=>[t.playerId,t.amount,t.recovered])]);
+    const old=outlookCache.get(s.session);
+    if(old?.signature===signature && old.players===s.session.players)return s.outlook=old.context;
+    const ctx={pool:available(s).map(p=>({p,price:market(s,p).expected})),teams:{},scales:{},fits:new Map()};
+    for(const t of Object.values(s.teams)) {
+      const roster=t.roster.map(r=>s.byId[r.playerId]);
+      ctx.teams[t.name]={owned:projection(rawTotals(roster),s.session.settings.gamesCap??1000),projected:completedProfile(s,ctx,roster,t.remaining),roster};
+    }
+    for(const k of CATS) {
+      const values=Object.values(ctx.teams).map(t=>t.projected.values[k]).filter(v=>v!=null),mean=values.reduce((a,b)=>a+b,0)/Math.max(1,values.length);
+      ctx.scales[k]=Math.max(Math.sqrt(values.reduce((n,v)=>n+(v-mean)**2,0)/Math.max(1,values.length)),k==='FG%'?.003:k==='FT%'?.004:Math.max(1,mean*.06));
+    }
+    s.outlook=ctx;outlookCache.set(s.session,{signature,players:s.session.players,context:ctx});return ctx;
+  }
+  function categoryStanding(ctx,name,k,value) {
+    const others=Object.entries(ctx.teams).filter(([n])=>n!==name).map(([,t])=>t.projected.values[k]).filter(v=>v!=null);
+    if(value==null || !others.length)return {rank:null,points:null,gap:null,status:'No comparison',priority:false};
+    const scale=ctx.scales[k],epsilon=k.includes('%')?1e-7:1e-5,above=others.filter(v=>v>value+epsilon),rank=1+above.length;
+    const tiedCount=others.filter(v=>Math.abs(v-value)<=epsilon).length,tied=tiedCount>0,count=others.length+1,midRank=rank+tiedCount/2;
+    const priority=midRank>Math.ceil(count*2/3),lead=value-Math.max(...others);
+    const status=priority?'Needs attention':rank===1&&!tied&&lead>scale*.5?'Comfortable lead':midRank<=Math.ceil(count/3)?'Strong':'Competitive';
+    const points=1+others.reduce((n,v)=>n+1/(1+Math.exp(clamp((v-value)/(scale*.4),-30,30))),0);
+    return {rank,tied,points,gap:above.length?Math.min(...above)-value:0,status,priority};
+  }
+  function outlook(s,name,p=null) {
+    const ctx=outlookContext(s),team=ctx.teams[name],f=p?fit(s,p,name):null;
+    const categories=CATS.map(k=>({category:k,owned:team.owned.values[k],projected:team.projected.values[k],...categoryStanding(ctx,name,k,team.projected.values[k]),
+      after:f?.impact[k]?.after??null,afterRank:f?.impact[k]?.afterRank??null,change:f?.impact[k]?.change??null}));
+    return {categories,owned:team.owned,projected:team.projected,teamCount:s.session.teams.length,gamesCap:s.session.settings.gamesCap??1000,
+      provisional:Object.values(ctx.teams).some(t=>t.projected.open>0),unfilled:Object.values(ctx.teams).some(t=>t.projected.unfilled>0),price:f?.scenarioPrice??null,
+      canAdd:Boolean(f?.positionFit&&legalMax(s,name)>0),afterUnfilled:f?.afterUnfilled??0};
+  }
   function fit(s,p,name) {
-    const t=s.teams[name],profile=teamProfile(s,name),{minimumBid,reservePerSlot,rosterSlots}=s.session.settings;
-    const weights=Object.fromEntries(CATS.map(k=>[k,clamp(1-profile.z[k]*.14,.75,1.25)]));
-    const benefit=CATS.reduce((n,k)=>n+p.z[k]*(weights[k]-1),0);
-    const factor=clamp(1+benefit*.07,.8,1.22);
+    const ctx=outlookContext(s),cacheKey=name+':'+p.player_id;
+    if(ctx.fits.has(cacheKey))return ctx.fits.get(cacheKey);
+    const t=s.teams[name],profile=ctx.teams[name],{minimumBid,reservePerSlot,rosterSlots}=s.session.settings;
+    const open=s.session.settings.rosterSize-profile.roster.length,positionFit=open>0&&canFit([...profile.roster,p],rosterSlots);
+    const scenarioPrice=Math.min(legalMax(s,name),Math.max(minimumBid,Math.round(market(s,p).expected)));
+    const after=positionFit?completedProfile(s,ctx,[...profile.roster,p],t.remaining-scenarioPrice,p.player_id):profile.projected;
+    const ownedAfter=positionFit?projection(rawTotals([...profile.roster,p]),s.session.settings.gamesCap??1000):profile.owned;
+    let gain=0,needGain=0;const impact={};
+    for(const k of CATS) {
+      const before=categoryStanding(ctx,name,k,profile.projected.values[k]),next=categoryStanding(ctx,name,k,after.values[k]);
+      const rawChange=after.values[k]==null||profile.projected.values[k]==null?0:after.values[k]-profile.projected.values[k];
+      const change=Math.abs(rawChange)<ctx.scales[k]*1e-10?0:rawChange;
+      const points=next.points==null||before.points==null?0:next.points-before.points;
+      gain+=points;if(before.priority)needGain+=clamp(change/ctx.scales[k],-2,2);
+      impact[k]={before:profile.projected.values[k],after:after.values[k],change,points,priority:before.priority,rank:before.rank,afterRank:next.rank,
+        avgBefore:profile.owned.averages[k],avgAfter:ownedAfter.averages[k]};
+    }
+    const factor=clamp(1+gain*.045+needGain*.07,.75,1.3);
     if (s.neutralRatio===undefined) s.neutralRatio=budgetRatio(s,'fair_value');
     const value=p.fair_value>=minimumBid ? minimumBid+(p.fair_value-minimumBid)*s.neutralRatio*factor : 0;
-    const reserve=Math.max(0,profile.open-1)*reservePerSlot;
-    const positionFit=canFit([...profile.roster,p],rosterSlots);
+    const reserve=Math.max(0,open-1)*reservePerSlot;
     const cap=positionFit?Math.max(0,Math.floor(Math.min(value,legalMax(s,name),t.remaining-reserve))):0;
-    const helps=CATS.filter(k=>p.z[k]>0).sort((a,b)=>p.z[b]*weights[b]-p.z[a]*weights[a]).slice(0,3);
-    const costs=CATS.filter(k=>p.z[k]<-.75).sort((a,b)=>p.z[a]-p.z[b]).slice(0,2);
-    const fgA=profile.roster.reduce((n,q)=>n+q.fga_pg*q.games,0),ftA=profile.roster.reduce((n,q)=>n+q.fta_pg*q.games,0);
-    const newFG=fgA+p.fga_pg*p.games,newFT=ftA+p.fta_pg*p.games;
-    return {cap,fitFactor:round(factor),fitLabel:factor>1.04?'Strong fit':factor<.96?'Mixed fit':'Balanced fit',helps,costs,needs:profile.needs,
-      reserve,positionFit,fgBefore:profile.fg,ftBefore:profile.ft,fgAfter:newFG?((profile.fg || 0)*fgA+p.fgm_pg*p.games)/newFG:null,
-      ftAfter:newFT?((profile.ft || 0)*ftA+p.ftm_pg*p.games)/newFT:null};
+    const helps=CATS.filter(k=>impact[k].change>ctx.scales[k]*.04).sort((a,b)=>(Number(impact[b].priority)-Number(impact[a].priority))||impact[b].points-impact[a].points).slice(0,3);
+    const costs=CATS.filter(k=>impact[k].change<-ctx.scales[k]*.04).sort((a,b)=>impact[a].points-impact[b].points).slice(0,2);
+    const needs=CATS.slice().sort((a,b)=>(categoryStanding(ctx,name,b,profile.projected.values[b]).rank||0)-(categoryStanding(ctx,name,a,profile.projected.values[a]).rank||0)).slice(0,3);
+    const priorities=helps.filter(k=>impact[k].priority);
+    const fitLabel=!positionFit?'No roster slot':gain>1 || priorities.length&&gain>-.3?'Strong fit':gain>.3?'Good fit':helps.length?'Trade-off':'Limited fit';
+    const explanation=!positionFit?'No eligible open roster slot.':(priorities.length?'Addresses your need in '+priorities.join(', '):helps.length?'Improves '+helps.join(', '):'Little improvement over your budget-matched remaining options')+(costs.length?'; gives ground in '+costs.join(', '):'')+'.';
+    const result={cap,fitFactor:round(factor),fitLabel,helps,costs,needs,reserve,positionFit,impact,scenarioPrice,explanation,standingsGain:gain,afterUnfilled:after.unfilled,
+      fgBefore:profile.owned.averages['FG%'],ftBefore:profile.owned.averages['FT%'],fgAfter:ownedAfter.averages['FG%'],ftAfter:ownedAfter.averages['FT%']};
+    ctx.fits.set(cacheKey,result);return result;
   }
   function board(s,name) {
     if (!s.teams[name]) name=Object.keys(s.teams)[0];
@@ -209,16 +310,17 @@
         else if (f.cap>=next*.8) {interest='Possible';reason='Affordable, but price is near estimated team value.';}
         else {interest='Unlikely';reason='Next bid is above estimated team value. They may still bid.';}
       }
-      return {...t,open:prof.open,needs:prof.needs,legalMax:legal,interest,reason,highestObserved:bids.length?Math.max(...bids.map(b=>b.amount)):null,fg:prof.fg,ft:prof.ft};
+      const needs=f?f.needs:outlook(s,t.name).categories.slice().sort((a,b)=>(b.rank||0)-(a.rank||0)).slice(0,3).map(c=>c.category);
+      return {...t,open:prof.open,needs,legalMax:legal,interest,reason,highestObserved:bids.length?Math.max(...bids.map(b=>b.amount)):null,fg:prof.fg,ft:prof.ft};
     });
     const decision=!current?'WAIT':s.nomination.leader===name?'HOLD':next<=current.fit.cap?'BID':'PASS';
     const alternatives=current?rows.filter(p=>p.player_id!==current.player_id && p.fit.cap>0 && (positions(current).some(pos=>positions(p).includes(pos)) || current.fit.helps.some(c=>p.z[c]>1)))
       .sort((a,b)=>(b.fit.cap-b.market.expected)-(a.fit.cap-a.market.expected)).slice(0,3):[];
-    return {rows,current,next,teams,decision,alternatives,selectedTeam:name,market:{sales:s.sales.length,remaining:teams.reduce((v,t)=>v+t.remaining,0),slots:teams.reduce((v,t)=>v+t.open,0),pressure:s.initialRatio?round(budgetRatioCached(s)/s.initialRatio):1}};
+    return {rows,current,next,teams,decision,alternatives,outlook:outlook(s,name,current),selectedTeam:name,market:{sales:s.sales.length,remaining:teams.reduce((v,t)=>v+t.remaining,0),slots:teams.reduce((v,t)=>v+t.open,0),pressure:s.initialRatio?round(budgetRatioCached(s)/s.initialRatio):1}};
   }
   function resolvePlayer(session,name) {
     const matches=session.players.filter(p=>key(p.player)===key(name) || p.player_id===name);
     return matches.length===1?matches[0].player_id:null;
   }
-  return {CATS,STATS,key,create,replay,append,board,market,fit,legalMax,canFit,resolvePlayer,validateSettings};
+  return {CATS,STATS,key,create,replay,append,board,market,fit,outlook,projection,rawTotals,legalMax,canFit,resolvePlayer,validateSettings};
 });

@@ -126,17 +126,67 @@ Recovered past sale rows update budgets/rosters but contribute no retrospectivel
 invented pre-sale forecast or live residual sample. Display confidence labels are
 sample descriptions, not calibrated probabilities or prediction intervals.
 
-Personal caps start with the remaining pool's neutral value against current cash.
-Category weights vary modestly with the team's acquired roster, with a bounded
-fit adjustment. Percentage fit aggregates projected makes/attempts times games;
-it never averages two shooting percentages. Caps are floored to integer dollars
-and limited by legal max, reserved cash and configurable position eligibility.
-Position fitting uses a bipartite assignment so a PG/SG player cannot block a
-PG-only player merely because the greedy assignment chose PG first.
-This is an explainable working heuristic, not an optimized or backtested drafting
-policy. It does not model hidden bids, manager intent, future injuries or all
-possible roster combinations. High room prices do not automatically raise the
-personal cap. Predicted interest has no fabricated percentage probability.
+Team outlook and player impact
+Every nominated-player category shows the owned roster's average before and after
+adding that player: green/up, red/down, or neutral. Counting averages use projected
+player-games, and FG/FT use projected makes divided by attempts. A priority badge
+marks a weak category, even when that particular player makes it worse.
+
+Your team outlook sits above Available players. The eight category cards show
+estimated season totals (percentages for FG/FT), ranks, and need/strength labels.
+Show comparison expands owned-player totals, estimated finished-roster totals,
+gap to the next distinct team, and the nominated-player scenario. Clicking any
+category sorts available players by its projected improvement; filters still apply.
+The active category and expanded comparison survive bid updates and team changes.
+
+Owned totals sum each player's per-game forecast times projected games. Totals are
+proportionally limited to 1,000 player-games by default, without inflating rosters
+that project fewer games. The limit is configurable under Roster & reserve; older
+saved sessions default to 1,000. Shooting percentages retain their attempt weights.
+This is a season-horizon roster estimate, not a starting-lineup optimizer or an
+elimination forecast. Future waiver acquisitions and first-cut outcomes are not
+predicted. Published player projections and neutral values remain frozen.
+
+Open slots use independent, budget-matched averages from available players, not
+predicted draft picks. Inclusion weights favor neutral value with a price penalty
+calibrated to remaining cash. Each player's weight is at most one within a team's
+estimate, and weights sum to its open slots when affordable players exist.
+Expected fill spend cannot exceed cash. Available-player prices use the same live
+market model as the board. Actual owned-roster position eligibility filters the
+pool; averages are not a jointly assigned legal future lineup. Teams are estimated
+independently, so fractional expectations are not a simulated allocation of every
+remaining player. Insufficient affordable/eligible fill is explicitly flagged.
+Ranks stay provisional while any team has open slots.
+
+The with-player scenario replaces one estimated slot with the nominee, removes
+him from that team's fill pool and reprices the remaining fill using cash after
+a rounded live-expected-price purchase (limited by legal max). Other teams are
+held at their current estimates for this comparison; a confirmed sale rebuilds
+every team's estimate. This allows a costly purchase to improve one category
+while reducing what the remaining budget can supply elsewhere.
+
+Fit uses smooth expected category-point changes against the other teams, so
+nearly tied ranks do not create abrupt bid jumps. The comparison scale is category
+dispersion, with floors of 6% of mean counting production (at least one), 0.3
+percentage points FG and 0.4 percentage points FT. Smooth point comparisons use
+40% of that scale. Categories in the bottom third receive an additional bounded
+need adjustment; tied teams use their shared middle rank for need labels. A
+comfortable lead receives less marginal reward than an attainable category gain.
+The fit multiplier is 1 + .045 * total category-point change + .07 * summed
+normalized priority-category change, bounded to 0.75–1.30. Each priority-category
+change is bounded to -2..2. Strong fit, Good fit, Trade-off and Limited fit labels
+describe the scenario, with explicit category benefits and costs. Individual
+stat arrows describe owned averages and can differ from the completed-roster
+scenario after accounting for price and remaining fill.
+
+Personal caps start with the remaining pool's neutral value against current cash
+and apply this fit multiplier. Caps are floored to whole dollars and constrained
+by legal max, reserved cash and configurable position eligibility. Position
+fitting uses bipartite assignment rather than a greedy first-position choice.
+This is an explainable working heuristic, not an optimized or backtested policy.
+It does not infer hidden bids, future injuries or manager intent. Predicted
+opponent interest has no fabricated percentage probability. All-team needs and
+mock opponent fits use the same outlook calculations as your own team.
 
 Event lifecycle
 nominate -> observed bid(s) -> explicit sale; withdraw is available for manual
@@ -148,10 +198,14 @@ for review; advice pauses while pending updates exist. Sold/kept players leave t
 available pool, and a keeper is never an auction-model training observation.
 
 Validation
-  node --test tests/draft-engine.test.cjs tests/draft-practice.test.cjs tests/draft-watcher.test.cjs
+  node --test tests/draft-engine.test.cjs tests/draft-outlook.test.cjs tests/draft-practice.test.cjs tests/draft-watcher.test.cjs
   python scripts/check_draft.py --url http://127.0.0.1:8080 --browser <chrome.exe>
   python scripts/check_dashboard.py --url http://127.0.0.1:8080 --browser <chrome.exe>
   python scripts/check_mock_draft.py --url http://127.0.0.1:8080 --browser <chrome.exe>
+  python scripts/check_draft_outlook.py --url http://127.0.0.1:8080 --browser <chrome.exe>
+The outlook check covers all eight impacts, independent average arithmetic,
+keyboard category sorting, team changes, bid refreshes, the games limit, live
+isolation and desktop/split/mobile layouts.
 The existing dashboard check opens #history explicitly now that Draft is default.
 The draft browser check verifies practice isolation, reload persistence, name
 mapping, stale advice, duplicate delivery, responsive layout and the real passive
@@ -173,3 +227,11 @@ The complete timed-mock simulation used the actual 348-player pool and confirmed
 keepers: 195 sales, 983 observed simulated bids, and all 15 rosters filled. No
 budget was negative; live events and forecast inputs remained byte-for-byte
 unchanged. Mock screenshots and simulation results are in artifacts/mock-draft-qa.
+
+Category-outlook update validation, October 9, 2026:
+All 59 JavaScript tests passed (including 15 new outlook cases). The four real
+Flask browser suites passed: check_draft_outlook.py, check_mock_draft.py,
+check_draft.py and check_dashboard.py. A full 195-sale, 1,071-bid simulation
+filled all 15 rosters without negative cash or changing live/forecast inputs.
+Desktop, wide, split-screen and mobile outlook captures were inspected.
+No backend behavior or published projections changed in this update.

@@ -1,0 +1,82 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),E=require('../survivor/web/static/draft-engine.js');
+function fixture(){
+ const row=(id,blk=1)=>({player_id:id,player:id,positions:'PG,C',nba_team:'NBA',fair_value:10,expected_auction_price:10,games:50,minutes_pg:30,pts_pg:20,reb_pg:5,ast_pg:4,stl_pg:1,blk_pg:blk,fg3m_pg:2,fgm_pg:5,fga_pg:10,ftm_pg:4,fta_pg:5});
+ const rows=[row('k0',.1),row('k1',1.2),row('k2',2),...Array.from({length:12},(_,i)=>row('p'+i,1))];
+ const teams=['Max','A','B'],s=E.create(rows,{season:'2026-27',budget_per_team:200,teams:teams.map(franchise=>({franchise})),rows:teams.map((franchise,i)=>({franchise,player_id:'k'+i,keeper_cost:10}))},{id:'outlook'});
+ s.settings.rosterSize=2;return s;
+}
+let seq=0;const sale=(playerId,team,amount=10)=>({id:'outlook-'+(++seq),type:'sale',playerId,team,amount});
+const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,a+' != '+b);
+test('owned totals multiply each rate by that player’s projected games',()=>{
+ const s=fixture();s.players[0].games=20;s.players[0].pts_pg=30;E.append(s,sale('p0','Max'));
+ const o=E.outlook(E.replay(s),'Max');assert.equal(o.owned.values.PTS,1600);close(o.owned.averages.PTS,1600/70);assert.equal(o.owned.games,70);
+});
+test('every counting stat and both shooting percentages expose owned before/after averages',()=>{
+ const s=fixture();s.players[0].games=20;s.players[0].pts_pg=30;s.players[0].fgm_pg=1;s.players[0].fga_pg=2;
+ s.players[3].fgm_pg=9;s.players[3].fga_pg=10;s.players[3].pts_pg=10;
+ const f=E.fit(E.replay(s),s.players[3],'Max');assert.deepEqual(Object.keys(f.impact),E.CATS);
+ assert.equal(f.impact.PTS.avgBefore,30);close(f.impact.PTS.avgAfter,1100/70);close(f.impact['FG%'].avgAfter,470/540);
+});
+test('zero attempts give no percentage instead of a fabricated zero or NaN',()=>{
+ const s=fixture();s.players[0].fga_pg=s.players[0].fgm_pg=s.players[0].fta_pg=s.players[0].ftm_pg=0;
+ const o=E.outlook(E.replay(s),'Max');assert.equal(o.owned.values['FG%'],null);assert.equal(o.owned.values['FT%'],null);
+ const f=E.fit(E.replay(s),s.players[3],'Max');assert.equal(f.fgBefore,null);assert.equal(f.fgAfter,.5);
+});
+test('season games limit scales all counting totals and preserves weighted shooting',()=>{
+ const s=fixture();s.settings.gamesCap=60;E.append(s,sale('p0','Max'));
+ const o=E.outlook(E.replay(s),'Max');assert.equal(o.owned.games,60);assert.equal(o.owned.rawGames,100);
+ assert.equal(o.owned.values.PTS,1200);assert.equal(o.owned.values.AST,240);assert.equal(o.owned.values['FT%'],.8);
+});
+test('legacy sessions default to the league’s 1000-game limit and invalid caps are rejected',()=>{
+ const s=fixture();delete s.settings.gamesCap;assert.equal(E.outlook(E.replay(s),'Max').gamesCap,1000);
+ for(const gamesCap of [0,-1,1.5,3001,NaN])assert.throws(()=>E.replay({...s,settings:{...s.settings,gamesCap}}),/games limit/);
+});
+test('a blocks specialist helps a weak blocks team more than a comfortable leader',()=>{
+ const s=fixture();s.players[3].blk_pg=1.6;s.players[3].fair_value=5;const st=E.replay(s),weak=E.fit(st,s.players[3],'Max'),strong=E.fit(st,s.players[3],'B');
+ assert.equal(weak.impact.BLK.priority,true);assert.equal(strong.impact.BLK.priority,false);
+ assert.ok(weak.impact.BLK.change>0);assert.ok(weak.fitFactor>strong.fitFactor);
+ assert.ok(weak.cap>strong.cap);assert.ok(weak.explanation.includes('BLK'));assert.equal(weak.fitLabel,'Strong fit');
+});
+test('fit can identify a counting-stat need with identical shooting across all players',()=>{
+ const s=fixture();s.players[3].blk_pg=3;const f=E.fit(E.replay(s),s.players[3],'Max');
+ assert.ok(f.helps.includes('BLK'));assert.equal(f.impact['FG%'].change,0);assert.equal(f.impact['FT%'].change,0);assert.match(f.explanation,/need in BLK/);
+});
+test('standings compare estimated full rosters and remain provisional during the draft',()=>{
+ const s=fixture();E.append(s,sale('p0','Max'));const st=E.replay(s),o=E.outlook(st,'Max');
+ close(o.projected.values.PTS,E.outlook(st,'A').projected.values.PTS);assert.equal(o.provisional,true);
+ for(const team of ['A','B'])E.append(s,sale(team==='A'?'p1':'p2',team));
+ assert.equal(E.outlook(E.replay(s),'Max').provisional,false);
+});
+test('tied ranks and next distinct team gaps do not count a tied team as ahead',()=>{
+ const s=fixture();const o=E.outlook(E.replay(s),'Max');const pts=o.categories.find(c=>c.category==='PTS'),blk=o.categories.find(c=>c.category==='BLK');
+ assert.equal(pts.rank,1);assert.equal(pts.tied,true);assert.equal(pts.status,'Competitive');assert.equal(pts.gap,0);assert.equal(blk.rank,3);close(blk.gap,55);
+});
+test('with-player projection replaces an estimated slot instead of adding a sixteenth player',()=>{
+ const s=fixture();const st=E.replay(s),p=s.players[3],f=E.fit(st,p,'Max');E.append(s,sale(p.player_id,'Max',f.scenarioPrice));
+ const o=E.outlook(E.replay(s),'Max');for(const k of E.CATS)close(f.impact[k].after,o.projected.values[k]);assert.equal(o.projected.games,100);
+});
+test('budget-matched fill stays within cash and decreases with a lower budget',()=>{
+ const s=fixture();s.settings.rosterSize=4;
+ for(let i=3;i<s.players.length;i++){s.players[i].fair_value=s.players[i].expected_auction_price=2*(i-2);s.players[i].pts_pg=2*(i-2);}
+ const rich=E.outlook(E.replay(s),'Max');s.keepers[0].amount=188;const poor=E.outlook(E.replay(s),'Max');
+ assert.ok(rich.projected.values.PTS>poor.projected.values.PTS);assert.ok(poor.projected.fillCost<=12);assert.equal(poor.projected.unfilled,0);
+});
+test('missing affordable or position-eligible fill is labeled incomplete',()=>{
+ const s=fixture();s.settings.rosterSlots=['PG','C'];s.players[0].positions='PG';for(const p of s.players.slice(3))p.positions='PG';
+ const o=E.outlook(E.replay(s),'Max');assert.equal(o.unfilled,true);assert.equal(o.projected.unfilled,1);
+ assert.equal(E.fit(E.replay(s),s.players[3],'Max').cap,0);
+});
+test('sale and undo refresh outlook while observed bids alone do not change it',()=>{
+ const s=fixture(),before=E.outlook(E.replay(s),'Max');E.append(s,{id:'n',type:'nominate',playerId:'p0'});E.append(s,{id:'b',type:'bid',playerId:'p0',team:'A',amount:30});
+ assert.deepEqual(E.outlook(E.replay(s),'Max'),before);
+ const event=sale('p0','Max',30);E.append(s,event);assert.notDeepEqual(E.outlook(E.replay(s),'Max'),before);
+ E.append(s,{id:'undo',type:'undo',targetId:event.id});assert.deepEqual(E.outlook(E.replay(s),'Max'),before);
+});
+test('advice and outlook calculations never modify baseline projections or the event journal',()=>{
+ const s=fixture(),before=JSON.stringify(s);E.board(E.replay(s),'Max');assert.equal(JSON.stringify(s),before);
+});
+test('last slot preview and fit cannot bypass reserve or roster constraints',()=>{
+ const s=fixture();s.settings.reservePerSlot=195;s.settings.rosterSize=3;const b=E.board(E.replay(s),'Max');assert.ok(b.rows.every(p=>p.fit.cap===0));
+ s.settings.rosterSize=1;const full=E.board(E.replay(s),'Max');assert.equal(full.outlook.canAdd,false);assert.ok(full.rows.every(p=>p.fit.fitLabel==='No roster slot'&&p.fit.cap===0));
+});
