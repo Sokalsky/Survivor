@@ -142,7 +142,9 @@ already accumulated in NBA games or a forecast of future draft selections.
 Your team outlook sits above Available players. Category cards show current-roster
 season totals (percentages for FG/FT), rank and need/strength labels. Show comparison
 includes season total, rank now, exact roto points, gap to the next distinct team
-and the nominated-player preview, followed by the full league standings.
+and the nominated-player preview. A total row at the bottom shows overall rank,
+summed roto points, and the with-player score/rank/change, followed by the full
+league standings.
 Clicking a category sorts available players by its projected improvement.
 The wallet and outlook summary show current-roster overall rank and projected
 season roto score. Best receives 15 points per category, last receives one, and
