@@ -18,6 +18,9 @@ def main():
         page.on('pageerror',lambda e:errors.append(str(e)))
         page.goto(args.url,wait_until='networkidle')
         expect(page.locator('.outlook-category')).to_have_count(8)
+        expect(page.locator('[data-overall-place]')).to_be_visible()
+        expect(page.locator('[data-overall-points]')).to_contain_text('/ 120')
+        expect(page.locator('.wallet-standing')).to_contain_text('roto pts')
         expect(page.locator('.outlook-heading')).to_contain_text('Provisional')
         live=page.evaluate("JSON.stringify(JSON.parse(localStorage.getItem('survivor.draft.v1')).sessions.live)")
         page.locator('.draft-toolbar [data-draft="mode"]').click()
@@ -33,9 +36,17 @@ def main():
         blocks=page.locator('[data-stat-category="BLK"] .stat-impact')
         expect(blocks).to_contain_text(expected[0]+' → '+expected[1])
         page.locator('[data-draft="outlook-details"]').click()
-        expect(page.locator('.outlook-table tbody tr')).to_have_count(8)
+        expect(page.locator('.outlook-table-scroll .outlook-table tbody tr')).to_have_count(8)
         expect(page.locator('.outlook-note').first).to_contain_text('replaces one estimated slot')
-        expect(page.locator('.outlook-table')).to_contain_text('Owned players')
+        expect(page.locator('.overall-preview')).to_be_visible()
+        expect(page.locator('.overall-table tbody tr')).to_have_count(15)
+        expect(page.locator('.overall-table .your-standing')).to_contain_text('Max · YOU')
+        total=page.evaluate("""() => {
+          const r=JSON.parse(localStorage.getItem('survivor.draft.v1')),o=SurvivorDraft.outlook(SurvivorDraft.replay(r.sessions.practice),r.team);
+          return o.overall.current.points;
+        }""")
+        expect(page.locator('[data-overall-points]')).to_have_text(str(int(total) if float(total).is_integer() else total)+' / 120')
+        expect(page.locator('.outlook-table-scroll .outlook-table')).to_contain_text('Owned players')
         page.locator('.outlook-category[data-outlook-category="BLK"]').focus()
         page.keyboard.press('Enter')
         expect(page.locator('#draft-sort')).to_have_value('need:BLK')
@@ -46,10 +57,11 @@ def main():
           return b.rows.sort((a,b)=>b.fit.impact.BLK.change-a.fit.impact.BLK.change)[0].player;
         }""")
         assert first==wanted,(first,wanted)
-        before=page.locator('.outlook-table tbody tr').first.locator('td').first.inner_text()
+        before=page.locator('.outlook-table-scroll .outlook-table tbody tr').first.locator('td').first.inner_text()
         page.locator('#draft-team').select_option('Alvin')
-        assert page.locator('.outlook-table tbody tr').first.locator('td').first.inner_text()!=before
+        assert page.locator('.outlook-table-scroll .outlook-table tbody tr').first.locator('td').first.inner_text()!=before
         expect(page.locator('.outlook-heading p')).to_contain_text('Alvin')
+        expect(page.locator('.overall-table .your-standing')).to_contain_text('Alvin · YOU')
         page.locator('#draft-team').select_option('Max')
         page.locator('#mock-play').click()
         expect(page.locator('.draft-bidline')).not_to_contain_text('Awaiting first bid')

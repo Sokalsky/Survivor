@@ -251,13 +251,43 @@
     const points=1+others.reduce((n,v)=>n+1/(1+Math.exp(clamp((v-value)/(scale*.4),-30,30))),0);
     return {rank,tied,points,gap:above.length?Math.min(...above)-value:0,status,priority};
   }
+  // Display actual roto points, not the smoothed category-point heuristic used by fit.
+  // Tied teams share the points for their occupied places in each category.
+  function rotoStandings(profiles) {
+    const count=profiles.length,maxPoints=count*CATS.length;
+    if(!count || profiles.some(t=>CATS.some(k=>!Number.isFinite(t.values[k]))))return {available:false,maxPoints,rows:[]};
+    const rows=profiles.map(t=>({name:t.name,points:0,categoryPoints:{}}));
+    for(const k of CATS) {
+      const ordered=profiles.map((t,i)=>({index:i,value:t.values[k]})).sort((a,b)=>b.value-a.value);
+      const epsilon=k.includes('%')?1e-7:1e-5;
+      for(let first=0;first<count;) {
+        let last=first;while(last+1<count && Math.abs(ordered[last+1].value-ordered[first].value)<=epsilon)last++;
+        const points=count-(first+last)/2;
+        for(let j=first;j<=last;j++){const row=rows[ordered[j].index];row.categoryPoints[k]=points;row.points+=points;}
+        first=last+1;
+      }
+    }
+    for(const row of rows) {
+      const above=rows.filter(t=>t.points>row.points);
+      row.rank=above.length+1;row.tied=rows.some(t=>t!==row&&t.points===row.points);
+      row.gap=above.length?Math.min(...above.map(t=>t.points))-row.points:0;
+    }
+    rows.sort((a,b)=>b.points-a.points || a.name.localeCompare(b.name));
+    return {available:true,maxPoints,rows};
+  }
   function outlook(s,name,p=null) {
     const ctx=outlookContext(s),team=ctx.teams[name],f=p?fit(s,p,name):null;
+    const profiles=Object.entries(ctx.teams).map(([team,t])=>({name:team,values:t.projected.values}));
+    const standings=ctx.standings||(ctx.standings=rotoStandings(profiles));
+    const canAdd=Boolean(f?.positionFit&&legalMax(s,name)>0);
+    const withPlayer=canAdd?rotoStandings(profiles.map(t=>t.name===name?{name,values:Object.fromEntries(CATS.map(k=>[k,f.impact[k].after]))}:t)):null;
+    const overall={available:standings.available,maxPoints:standings.maxPoints,current:standings.rows.find(t=>t.name===name)||null,
+      after:withPlayer?.rows.find(t=>t.name===name)||null,teams:standings.rows};
     const categories=CATS.map(k=>({category:k,owned:team.owned.values[k],projected:team.projected.values[k],...categoryStanding(ctx,name,k,team.projected.values[k]),
       after:f?.impact[k]?.after??null,afterRank:f?.impact[k]?.afterRank??null,change:f?.impact[k]?.change??null}));
-    return {categories,owned:team.owned,projected:team.projected,teamCount:s.session.teams.length,gamesCap:s.session.settings.gamesCap??1000,
+    return {categories,overall,owned:team.owned,projected:team.projected,teamCount:s.session.teams.length,gamesCap:s.session.settings.gamesCap??1000,
       provisional:Object.values(ctx.teams).some(t=>t.projected.open>0),unfilled:Object.values(ctx.teams).some(t=>t.projected.unfilled>0),price:f?.scenarioPrice??null,
-      canAdd:Boolean(f?.positionFit&&legalMax(s,name)>0),afterUnfilled:f?.afterUnfilled??0};
+      canAdd,afterUnfilled:f?.afterUnfilled??0};
   }
   function fit(s,p,name) {
     const ctx=outlookContext(s),cacheKey=name+':'+p.player_id;
@@ -322,5 +352,5 @@
     const matches=session.players.filter(p=>key(p.player)===key(name) || p.player_id===name);
     return matches.length===1?matches[0].player_id:null;
   }
-  return {CATS,STATS,key,create,replay,append,board,market,fit,outlook,projection,rawTotals,legalMax,canFit,resolvePlayer,validateSettings};
+  return {CATS,STATS,key,create,replay,append,board,market,fit,outlook,rotoStandings,projection,rawTotals,legalMax,canFit,resolvePlayer,validateSettings};
 });

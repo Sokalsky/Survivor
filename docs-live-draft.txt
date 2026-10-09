@@ -134,7 +134,14 @@ marks a weak category, even when that particular player makes it worse.
 
 Your team outlook sits above Available players. The eight category cards show
 estimated season totals (percentages for FG/FT), ranks, and need/strength labels.
-Show comparison expands owned-player totals, estimated finished-roster totals,
+The wallet and outlook header also show projected overall place and total roto
+points. Overall scoring sums exact category points: 15 for best through 1 for
+last in this league, sharing occupied-place points for ties. Total-point ties
+share an overall rank. These displayed points are distinct from the smoothed
+heuristic used in fit. The nominated-player preview recalculates all teams'
+category points against the changed projection before ranking total points.
+Show comparison includes the full projected league standings and expands
+owned-player totals, estimated finished-roster totals,
 gap to the next distinct team, and the nominated-player scenario. Clicking any
 category sorts available players by its projected improvement; filters still apply.
 The active category and expanded comparison survive bid updates and team changes.
@@ -235,3 +242,8 @@ check_draft.py and check_dashboard.py. A full 195-sale, 1,071-bid simulation
 filled all 15 rosters without negative cash or changing live/forecast inputs.
 Desktop, wide, split-screen and mobile outlook captures were inspected.
 No backend behavior or published projections changed in this update.
+
+Overall-standings update validation, October 9, 2026:
+All 64 JavaScript tests passed, including exact category/overall ties, total-point
+ordering and recalculating rival points for a nominated-player scenario. The
+focused real-Flask outlook browser suite passed on desktop, split and mobile.

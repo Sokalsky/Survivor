@@ -80,3 +80,33 @@ test('last slot preview and fit cannot bypass reserve or roster constraints',()=
  const s=fixture();s.settings.reservePerSlot=195;s.settings.rosterSize=3;const b=E.board(E.replay(s),'Max');assert.ok(b.rows.every(p=>p.fit.cap===0));
  s.settings.rosterSize=1;const full=E.board(E.replay(s),'Max');assert.equal(full.outlook.canAdd,false);assert.ok(full.rows.every(p=>p.fit.fitLabel==='No roster slot'&&p.fit.cap===0));
 });
+
+test('overall standings sum exact roto category points, with the best receiving team count',()=>{
+ const profiles=[1,2,3].map((v,i)=>({name:['Low','Middle','High'][i],values:Object.fromEntries(E.CATS.map(k=>[k,v]))}));
+ const result=E.rotoStandings(profiles);assert.equal(result.maxPoints,24);
+ assert.deepEqual(result.rows.map(t=>[t.name,t.points,t.rank]),[['High',24,1],['Middle',16,2],['Low',8,3]]);
+ assert.equal(result.rows[2].gap,8);assert.equal(result.rows.reduce((n,t)=>n+t.points,0),48);
+});
+test('category ties share occupied-place points and overall ties share a rank',()=>{
+ const values=v=>Object.fromEntries(E.CATS.map(k=>[k,v]));
+ const result=E.rotoStandings([{name:'A',values:values(2)},{name:'B',values:values(1)},{name:'C',values:values(1)}]);
+ assert.deepEqual(result.rows.map(t=>[t.points,t.rank,t.tied]),[[24,1,false],[12,2,true],[12,2,true]]);
+ assert.equal(result.rows[1].categoryPoints.BLK,1.5);
+ const tied=E.rotoStandings([{name:'A',values:values(1)},{name:'B',values:values(1)},{name:'C',values:values(1)}]);
+ assert.ok(tied.rows.every(t=>t.points===16&&t.rank===1&&t.tied));
+});
+test('overall ranks use total points, not a single strongest category',()=>{
+ const a=Object.fromEntries(E.CATS.map(k=>[k,1])),b=Object.fromEntries(E.CATS.map(k=>[k,2])),c=Object.fromEntries(E.CATS.map(k=>[k,3]));
+ a.PTS=100;const result=E.rotoStandings([{name:'A',values:a},{name:'B',values:b},{name:'C',values:c}]);
+ assert.deepEqual(result.rows.map(t=>[t.name,t.points]),[['C',23],['B',15],['A',10]]);
+});
+test('with-player overall rank recalculates rival points when a category changes hands',()=>{
+ const s=fixture();s.players[3].blk_pg=5;
+ const o=E.outlook(E.replay(s),'Max',s.players[3]);
+ assert.equal(o.overall.current.points,15);assert.equal(o.overall.current.rank,3);
+ assert.equal(o.overall.after.points,17);assert.equal(o.overall.after.rank,1);assert.equal(o.overall.after.tied,false);
+});
+test('missing categories do not invent an overall standing',()=>{
+ const s=fixture();s.settings.rosterSize=1;s.players[0].fgm_pg=s.players[0].fga_pg=0;
+ const o=E.outlook(E.replay(s),'Max');assert.equal(o.overall.available,false);assert.equal(o.overall.current,null);assert.deepEqual(o.overall.teams,[]);
+});
