@@ -1,6 +1,6 @@
 /* Read the rendered auction UI by its labels, rather than user-picked CSS paths.
    No page internals, network interception, credentials, or Yahoo write actions. */
-(function(root,factory){if(typeof module!=='object'&&root.SurvivorYahooReader?.version==='0.3.1')return;const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.SurvivorYahooReader=api;})(globalThis,function(){
+(function(root,factory){if(typeof module!=='object'&&root.SurvivorYahooReader?.version==='0.3.3')return;const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.SurvivorYahooReader=api;})(globalThis,function(){
   'use strict';
   const clean=s=>String(s||'').replace(/\s+/g,' ').trim();
   const key=s=>clean(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -8,6 +8,7 @@
   const money=s=>{const m=clean(s).match(/^\$\s*([\d,]+)$/);return m?Number(m[1].replaceAll(',','')):null;};
   const text=e=>clean(e?.innerText??e?.textContent);
   const resultRegions=new WeakMap();
+  const roomStates=new WeakMap();
   const usable=e=>!e.closest('script,style,noscript,template,[hidden],[aria-hidden="true"]')&&!!e.getClientRects().length;
   function identity(url,title=''){
     const u=new URL(url);if(/(?:token|auth|session|key|code)=/i.test(u.hash))u.hash='';
@@ -24,7 +25,8 @@
     const owned=Number(slots[0][1]),size=Number(slots[0][2]),cash=money(wallet[0]);
     const name=clean(s.replace(slots[0][0],'').replace(/\$\s*[\d,]+(?:\.\d+)?/g,''));
     if(cash===null||cash>10000||size<1||size>30||owned>size||!name||name.length>100||/\b(?:max offer|budget|nominate|offer)\b/i.test(name))return null;
-    return {name,cash,owned,size};
+    const badges=dollars.filter(m=>m.index<wallet.index),bid=badges.length===1?money(badges[0][0]):null;
+    return {name,cash,owned,size,...(bid>0&&bid<=10000?{bid}:{})};
   }
   function catalogue(players){
     const aliases=new Map();
@@ -48,6 +50,12 @@
     const counters=elements.filter(e=>/^\d{1,2}\s*\/\s*\d{1,2}$/.test(txt(e))),rows=[],rowNodes=[];
     for(const counter of counters){let el=counter;for(let n=0;el&&n<6;n++,el=el.parentElement){const value=txt(el);if(value.length>260)break;const row=teamRow(value);if(row){if(!rowNodes.includes(el)){rows.push(row);rowNodes.push(el);}break;}}}
     const unique=new Set(rows.map(t=>key(t.name)));
+    const roomKey=identity(doc.URL).key+'|'+rows.map(t=>key(t.name)+':'+t.size).sort().join('|');
+    let memory=roomStates.get(doc);
+    if(!memory||memory.key!==roomKey){
+      memory={key:roomKey,wallets:new Map(rows.map(t=>[t.name,{cash:t.cash,owned:t.owned}])),bids:new Map(),results:new Map(),settled:new Set()};
+      roomStates.set(doc,memory);resultRegions.delete(doc);
+    }
     let auction=elements.filter(e=>txt(e).length<1600&&/\bMax Offer\s*\$/i.test(txt(e))&&/\bBudget\s*\$/i.test(txt(e))&&[...e.querySelectorAll('button,[role="button"]')].some(b=>/^Offer\s+\$/i.test(txt(b)))).sort((a,b)=>txt(a).length-txt(b).length)[0];
     if(!auction||rows.length<2||rows.length>30||unique.size!==rows.length||new Set(rows.map(t=>t.size)).size!==1)return {detected:false,message:'Waiting for Yahoo’s salary-cap draft room.'};
     const rowCount=Math.max(0,...rowNodes.map(n=>{let p=n;for(let i=0;p&&i<5;i++,p=p.parentElement){const count=Number(p.getAttribute('aria-rowcount')||p.getAttribute('aria-setsize'));if(count>0)return count;}return 0;}));
@@ -75,33 +83,66 @@
     const priceNodes=smallest.filter(e=>money(txt(e))!==null&&!offerControl(e));
     const prices=[...new Set(priceNodes.map(e=>money(txt(e))))];
     const owners=[...new Set(smallest.map(e=>owner(txt(e),rows)).filter(Boolean))];
+    const amount=prices.length===1?prices[0]:null,badges=amount>0?rows.filter(t=>t.bid===amount):[];
+    let leader=owners.length===1?owners[0]:null,leaderBasis=leader?'name':null;
+    // Yahoo calls the local manager "You" in the roster list but uses their
+    // display name on the auction card. A unique matching bid badge identifies
+    // that roster row without guessing that every unknown name belongs to us.
+    if(!owners.length&&badges.length===1){leader=badges[0].name;leaderBasis='team_bid_badge';}
+    if(leader&&badges.length===1&&leader!==badges[0].name){leader=null;leaderBasis='conflicting_bid_badge';}
     const at=txt(auction),sold=/\b(?:sold\b|won by|drafted by)/i.test(at)&&!(/\b(?:not sold|unsold)\b/i.test(at));
+    const budgetMatch=at.match(/\bBudget\s*\$\s*([\d,]+)/i),own=rows.find(t=>/^you$/i.test(t.name));
+    if(own&&budgetMatch&&own.cash!==Number(budgetMatch[1].replaceAll(',','')))return {detected:true,complete:false,message:'Yahoo team list is not showing remaining budgets.'};
+    if(player&&leader&&amount>0&&!memory.results.has(player)){
+      const before=memory.bids.get(player);
+      if(!before||amount>=before.amount)memory.bids.set(player,{team:leader,amount});
+    }
     const timer=smallest.map(txt).find(s=>/^\d{1,2}:\d{2}$/.test(s))||'';
     const results=[],resultNodes=new Set();
     // A last-pick or completed-picks region supplies explicit sale evidence.
-    const labels=elements.filter(e=>/^(?:Last Pick(?: will appear here)?|Picks|Draft Results|Drafted Players|Pick History)$/i.test(txt(e)));
+    const isLast=e=>/^Last\s*:\s*/i.test(txt(e))||/^Last Pick(?: will appear here)?$/i.test(txt(e));
+    const labels=elements.filter(e=>isLast(e)&&txt(e).length<500||/^(?:Picks|Draft Results|Drafted Players|Pick History)$/i.test(txt(e)));
     const remembered=(resultRegions.get(doc)||[]).filter(e=>e.isConnected&&!e.contains(auction));
-    for(const label of labels.filter(e=>/^Last Pick/i.test(txt(e)))){
+    for(const label of labels.filter(isLast)){
       let candidate=label;
       for(let i=0;i<4&&candidate.parentElement;i++){const parent=candidate.parentElement;if(txt(parent).length>500||parent.contains(auction)||rowNodes.some(n=>parent.contains(n)))break;candidate=parent;}
       if(!remembered.includes(candidate))remembered.push(candidate);
     }
     resultRegions.set(doc,remembered.slice(-12));labels.push(...remembered);
-    for(const label of labels){let region=label;for(let i=0;i<4&&region?.parentElement;i++,region=region.parentElement){
+    for(const label of labels){const lastPick=isLast(label)||remembered.includes(label);let region=label;for(let i=0;i<4&&region?.parentElement;i++,region=region.parentElement){
       const value=txt(region);if(value.length>15000||region.contains(auction)||rowNodes.some(n=>region.contains(n)))break;
       const descendants=[region,...region.querySelectorAll('*')];let found=false;
       for(const el of descendants){const s=txt(el);if(s.length>450||!usable(el)||el.closest('button,[role="button"]'))continue;
-        const p=resolve(s),dollars=[...s.matchAll(/\$\s*[\d,]+/g)];if(!p||dollars.length!==1)continue;
-        const teams=rows.filter(t=>(' '+words(s)+' ').includes(' '+words(t.name)+' '));if(teams.length!==1)continue;
-        const amount=money(dollars[0][0]);if(!(amount>0))continue;
-        const signature=JSON.stringify([p,teams[0].name,amount]);if(!resultNodes.has(signature)){resultNodes.add(signature);results.push({player:p,team:teams[0].name,amount});}found=true;
+        const p=resolve(s),dollars=[...s.matchAll(/\$\s*[\d,]+/g)];if(!p)continue;
+        const teams=rows.filter(t=>(' '+words(s)+' ').includes(' '+words(t.name)+' '));
+        let result=null;
+        if(dollars.length===1&&teams.length===1){
+          const paid=money(dollars[0][0]);if(paid>0)result={player:p,team:teams[0].name,amount:paid};
+        }else if(lastPick&&!dollars.length&&remembered.includes(el)){
+          const bid=memory.bids.get(p),current=bid&&rows.find(t=>t.name===bid.team),before=current&&memory.wallets.get(current.name);
+          // Last pick confirms the player was awarded. Require a captured bid,
+          // exactly one new roster spot, and that exact cash decrease as well.
+          // A clock ending, a nomination changing, or a bid alone is insufficient.
+          if(bid&&before&&current.owned===before.owned+1&&before.cash-current.cash===bid.amount&&(!teams.length||teams.length===1&&teams[0].name===bid.team)){
+            result={player:p,team:bid.team,amount:bid.amount};
+          }
+        }
+        if(!result)continue;
+        const signature=JSON.stringify(result);if(!resultNodes.has(signature)){resultNodes.add(signature);results.push(result);}found=true;
       }if(found)break;
     }}
-    const budgetMatch=at.match(/\bBudget\s*\$\s*([\d,]+)/i),own=rows.find(t=>/^you$/i.test(t.name));
-    if(own&&budgetMatch&&own.cash!==Number(budgetMatch[1].replaceAll(',','')))return {detected:true,complete:false,message:'Yahoo team list is not showing remaining budgets.'};
+    for(const result of results)memory.results.set(result.player,result);
+    for(const current of rows){
+      const before=memory.wallets.get(current.name);
+      const matched=[...memory.results.values()].filter(r=>r.team===current.name&&!memory.settled.has(r.player)&&current.owned===before.owned+1&&before.cash-current.cash===r.amount);
+      if(matched.length===1){memory.settled.add(matched[0].player);memory.wallets.set(current.name,{cash:current.cash,owned:current.owned});}
+      // A correction or a capture gap cannot support a one-purchase calculation.
+      else if(current.owned>before.owned+1||current.owned<before.owned||current.cash>before.cash)memory.wallets.set(current.name,{cash:current.cash,owned:current.owned});
+    }
+    for(const result of memory.results.values())if(!results.some(r=>r.player===result.player))results.push(result);
     const teams=rows.map(t=>{const won=results.filter(r=>r.team===t.name);return {...t,budget:won.length===t.owned?t.cash+won.reduce((sum,r)=>sum+r.amount,0):null};});
-    return {detected:true,complete:teams.every(t=>t.budget!==null),teams,rosterSize:rows[0].size,ownTeam:own?.name||null,player,amount:prices.length===1?prices[0]:null,team:owners.length===1?owners[0]:null,sold,timer,results,diagnostics:{auctionText:at.slice(0,1800),playerCandidates:[...names],priceCandidates:prices,leaderCandidates:owners,teamRows:rows.length,cataloguePlayers:players.length},
+    return {detected:true,complete:teams.every(t=>t.budget!==null),teams,rosterSize:rows[0].size,ownTeam:own?.name||null,player,amount,team:leader,sold,timer,results,diagnostics:{auctionText:at.slice(0,1800),playerCandidates:[...names],priceCandidates:prices,leaderCandidates:owners,leaderBasis,bidBadgeCandidates:badges.map(t=>t.name),teamRows:rows.length,cataloguePlayers:players.length},
       waiting:/Draft Starting Soon|YOU NOMINATE|NOMINATES NEXT/i.test(doc.body.innerText||''),message:'Yahoo salary-cap room detected.'};
   }
-  return {version:'0.3.1',clean,key,money,identity,teamRow,catalogue,scan};
+  return {version:'0.3.3',clean,key,money,identity,teamRow,catalogue,scan};
 });

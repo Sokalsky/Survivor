@@ -1,7 +1,7 @@
 /* Passive DOM capture. No Yahoo cookies, network interception, clicks or bids. */
 (()=>{'use strict';if(globalThis.__survivorCapture)return;globalThis.__survivorCapture=true;
  let selectors={},watching=false,previous='',lastBid='',lastSale='',saleCandidate='',saleSince=0,nominationSince=0,picking=null,overlay=null,scheduled=false;
- const sentRows=new Set();let resultsPrimed=false,captureId=null,players=[],autoObservation=null,lastDiscovery='',lastDiscoveryAt=0;
+ const sentRows=new Set();let resultsPrimed=false,captureId=null,players=[],autoObservation=null,lastDiscovery='',lastDiscoveryAt=0,lastTimerSent=null;
  const send=m=>chrome.runtime.sendMessage(m).catch(()=>{});
  const text=el=>String(el?.innerText||el?.textContent||'').replace(/\s+/g,' ').trim();
  const read=(selector,parent=document)=>selector?text(parent.querySelector(selector)):'';
@@ -43,15 +43,20 @@
    }
    if(selectors.resultRow||automatic)resultsPrimed=true;
    if(events.length){const earlier=events.filter(e=>e.type==='sale'&&e.player!==name),current=events.filter(e=>!(e.type==='sale'&&e.player!==name));send({type:'observation',events:[...earlier,...current]});}
+   // Relay the rendered clock when it changes, including Yahoo's late-bid reset.
+   // This is an observation only; no local countdown or sale is inferred.
+   if((automatic?autoObservation?.timer||'':read(selectors.timer))!==lastTimerSent)heartbeat();
   }catch(err){send({type:'heartbeat',ready:false,message:'Selected fields could not be read: '+err.message});}
  }
  function schedule(){if(scheduled)return;scheduled=true;queueMicrotask(()=>{scheduled=false;collect();});}
  new MutationObserver(schedule).observe(document.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['aria-label','data-value','data-state']});
  setInterval(collect,180);
- setInterval(()=>{try{
+ function heartbeat(){try{
   const auto=!selectors.player,found=autoObservation?.detected,ready=auto?found&&!!autoObservation.player&&autoObservation.amount!==null&&!!autoObservation.team:complete()&&!!read(selectors.player);
+  lastTimerSent=auto?autoObservation?.timer||'':read(selectors.timer);
   send({type:'heartbeat',connected:watching&&(auto?found:complete()),ready:watching&&ready,message:!watching?'Waiting to connect to Survivor.':auto?(ready?'Reading Yahoo auction automatically.':found?'Yahoo connected; waiting for '+[!autoObservation.player?'player identity':null,autoObservation.amount===null?'current price':null,!autoObservation.team?'leading bidder':null].filter(Boolean).join(', ')+'.':autoObservation?.message||'Looking for the Yahoo auction room.'):'Reading selected Yahoo fields.',timer:auto?autoObservation?.timer||'':read(selectors.timer)});
- }catch(err){send({type:'heartbeat',ready:false,message:'Yahoo layout could not be read. Open diagnostics in the watcher.'});}},1500);
+ }catch(err){send({type:'heartbeat',ready:false,message:'Yahoo layout could not be read. Open diagnostics in the watcher.'});}}
+ setInterval(heartbeat,1500);
  function path(el,stop){
   if(el===stop)return ':scope';
   const parts=[];while(el&&el!==stop&&el.nodeType===1){

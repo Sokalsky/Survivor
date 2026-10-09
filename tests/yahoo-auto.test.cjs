@@ -15,7 +15,7 @@ function worker(){
 async function connected(){const w=worker();await w.call({type:'app-online'},1);await w.call({type:'room-detected',room:sample},2);const c=w.data.draftWatcher;await w.call({type:'ready',nonce:c.nonce,sessionId:'placeholder',purpose:'mock',players:[{player:'Nikola Jokic'}]},1);return w;}
 test('room labels yield exact names, dollars and roster count without selectors',()=>{
  assert.deepEqual(Reader.teamRow('Yiğit Uğur $200 0/13'),{name:'Yiğit Uğur',cash:200,owned:0,size:13});
- assert.deepEqual(Reader.teamRow('$6 Scott $200 0/13'),{name:'Scott',cash:200,owned:0,size:13});
+ assert.deepEqual(Reader.teamRow('$6 Scott $200 0/13'),{name:'Scott',cash:200,owned:0,size:13,bid:6});
  assert.equal(Reader.teamRow('Max Offer $188 Budget $200 0/13'),null);assert.equal(Reader.teamRow('You $15.38 0/13'),null);
 });
 test('initials and accents resolve only when the player identity is unique',()=>{

@@ -1,4 +1,4 @@
-Chrome setup — watcher 0.3.0
+Chrome setup — watcher 0.3.3
 1. Download /static/yahoo-draft-watcher.zip, extract it, and load the folder in
    chrome://extensions using Load unpacked. For an existing install, replace the
    contents of its folder and click Reload. Refresh both draft tabs after updating.
@@ -14,8 +14,8 @@ Chrome setup — watcher 0.3.0
    treats the offer button as the current bid or infers a sale from a timer ending.
 5. Check the first real Yahoo nomination/bid/result when testing a new layout.
    Advanced setup retains explicit pairing, CSS overrides, and field pickers as
-   recovery tools. Actual Yahoo DOM compatibility is not yet verified; browser
-   checks use an illustrative fixture derived from the user's screenshots.
+   recovery tools. The owner confirmed bids, an own purchase and the next
+   nomination in a live mock with 0.3.2; automated checks still use illustrative DOM.
 
 Automatic import is mock-only. Each new Yahoo room creates a fresh test, backs up
 the preceding mock locally, and keeps undelivered old-room events out of the new
@@ -32,6 +32,30 @@ against the saved projection names; ambiguous initials are not guessed.
 For a real league draft, use Advanced setup to explicitly pair the real Survivor
 workspace and Yahoo draft tab, then enable Save real draft. An identified mock or
 unknown room never automatically chooses a real workspace.
+
+Watcher 0.3.3 — live clock updates (October 9, 2026)
+The owner confirmed 0.3.2 working in Yahoo: Jokic was purchased, both budgets
+showed $116, and the SGA nomination and $72 bid matched. The remaining clock issue
+was in the website: timer messages arrived but the clock only rerendered with a
+draft event. The website now updates the clock on each heartbeat, and the watcher
+sends rendered clock changes immediately instead of waiting for the 1.5s heartbeat.
+The browser flow verifies 00:06, a bid resetting it to 00:10, and then 00:09 with
+no extra bid event. No local clock, synthetic bid or timer-based sale is introduced.
+This clock fix needs both the updated site and extension; refresh after deployment.
+
+Watcher 0.3.2 — own bids and price-less last picks (October 9, 2026)
+The live mock imported its room and other managers' bids, then stalled when
+the owner bid $75 on Jokic: the roster row said You, the auction card said max,
+and the completed Last pick strip had no price. A unique matching team-row bid
+badge now identifies the bidder. A price-less Last pick requires a captured
+winning bid, that exact cash decrease, and one added roster spot before a sale
+is emitted. Incomplete or ambiguous evidence remains unresolved.
+The reader retains confirmed results across polling and same-version reinjection.
+Browser checks reproduce the $75 own bid, $125 remaining, 12 open slots, and
+Wembanyama's next nomination through the extension/app transport. These checks
+use illustrative DOM, not an actual Yahoo capture. Live retest remains required.
+Reload the unpacked extension, refresh both tabs, and join a fresh mock before
+the first nomination; old missed observations are not reconstructed by guessing.
 
 Adapter status and limits
 The current Yahoo draft DOM has NOT been inspected in this workspace. The

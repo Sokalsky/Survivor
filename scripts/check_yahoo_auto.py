@@ -48,7 +48,9 @@ def main():
         page.evaluate("document.querySelector('#sold').textContent='Sold!'")
         page.wait_for_function("messages.some(m=>m.type==='observation'&&m.events.some(e=>e.type==='sale'&&e.amount===2&&e.team==='Emre'))")
         captured=page.evaluate("messages.filter(m=>m.type==='observation').flatMap(m=>m.events)")
-        assert len([e for e in captured if e['type']=='sale'])==1,captured
+        # Previously confirmed picks remain available when capture is reconfigured.
+        assert [e for e in captured if e['type']=='sale' and e.get('recovered')]==[{'type':'sale','player':'Nikola Jokic','team':'Emre','amount':45,'recovered':True}],captured
+        assert len([e for e in captured if e['type']=='sale' and e['player']=='Victor Wembanyama'])==1,captured
         assert not errors,errors
         (OUT/'reader-report.json').write_text(json.dumps({'fixture':'illustrative screenshot-derived HTML, not actual Yahoo DOM','initialTeams':len(initial['teams']),'rosterSize':13,'captureEvents':captured,'scanTiming':timing,'pageErrors':errors},indent=2),encoding='utf-8')
         browser.close()

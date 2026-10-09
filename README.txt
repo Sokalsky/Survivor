@@ -31,15 +31,18 @@ matching mock or real workspace. Do not commit session exports or recording keys
 
 HANDOFF STATUS - 2026-10-09
 
-Watcher version: 0.3.1. The actual Yahoo mock successfully imported its 12 teams,
-200-dollar budgets and 13 roster slots with version 0.3.0, but nominations failed.
-Version 0.3.1 fixes nomination-card detection, projected-price filtering and team
-rows containing bid badges. Local reader and complete extension/app flow checks
-pass, including bids, an explicit sale and the next nomination. This corrected
-version still needs testing in an actual Yahoo room; live reliability is unverified.
+Watcher version: 0.3.3. The owner verified the 0.3.2 fix in a real Yahoo mock:
+their Jokic purchase was recorded, both budgets showed $116, and SGA's next
+nomination and $72 bid matched. Own bids use the unique matching team-list badge
+when Yahoo shows You in the roster list but max on the auction card. Price-less
+Last picks require the observed bid, exact cash decrease and one added roster spot.
+Version 0.3.3 also refreshes the site's clock on timer messages and sends rendered
+Yahoo clock changes immediately, including a late bid resetting it to ten seconds.
+Local full-flow checks pass for the clock tick/reset and the purchase sequence.
+The clock correction still needs a live retest after the site deploys.
 If capture fails, Advanced setup & recovery > Download diagnostics provides a
 local report for debugging. Do not assume the hosted ZIP has deployed just because
-the GitHub code is current; the checked-out extension above is version 0.3.1.
+the GitHub code is current; the checked-out extension above is version 0.3.3.
 Railway configuration and account access remain the owner's responsibility.
 
 READY NOW

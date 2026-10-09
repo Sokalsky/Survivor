@@ -429,3 +429,19 @@ and an illustrative Yahoo fixture. It verifies automatic import, Giannis $6/Scot
 a bid ladder, an explicit sale, the $159 winning budget, the next nomination, and
 zero real-recording writes. This fixture is not the actual Yahoo DOM; corrected
 live nomination/bid/sale capture remains to be verified by the owner.
+
+Watcher 0.3.2 / 0.3.3 follow-up (October 9, 2026)
+The next live mock exposed an own-bid identity mismatch (You in the roster list,
+max in the auction card) and a Last pick strip without a price. Version 0.3.2
+uses the unique matching bid badge for identity and requires the observed bid,
+exact wallet decrease, and one added roster slot to confirm a price-less Last pick.
+The owner then confirmed the live flow: Jokic purchased, $116 remaining in both
+apps, and SGA's next nomination and $72 bid synchronized.
+
+Version 0.3.3 fixes the remaining clock issue. Capture immediately relays rendered
+timer changes; the site updates its clock on heartbeats even when no bid occurs.
+The full extension/app fixture verifies 00:06 -> late-bid reset to 00:10 -> 00:09,
+alongside own bidding, $75 purchase/$125 remaining, next nomination and no real
+draft writes. scripts/check_yahoo_self_bid.py also rejects missing or ambiguous
+sale evidence. A live clock retest is pending. The clock fix requires both the
+site update and reloading extension 0.3.3.

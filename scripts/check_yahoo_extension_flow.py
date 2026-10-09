@@ -51,7 +51,7 @@ async def main():
           window._storage={};
           window.chrome={
             storage:{local:{get:async()=>structuredClone(_storage),set:async v=>Object.assign(_storage,structuredClone(v))}},
-            runtime:{getManifest:()=>({version:'0.3.1'}),onMessage:{addListener:f=>window._workerListener=f}},
+            runtime:{getManifest:()=>({version:'0.3.3'}),onMessage:{addListener:f=>window._workerListener=f}},
             tabs:{get:id=>_chromeHost({op:'tab',id}),sendMessage:(id,message)=>_chromeHost({op:'message',id,message}),update:async()=>{},onUpdated:{addListener:()=>{}},onRemoved:{addListener:()=>{}}},
             scripting:{executeScript:o=>_chromeHost({op:'script',id:o.target.tabId,files:o.files,marker:!!o.func})},
             alarms:{create:()=>{},onAlarm:{addListener:()=>{}}}
@@ -79,29 +79,63 @@ async def main():
         await expect(app.locator('.draft-bidline')).to_contain_text('$6')
         latency=(time.monotonic()-began)*1000
         await expect(app.locator('#draft-source')).to_have_text('Watching Yahoo')
+        # Clock ticks must render even without any new bid or roster event.
+        journal_size=await app.evaluate("JSON.parse(localStorage.getItem('survivor.yahoo-mock.v1')).sessions.live.events.length")
+        await yahoo.evaluate("document.querySelector('#auction time').textContent='00:06'")
+        await expect(app.locator('#live-draft-clock')).to_have_text('00:06',timeout=1200)
+        assert await app.evaluate("JSON.parse(localStorage.getItem('survivor.yahoo-mock.v1')).sessions.live.events.length")==journal_size
         for amount,team in [(7,'You'),(8,'Emre'),(41,'Scott')]:
-            await yahoo.evaluate("""([price,team])=>{document.querySelector('#price').textContent='$'+price;document.querySelector('#bidder').textContent=team;}""",[amount,team])
+            await yahoo.evaluate("""([price,team])=>{document.querySelector('#price').textContent='$'+price;document.querySelector('#bidder').textContent=team;document.querySelector('#auction time').textContent='00:10';}""",[amount,team])
             await expect(app.locator('.draft-bidline')).to_contain_text('$'+str(amount))
             await expect(app.locator('.draft-bidline')).to_contain_text(team)
+            await expect(app.locator('#live-draft-clock')).to_have_text('00:10',timeout=1200)
+        await yahoo.evaluate("document.querySelector('#auction time').textContent='00:09'")
+        await expect(app.locator('#live-draft-clock')).to_have_text('00:09',timeout=1200)
+        await expect(app.locator('#draft-controls')).to_contain_text('0 sales')
         await yahoo.evaluate("document.querySelector('#sold').textContent='Sold!'")
         await expect(app.locator('#draft-controls')).to_contain_text('1 sales')
         await expect(app.locator('#draft-teams')).to_contain_text('$159')
         await yahoo.evaluate("""() => {document.querySelector('#last-pick').innerHTML='<b>G. ANTETOKOUNMPO</b><span> Scott </span><b>$41</b>';document.querySelector('#sold').textContent='';document.querySelector('#player').textContent='N. JOKIC';document.querySelector('#price').textContent='$1';document.querySelector('#bidder').textContent='Emre';}""")
         await expect(app.locator('#draft-nomination')).to_contain_text('Nikola Jokic')
         await expect(app.locator('.draft-bidline')).to_contain_text('$1')
+        # Screenshot regression: the own-team row says You, but the card and
+        # price-less Last pick show the manager's display name.
+        await yahoo.evaluate("""() => {
+            document.querySelector('#price').textContent='$75';document.querySelector('#bidder').textContent='max';
+            document.querySelector('#teams').firstElementChild.insertAdjacentHTML('afterbegin','<small class="bid-badge">$75</small> ');
+        }""")
+        await expect(app.locator('.draft-bidline')).to_contain_text('$75')
+        await expect(app.locator('.draft-bidline')).to_contain_text('You')
+        await expect(app.locator('.draft-decision')).to_have_text('HOLD')
+        await yahoo.evaluate("""() => {
+            document.querySelector('#last-pick').innerHTML='<span>Last: </span><b>N. JOKIC (C - DEN)</b><span> max</span>';
+            const row=document.querySelector('#teams').firstElementChild;
+            row.querySelector('b').textContent='$125';row.lastElementChild.textContent='1/13';
+            document.querySelector('#auction footer').innerHTML='<span>Max Offer <b>$114</b> · Budget <b>$125</b></span><time>00:07</time>';
+            document.querySelector('#player').textContent='V. WEMBANYAMA';document.querySelector('#price').textContent='$72';document.querySelector('#bidder').textContent='Scott';
+            document.querySelector('#teams').lastElementChild.querySelector('.bid-badge').textContent='$72';
+        }""")
+        await expect(app.locator('#draft-controls')).to_contain_text('2 sales')
+        await expect(app.locator('#draft-wallet')).to_contain_text('$125')
+        await expect(app.locator('#draft-wallet')).to_contain_text('12 slots left')
+        await expect(app.locator('#draft-nomination')).to_contain_text('Victor Wembanyama')
+        await expect(app.locator('.draft-bidline')).to_contain_text('$72')
+        await expect(app.locator('.draft-decision')).not_to_have_text('CHECK SYNC')
         state=await app.evaluate("JSON.parse(localStorage.getItem('survivor.yahoo-mock.v1')).sessions.live")
         bids=[e for e in state['events'] if e['type']=='bid']
         assert [(e['amount'],e['team']) for e in bids[:4]]==[(6,'Scott'),(7,'You'),(8,'Emre'),(41,'Scott')],bids
-        assert len([e for e in state['events'] if e['type']=='sale'])==1,state['events']
+        assert len([e for e in state['events'] if e['type']=='sale'])==2,state['events']
+        assert any(e['type']=='sale' and e['team']=='You' and e['amount']==75 for e in state['events'])
+        assert not await app.evaluate("JSON.parse(localStorage.getItem('survivor.yahoo-mock.v1')).pending")
         assert await app.evaluate("localStorage.getItem('survivor.draft.v1')")==original
         assert (await (await context.request.get(BASE+'/api/drafts')).json())['drafts']==[]
         diagnostic=await worker.evaluate("()=>new Promise(resolve=>_workerListener({type:'diagnostics'},{},resolve))")
-        assert diagnostic['capture']['readerVersion']=='0.3.1'
+        assert diagnostic['capture']['readerVersion']=='0.3.3'
         assert diagnostic['capture']['cataloguePlayers']>300
-        assert diagnostic['capture']['observation']['player']=='Nikola Jokic'
+        assert diagnostic['capture']['observation']['player']=='Victor Wembanyama'
         assert not errors,errors
         await app.screenshot(path=str(OUT/'extension-flow-nomination.png'))
-        (OUT/'extension-flow-report.json').write_text(json.dumps({'fixture':'illustrative HTML with nested controls, projected price and bid badges','realExtensionScripts':True,'chromeMessaging':'emulated','importedTeams':14,'rosterSize':13,'observedBids':[(e['amount'],e['team']) for e in bids],'sales':1,'winningBudget':159,'firstBidRenderMs':latency,'realStorageUnchanged':True,'recordedRealDrafts':0,'pageErrors':errors},indent=2),encoding='utf-8')
+        (OUT/'extension-flow-report.json').write_text(json.dumps({'fixture':'illustrative HTML with nested controls, projected price, bid badges, You/max identity and price-less Last pick','realExtensionScripts':True,'chromeMessaging':'emulated','importedTeams':14,'rosterSize':13,'observedBids':[(e['amount'],e['team']) for e in bids],'sales':2,'ownWinningPrice':75,'ownRemainingBudget':125,'nextNomination':'Victor Wembanyama','firstBidRenderMs':latency,'realStorageUnchanged':True,'recordedRealDrafts':0,'pageErrors':errors},indent=2),encoding='utf-8')
         await browser.close()
     print('Full local extension flow passed: auto import, nomination, bid ladder, sale, next nomination, mock isolation')
 

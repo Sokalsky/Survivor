@@ -231,7 +231,7 @@
     const next=document.getElementById('mock-next-clock');if(next)next.textContent=mock.running?'Next player in '+Math.ceil(mock.state.resultMs/1000)+'s':'Paused before next player';
   }
   function clockMarkup() {
-    return room.mode==='practice'?'<strong id="mock-clock">10s</strong><small id="mock-clock-label">Paused · 10-second auction</small>':(watcherInfo.timer?esc(watcherInfo.timer):'LIVE BOARD')+'<small>Yahoo remains the bid control</small>';
+    return room.mode==='practice'?'<strong id="mock-clock">10s</strong><small id="mock-clock-label">Paused · 10-second auction</small>':'<span id="live-draft-clock">'+(watcherInfo.timer?esc(watcherInfo.timer):'LIVE BOARD')+'</span><small>Yahoo remains the bid control</small>';
   }
   function mockEmpty() {
     const r=mock.state.lastResult,p=r&&snapshot.byId[r.playerId],done=mock.state.phase==='complete',me=view.teams.find(t=>t.name===room.team);
@@ -272,6 +272,7 @@
   }
   function refreshStatus() {
     if(!active())return;
+    const clock=document.getElementById('live-draft-clock');if(clock&&room.mode==='live')clock.textContent=watcherInfo.timer||'LIVE BOARD';
     const el=document.getElementById('draft-source');if(el)el.textContent=status();
     const dot=root.querySelector('.draft-light');dot?.classList.toggle('on',status()==='Watching Yahoo');
     const obs=document.getElementById('draft-observation');if(obs)obs.textContent=room.mode==='practice'?'SIMULATED BIDS & SALES':room.pending.length?room.pending.length+' updates need review':lastHeartbeat?'Last watcher update '+Math.max(0,Math.floor((Date.now()-lastHeartbeat)/1000))+'s ago · observed bids only':'Draft activity stays in this browser';

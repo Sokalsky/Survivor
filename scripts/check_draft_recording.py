@@ -70,7 +70,12 @@ def main():
         # Yahoo mock shares the site, but uses a different store and issues no recording writes.
         real_before=page.evaluate("localStorage.getItem('survivor.draft.v1')")
         mock=context.new_page();mock.on('pageerror',lambda e:errors.append(str(e)));writes=[]
-        mock.on('request',lambda r:writes.append(r.url) if r.method=='POST' else None)
+        def record_write(request):
+            # Watch recording writes on any host, excluding unrelated browser/antivirus traffic.
+            path=urlparse(request.url).path
+            if request.method not in ('GET','HEAD','OPTIONS') and (path=='/api/drafts' or path.startswith('/api/drafts/')):
+                writes.append(request.url)
+        mock.on('request',record_write)
         mock.goto(args.url+'/?yahooMock=1#draft',wait_until='networkidle');mock.locator('[data-draft="mock-settings"]').click()
         mock.locator('#yahoo-mock-settings [name="teams"]').fill('Mock One\nMock Two');mock.locator('#yahoo-mock-settings [name="rosterSize"]').fill('2');mock.locator('#yahoo-mock-settings button').click()
         send(mock,[dict(id='mn',type='nominate',player=player),dict(id='mb',type='bid',player=player,team='Mock Two',amount=55),dict(id='ms',type='sale',player=player,team='Mock Two',amount=55)],True)
