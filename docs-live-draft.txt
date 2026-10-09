@@ -13,6 +13,31 @@ category needs, and a distinction between observed bidding and estimated interes
 Available players support search, position, price/value/fit sorts and a watchlist.
 My roster, draft results and observed bids are separate board views.
 
+Practice mock draft
+Choose Try practice draft, then Start mock draft. Restart practice begins with
+the confirmed keepers and no simulated sales. Existing practice histories remain
+available after this update; restart to begin a complete mock from the top.
+Nomination order is highest saved neutral value first, matching the board's
+default sort. Search, watchlist and display sorting do not change that order.
+Each player gets a fixed 10-second auction; bids do not extend the deadline.
+Opponents bid automatically. Your selected team bids only when you click Bid or
+submit a custom amount. The suggested cap is advice; the hard limit is legal cash
+after minimum reserves and valid roster slots. A leading bid cannot be withdrawn.
+Pass blocks your bid controls for this player until you choose Rejoin bidding.
+At zero, the highest bidder receives the player at their final bid. An unbid
+player is passed over without spending anyone's money. A brief result appears
+before the next nomination. Rosters, budgets, remaining values and fit update
+through the same event journal used by the live board, in a separate session.
+
+Opponents have varied per-player spending limits based on current market price,
+team fit and legal budget. These are simulated behaviors, not learned models of
+the real managers. The draft stops when rosters are full or no eligible players
+remain; it does not silently fill your roster if you choose not to bid.
+Pause freezes the clock. Opening settings, switching teams or modes, navigating
+away, hiding the tab, or a long browser suspension pauses the mock. Reloading
+restores the current player and saved time, paused. Restart retains your practice
+roster settings and never changes your live events, projections or saved values.
+
 Chrome setup
 1. Open the project's Draft page in Chrome.
 2. Download /static/yahoo-draft-watcher.zip using Connect Yahoo. Extract it.
@@ -123,9 +148,10 @@ for review; advice pauses while pending updates exist. Sold/kept players leave t
 available pool, and a keeper is never an auction-model training observation.
 
 Validation
-  node --test tests/draft-engine.test.cjs tests/draft-watcher.test.cjs
+  node --test tests/draft-engine.test.cjs tests/draft-practice.test.cjs tests/draft-watcher.test.cjs
   python scripts/check_draft.py --url http://127.0.0.1:8080 --browser <chrome.exe>
   python scripts/check_dashboard.py --url http://127.0.0.1:8080 --browser <chrome.exe>
+  python scripts/check_mock_draft.py --url http://127.0.0.1:8080 --browser <chrome.exe>
 The existing dashboard check opens #history explicitly now that Draft is default.
 The draft browser check verifies practice isolation, reload persistence, name
 mapping, stale advice, duplicate delivery, responsive layout and the real passive
@@ -134,10 +160,16 @@ Yahoo or prove compatibility with Yahoo's present DOM.
 
 Release validation on October 9, 2026 covered all 105 Python regression tests:
 104 passed in the full run; the remaining test passed after correcting its old
-calendar-based expected value, with no production-code change. All 34 JavaScript
-tests passed. Both check_draft.py and check_dashboard.py passed against the real
+calendar-based expected value, with no production-code change. All 44 JavaScript
+tests passed after the timed-mock update. check_mock_draft.py, check_draft.py and
+check_dashboard.py passed against the real
 Flask application using its in-memory preview, the original workbook, 348 ESPN
 projections, 30 confirmed keepers and the computed v11 valuation run. The watcher
 fixture uses a separate blank page; the app's strict CSP remains enabled.
 Artifacts and screenshots are in artifacts/draft-qa. This validation did not use
 the production database and does not replace calibration in a real Yahoo room.
+
+The complete timed-mock simulation used the actual 348-player pool and confirmed
+keepers: 195 sales, 983 observed simulated bids, and all 15 rosters filled. No
+budget was negative; live events and forecast inputs remained byte-for-byte
+unchanged. Mock screenshots and simulation results are in artifacts/mock-draft-qa.

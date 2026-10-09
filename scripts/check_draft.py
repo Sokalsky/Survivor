@@ -21,8 +21,9 @@ def main():
   expect(page.locator('.nomination')).to_be_visible()
   expect(page.locator('#draft-source')).to_have_text('Practice')
   expect(page.locator('.draft-notice.practice')).to_be_visible()
-  page.locator('[data-draft="next"]').click()
+  page.locator('#mock-play').click()
   expect(page.locator('.draft-bidline')).not_to_contain_text('Awaiting first bid')
+  page.locator('#mock-play').click()
   page.screenshot(path=str(out/'draft-practice-desktop.png'),full_page=False)
   base=page.evaluate("JSON.parse(localStorage.getItem('survivor.draft.v1')).sessions.live.events.length")
   assert base==0

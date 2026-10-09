@@ -7,6 +7,8 @@ READY NOW
 
 - Draft is the default page: live auction board, adaptive price estimates,
   personal bid caps, all-team budgets/interest, watchlist and private practice mode.
+- Practice runs a full mock auction: top-to-bottom nominations, 10-second clocks,
+  simulated opponents, your own bid controls, pause/resume and automatic results.
 - Configurable Chrome Yahoo watcher with local queue, replay, identity mapping
   and explicit sale confirmation. Real Yahoo calibration remains required.
   Setup, model assumptions and validation limits: docs-live-draft.txt.
