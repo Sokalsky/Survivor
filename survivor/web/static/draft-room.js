@@ -391,7 +391,7 @@
   window.addEventListener('message',e=>{
     if(e.source!==window||e.origin!==location.origin||e.data?.channel!=='survivor-draft-extension'||!room)return;
     const m=e.data;
-    if(m.type==='hello'){if(!YAHOO_MOCK&&room.sessions.live.purpose==='mock'){error('Open the Yahoo mock workspace for this session.');return;}nonce=m.nonce;paired=true;window.postMessage({channel:'survivor-draft-page',type:'ready',nonce,sessionId:room.sessions.live.id,purpose:YAHOO_MOCK?'mock':'real',players:room.sessions.live.players.map(p=>({player:p.player}))},location.origin);return;}
+    if(m.type==='hello'){if(!YAHOO_MOCK&&room.sessions.live.purpose==='mock'){error('Open the Yahoo mock workspace for this session.');return;}nonce=m.nonce;paired=true;window.postMessage({channel:'survivor-draft-page',type:'ready',nonce,sessionId:room.sessions.live.id,purpose:YAHOO_MOCK?'mock':'real',players:room.sessions.live.players.map(p=>({player:p.player})),teamAliases:Object.entries(room.teamMap).map(([name,team])=>({name,team}))},location.origin);return;}
     if(!nonce||m.nonce!==nonce||m.sessionId!==room.sessions.live.id)return;
     if(m.type==='room'){
       try{

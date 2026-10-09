@@ -1,6 +1,6 @@
 /* Read the rendered auction UI by its labels, rather than user-picked CSS paths.
    No page internals, network interception, credentials, or Yahoo write actions. */
-(function(root,factory){if(typeof module!=='object'&&root.SurvivorYahooReader?.version==='0.3.4')return;const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.SurvivorYahooReader=api;})(globalThis,function(){
+(function(root,factory){if(typeof module!=='object'&&root.SurvivorYahooReader?.version==='0.3.5')return;const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.SurvivorYahooReader=api;})(globalThis,function(){
   'use strict';
   const clean=s=>String(s||'').replace(/\s+/g,' ').trim();
   const key=s=>clean(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -42,7 +42,7 @@
     const s=words(value),found=teams.filter(t=>s===words(t.name)||s===words('leading '+t.name)||s===words('high bidder '+t.name)||s===words('sold to '+t.name)||s===words('won by '+t.name)||s===words('drafted by '+t.name));
     return found.length===1?found[0].name:null;
   }
-  function scan(doc,players=[]){
+  function scan(doc,players=[],teamAliases=[]){
     const elements=[...doc.querySelectorAll('body *')].filter(usable),visible=new Set(elements),cache=new Map();
     // Separate adjacent text nodes: "$200" beside "00:51" is not "$20000".
     const txt=e=>{if(!cache.has(e))cache.set(e,clean([...e.childNodes].map(n=>n.nodeType===3?n.textContent:n.nodeType===1&&visible.has(n)?txt(n):'').join(' ')));return cache.get(e);};
@@ -148,9 +148,20 @@
           const fields=[...el.querySelectorAll('*')].filter(usable);
           const parts=p.split(' '),short=parts[0][0]+'. '+parts.slice(1).join(' ');
           if(!fields.some(n=>words(txt(n))===words(p)||words(txt(n))===words(short))||!fields.some(n=>money(txt(n))===paid))continue;
-          const teams=rows.filter(t=>fields.some(n=>words(txt(n))===words(t.name)));
-          if(teams.length!==1)continue;
-          const result={player:p,team:teams[0].name,amount:paid,...(!memory.bids.has(p)?{recovered:true}:{})},signature=JSON.stringify(result);
+          const teams=rows.filter(t=>{
+            const franchise=teamAliases.find(a=>key(a.name)===key(t.name))?.team;
+            return fields.some(n=>words(txt(n))===words(t.name)||franchise&&teamAliases.some(a=>a.team===franchise&&key(a.name)===key(txt(n))));
+          });
+          let winner=teams.length===1?teams[0].name:null;
+          // The Updates card uses our actual team name while the wallet says
+          // "You". A captured winning bid plus its exact wallet/slot change
+          // confirms this purchase without treating all unknown names as us.
+          if(!teams.length&&own){
+            const bid=memory.bids.get(p),before=memory.wallets.get(own.name);
+            if(bid?.team===own.name&&bid.amount===paid&&before&&own.owned===before.owned+1&&before.cash-own.cash===paid)winner=own.name;
+          }
+          if(!winner)continue;
+          const result={player:p,team:winner,amount:paid,...(!memory.bids.has(p)?{recovered:true}:{})},signature=JSON.stringify(result);
           if(!resultNodes.has(signature)){resultNodes.add(signature);results.push(result);}found=true;
         }
         if(found)break;
@@ -169,5 +180,5 @@
     return {detected:true,complete:teams.every(t=>t.budget!==null),teams,rosterSize:rows[0].size,ownTeam:own?.name||null,player,amount,team:leader,sold,timer,results,diagnostics:{auctionText:at.slice(0,1800),playerCandidates:[...names],priceCandidates:prices,leaderCandidates:owners,leaderBasis,bidBadgeCandidates:badges.map(t=>t.name),teamRows:rows.length,cataloguePlayers:players.length},
       waiting:/Draft Starting Soon|YOU NOMINATE|NOMINATES NEXT/i.test(doc.body.innerText||''),message:'Yahoo salary-cap room detected.'};
   }
-  return {version:'0.3.4',clean,key,money,identity,teamRow,catalogue,scan};
+  return {version:'0.3.5',clean,key,money,identity,teamRow,catalogue,scan};
 });

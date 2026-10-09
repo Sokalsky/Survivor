@@ -8,7 +8,7 @@ const yahoo=url=>{try{const h=new URL(url).hostname;return h==='sports.yahoo.com
 async function appMessage(c,message){if(!c.appTab)return;try{await chrome.tabs.sendMessage(c.appTab,{...message,nonce:c.nonce,sessionId:c.sessionId});}catch{c.status.message='Survivor tab is unavailable. Updates are queued locally.';}}
 async function flush(c){if(c.sessionId&&c.queue.length&&(!c.automatic||c.roomReady))await appMessage(c,{type:'events',events:c.queue.slice(0,100)});}
 async function injectApp(c){await chrome.scripting.executeScript({target:{tabId:c.appTab},files:['bridge.js']});await chrome.tabs.sendMessage(c.appTab,{type:'init',nonce:c.nonce});}
-async function injectYahoo(c){await chrome.scripting.executeScript({target:{tabId:c.yahooTab},files:['yahoo-reader.js','capture.js']});await chrome.tabs.sendMessage(c.yahooTab,{type:'configure',selectors:c.selectors,watching:c.watching,captureId:c.source,players:c.players||[]});}
+async function injectYahoo(c){await chrome.scripting.executeScript({target:{tabId:c.yahooTab},files:['yahoo-reader.js','capture.js']});await chrome.tabs.sendMessage(c.yahooTab,{type:'configure',selectors:c.selectors,watching:c.watching,captureId:c.source,players:c.players||[],teamAliases:c.appPurpose==='real'?c.teamAliases||[]:[]});}
 const primaryApp='https://survivor-production-bdd5.up.railway.app';
 function cleanRoom(raw){
  if(!raw||typeof raw.key!=='string'||raw.key.length>1000||!yahoo(raw.key)||!['mock','unknown'].includes(raw.purpose)||!Array.isArray(raw.teams)||raw.teams.length<2||raw.teams.length>30||!Number.isInteger(raw.rosterSize)||raw.rosterSize<1||raw.rosterSize>30)throw Error('Incomplete Yahoo room settings.');
@@ -69,6 +69,7 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
           if(c.sessionId&&c.sessionId!==message.sessionId){c.source=crypto.randomUUID();c.seen=[];if(c.automatic)c.roomReady=false;if(c.yahooTab)await injectYahoo(c);}
           c.sessionId=message.sessionId;c.appPurpose=message.purpose||c.appPurpose;
           if(Array.isArray(message.players)&&message.players.length<=2000)c.players=message.players.map(p=>({player:String(p.player||'').slice(0,160)}));
+          if(Array.isArray(message.teamAliases)&&message.teamAliases.length<=200)c.teamAliases=message.teamAliases.map(a=>({name:String(a.name||'').slice(0,100),team:String(a.team||'').slice(0,100)})).filter(a=>a.name&&a.team);
           if(c.automatic&&c.room?.complete&&!c.roomReady)await appMessage(c,{type:'room',room:c.room});
           if(c.yahooTab)await injectYahoo(c);
           await flush(c);await appMessage(c,{type:'heartbeat',status:c.status.at&&Date.now()-c.status.at<5000?c.status:{ready:false,message:'Waiting for a fresh Yahoo observation.'}});

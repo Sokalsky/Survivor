@@ -23,3 +23,11 @@ test('new empty session gets a fresh capture identity',async()=>{const w=await p
 test('repeated app handshakes cannot turn a stale watcher heartbeat fresh',async()=>{const w=await paired(),c=w.data.draftWatcher;w.data.draftWatcher.status={ready:true,at:Date.now()-20000};await w.call({type:'ready',nonce:c.nonce,sessionId:c.sessionId},{tab:{id:1},origin:c.appOrigin});const latest=w.messages.filter(m=>m.type==='heartbeat').at(-1);assert.equal(latest.status.ready,false);});
 
 test('pairing another Survivor destination pauses capture until Yahoo is explicitly selected',async()=>{const w=await paired();assert.equal(w.data.draftWatcher.watching,true);await w.call({type:'pair',tabId:1});assert.equal(w.data.draftWatcher.watching,false);assert.equal(w.data.draftWatcher.status.ready,false);});
+
+test('confirmed owner aliases reach real Yahoo capture but not mock rooms',async()=>{
+ const w=await paired(),c=w.data.draftWatcher,teamAliases=[{name:'You',team:'Max'},{name:'Cookin n Jokic',team:'Max'}];
+ await w.call({type:'ready',nonce:c.nonce,sessionId:c.sessionId,purpose:'real',teamAliases},{tab:{id:1},origin:c.appOrigin});
+ assert.deepEqual(structuredClone(w.messages.filter(m=>m.type==='configure').at(-1).teamAliases),teamAliases);
+ await w.call({type:'ready',nonce:c.nonce,sessionId:c.sessionId,purpose:'mock'},{tab:{id:1},origin:c.appOrigin});
+ assert.equal(w.messages.filter(m=>m.type==='configure').at(-1).teamAliases.length,0);
+});

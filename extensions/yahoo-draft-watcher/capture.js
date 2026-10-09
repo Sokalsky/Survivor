@@ -1,7 +1,7 @@
 /* Passive DOM capture. No Yahoo cookies, network interception, clicks or bids. */
 (()=>{'use strict';if(globalThis.__survivorCapture)return;globalThis.__survivorCapture=true;
  let selectors={},watching=false,previous='',lastBid='',lastSale='',saleCandidate='',saleSince=0,nominationSince=0,picking=null,overlay=null,scheduled=false;
- const sentRows=new Set();let resultsPrimed=false,captureId=null,players=[],autoObservation=null,lastDiscovery='',lastDiscoveryAt=0,lastTimerSent=null;
+ const sentRows=new Set();let resultsPrimed=false,captureId=null,players=[],teamAliases=[],autoObservation=null,lastDiscovery='',lastDiscoveryAt=0,lastTimerSent=null;
  const send=m=>chrome.runtime.sendMessage(m).catch(()=>{});
  const text=el=>String(el?.innerText||el?.textContent||'').replace(/\s+/g,' ').trim();
  const read=(selector,parent=document)=>selector?text(parent.querySelector(selector)):'';
@@ -14,7 +14,7 @@
   try{
    const now=Date.now(),reader=globalThis.SurvivorYahooReader;
    if(reader){
-    autoObservation=reader.scan(document,players);
+    autoObservation=reader.scan(document,players,teamAliases);
     if(autoObservation.detected&&autoObservation.teams){
      const identity=reader.identity(location.href,document.title),room={...identity,teams:autoObservation.teams,rosterSize:autoObservation.rosterSize,ownTeam:autoObservation.ownTeam,complete:autoObservation.complete};
      const signature=JSON.stringify(room);
@@ -77,7 +77,7 @@
  }
  chrome.runtime.onMessage.addListener((m,_sender,reply)=>{
   if(m.type==='diagnostics'){reply({readerVersion:globalThis.SurvivorYahooReader?.version,watching,manualOverrides:Object.keys(selectors),cataloguePlayers:players.length,observation:autoObservation});return;}
-  if(m.type==='configure'){if(m.captureId!==captureId){captureId=m.captureId;previous='';lastBid='';lastSale='';sentRows.clear();resultsPrimed=false;}if(JSON.stringify(selectors)!==JSON.stringify(m.selectors)){resultsPrimed=false;sentRows.clear();}selectors=m.selectors||{};players=m.players||players;watching=!!m.watching;collect();}
+  if(m.type==='configure'){if(m.captureId!==captureId){captureId=m.captureId;previous='';lastBid='';lastSale='';sentRows.clear();resultsPrimed=false;}if(JSON.stringify(selectors)!==JSON.stringify(m.selectors)){resultsPrimed=false;sentRows.clear();}selectors=m.selectors||{};players=m.players||players;teamAliases=m.teamAliases||teamAliases;watching=!!m.watching;collect();}
   if(m.type==='pick'&&fields.includes(m.field)){stop();picking=m.field;overlay=document.createElement('div');Object.assign(overlay.style,{position:'fixed',zIndex:2147483647,pointerEvents:'none',border:'2px solid #9762e8',background:'#9762e825'});document.documentElement.appendChild(overlay);document.addEventListener('mousemove',highlight,true);document.addEventListener('click',pick,true);document.addEventListener('keydown',escape,true);}
  });
  collect();

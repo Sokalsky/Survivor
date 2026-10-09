@@ -53,6 +53,18 @@ with sync_playwright() as p:
     send([dict(id='b4', type='bid', player='Anthony Edwards', team='jyk', amount=2)])
     expect(page.locator('#draft-recording-status')).to_contain_text('Saved 7 events')
     assert page.evaluate("JSON.parse(localStorage.getItem('survivor.draft.v1')).pending.length") == 0
+    page.locator('[data-draft="teams"]').click()
+    page.locator('#draft-teams-form summary').click()
+    page.locator('[data-franchise="Max"]').fill('Cookin n Jokic')
+    page.locator('#draft-teams-form button').click()
+    page.evaluate("""() => {
+      window.readyMessages=[];
+      window.addEventListener('message',e=>{if(e.data?.channel==='survivor-draft-page'&&e.data.type==='ready')readyMessages.push(e.data)});
+      window.postMessage({channel:'survivor-draft-extension',type:'hello',nonce:'mapping-qa'},location.origin);
+    }""")
+    page.wait_for_function('readyMessages.length>0')
+    aliases=page.evaluate('readyMessages.at(-1).teamAliases')
+    assert {'name':'You','team':'Max'} in aliases and {'name':'Cookin n Jokic','team':'Max'} in aliases,aliases
     assert not errors, errors
     browser.close()
 print('Yahoo team mapping: queued bids/sale/next nomination recovered, recorded, baseline preserved, aliases survive reload.')
