@@ -3,6 +3,45 @@ SURVIVOR BASKETBALL
 Railway Postgres is the runtime database. The import job also runs on Railway.
 There is no local database to maintain. Export-only previews and tests use memory.
 
+MOVING TO ANOTHER COMPUTER
+
+Repository: https://github.com/Sokalsky/Survivor
+Clone the repository, or pull main in an existing checkout. The application,
+configuration, source workbook, bundled data, tests and watcher are included.
+Python environments, caches, secrets and browser session storage are not included.
+
+To use the existing site, no local server or Railway access is needed:
+  https://survivor-production-bdd5.up.railway.app/?yahooMock=1#draft
+
+Install the watcher from this checkout so you have the repository's latest version:
+1. Open chrome://extensions and enable Developer mode.
+2. Click Load unpacked and select extensions/yahoo-draft-watcher in this repo.
+   If already installed, update that same folder and click its Reload button.
+3. In its Details, enable Allow in Incognito if using incognito windows.
+4. Refresh Survivor and Yahoo. Open the Survivor Yahoo mock page and a Yahoo
+   salary-cap mock draft room in the same browser profile and incognito context.
+   The waiting-room lobby alone is not the live draft room.
+
+Saved real drafts, rosters and projection snapshots remain available through
+Saved drafts on the site. Resuming real recording on another browser requires
+the recording key again; enter it only in the site's recording prompt.
+Unsaved local drafts and mock progress stay in the original browser. Use Export
+session there, transfer the exported file privately, then Import session on the
+matching mock or real workspace. Do not commit session exports or recording keys.
+
+HANDOFF STATUS - 2026-10-09
+
+Watcher version: 0.3.1. The actual Yahoo mock successfully imported its 12 teams,
+200-dollar budgets and 13 roster slots with version 0.3.0, but nominations failed.
+Version 0.3.1 fixes nomination-card detection, projected-price filtering and team
+rows containing bid badges. Local reader and complete extension/app flow checks
+pass, including bids, an explicit sale and the next nomination. This corrected
+version still needs testing in an actual Yahoo room; live reliability is unverified.
+If capture fails, Advanced setup & recovery > Download diagnostics provides a
+local report for debugging. Do not assume the hosted ZIP has deployed just because
+the GitHub code is current; the checked-out extension above is version 0.3.1.
+Railway configuration and account access remain the owner's responsibility.
+
 READY NOW
 
 - Draft is the default page: live auction board, adaptive price estimates,
