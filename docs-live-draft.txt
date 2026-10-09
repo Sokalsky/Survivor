@@ -145,6 +145,24 @@ includes season total, rank now, exact roto points, gap to the next distinct tea
 and the nominated-player preview. A total row at the bottom shows overall rank,
 summed roto points, and the with-player score/rank/change, followed by the full
 league standings.
+Each counting card also shows the owned roster's per-player-game average, its
+strength label, the median team average and percentage difference from that
+median. The rate divides uncapped projected production by projected player-games;
+it is not an unweighted mean of player averages. Top-third rates above the median
+are Strong; bottom-third rates below it are Needs attention; the rest are
+Competitive. Ties use the occupied middle rank, and unavailable rates are excluded
+from the median. Fewer than two valid teams show no comparison. FG/FT are already
+attempt-weighted rates: they show the median and difference in percentage points,
+without a separate counting-average label.
+
+Player count and capped projected games appear next to their league medians.
+Counting cards explain strong total and average, extra games helping the total,
+or a strong average held back by fewer games. These labels compare the current
+rosters only; they do not predict future picks. Average/volume comparisons are
+display-only and do not change standings, roto points, fit, bid caps or opponent
+bidding. Existing category ranks and card colors remain based on totals (shooting
+percentages for FG/FT).
+
 Clicking a category sorts available players by its projected improvement.
 The wallet and outlook summary show current-roster overall rank and projected
 season roto score. Best receives 15 points per category, last receives one, and
@@ -204,7 +222,7 @@ Validation
   python scripts/check_dashboard.py --url http://127.0.0.1:8080 --browser <chrome.exe>
   python scripts/check_mock_draft.py --url http://127.0.0.1:8080 --browser <chrome.exe>
   python scripts/check_draft_outlook.py --url http://127.0.0.1:8080 --browser <chrome.exe>
-The outlook check covers all eight impacts, independent average arithmetic,
+The outlook check covers all eight impacts, independent average/median/volume arithmetic,
 keyboard category sorting, team changes, bid refreshes, the games limit, live
 isolation and desktop/split/mobile layouts.
 The existing dashboard check opens #history explicitly now that Draft is default.
@@ -248,3 +266,13 @@ The comparison now includes each category's exact roto-point contribution.
 Validation for this correction: all 64 JavaScript tests passed, the outlook and
 timed-mock browser suites passed, and a complete 195-sale / 859-bid simulation
 filled every roster with legal budgets while preserving live and forecast data.
+
+Totals-versus-averages outlook update, October 9, 2026:
+All 68 JavaScript tests passed. Four targeted cases cover a low-average totals
+leader, a high-average low-volume roster, games/attempt weighting above the cap,
+and tied or unavailable rates. Nine comparisons against the preceding published
+engine confirmed identical standings, scores, market prices, fit and bid caps.
+Browser checks verified independent average/median/volume arithmetic and the
+total footer at wide, desktop, split and mobile widths. An uneven five-player
+roster correctly showed first-place PTS totals alongside a weak PTS average and
+an extra-games explanation.

@@ -239,6 +239,21 @@
     rows.sort((a,b)=>b.points-a.points || a.name.localeCompare(b.name));
     return {available:true,maxPoints,rows};
   }
+  function median(values) {
+    const sorted=values.filter(Number.isFinite).sort((a,b)=>a-b),n=sorted.length;
+    return n?(sorted[Math.floor((n-1)/2)]+sorted[Math.floor(n/2)])/2:null;
+  }
+  // Outlook-only rate comparison. Never feeds category points, overall ranks or bid caps.
+  function averageComparison(ctx,name,k) {
+    const value=ctx.teams[name].owned.averages[k];
+    const values=Object.values(ctx.teams).map(t=>t.owned.averages[k]).filter(Number.isFinite),benchmark=median(values);
+    const difference=value==null||benchmark==null?null:value-benchmark;
+    if(value==null || values.length<2)return {value,median:benchmark,difference,relativeDifference:null,status:value==null?'No average yet':'No comparison'};
+    const epsilon=k.includes('%')?1e-7:1e-6,above=values.filter(v=>v>value+epsilon).length,tied=values.filter(v=>Math.abs(v-value)<=epsilon).length;
+    const midRank=1+above+(tied-1)/2;
+    const status=midRank<=Math.ceil(values.length/3)&&difference>epsilon?'Strong':midRank>Math.ceil(values.length*2/3)&&difference<-epsilon?'Needs attention':'Competitive';
+    return {value,median:benchmark,difference,relativeDifference:benchmark>0?difference/benchmark:null,status};
+  }
   function outlook(s,name,p=null) {
     const ctx=outlookContext(s),team=ctx.teams[name],f=p?fit(s,p,name):null;
     const profiles=Object.entries(ctx.teams).map(([team,t])=>({name:team,values:t.owned.values}));
@@ -247,9 +262,10 @@
     const withPlayer=canAdd?rotoStandings(profiles.map(t=>t.name===name?{name,values:Object.fromEntries(CATS.map(k=>[k,f.impact[k].after]))}:t)):null;
     const overall={available:standings.available,maxPoints:standings.maxPoints,current:standings.rows.find(t=>t.name===name)||null,
       after:withPlayer?.rows.find(t=>t.name===name)||null,teams:standings.rows};
-    const categories=CATS.map(k=>({category:k,total:team.owned.values[k],rotoPoints:overall.current?.categoryPoints[k]??null,...categoryStanding(ctx,name,k,team.owned.values[k]),
+    const volume={games:team.owned.games,medianGames:median(Object.values(ctx.teams).map(t=>t.owned.games)),players:team.roster.length,medianPlayers:median(Object.values(ctx.teams).map(t=>t.roster.length))};
+    const categories=CATS.map(k=>({category:k,average:averageComparison(ctx,name,k),total:team.owned.values[k],rotoPoints:overall.current?.categoryPoints[k]??null,...categoryStanding(ctx,name,k,team.owned.values[k]),
       after:f?.impact[k]?.after??null,afterRank:f?.impact[k]?.afterRank??null,change:f?.impact[k]?.change??null}));
-    return {categories,overall,owned:team.owned,rosterCount:team.roster.length,rosterSize:s.session.settings.rosterSize,
+    return {categories,volume,overall,owned:team.owned,rosterCount:team.roster.length,rosterSize:s.session.settings.rosterSize,
       teamCount:s.session.teams.length,gamesCap:s.session.settings.gamesCap??1000,canAdd};
   }
   function fit(s,p,name) {

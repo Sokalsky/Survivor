@@ -113,3 +113,35 @@ test('missing categories do not invent an overall standing',()=>{
  const s=fixture();s.settings.rosterSize=1;s.players[0].fgm_pg=s.players[0].fga_pg=0;
  const o=E.outlook(E.replay(s),'Max');assert.equal(o.overall.available,false);assert.equal(o.overall.current,null);assert.deepEqual(o.overall.teams,[]);
 });
+
+
+test('a totals leader can have a weak average when it owns more player-games',()=>{
+ const s=fixture();s.players[0].pts_pg=10;s.players[3].pts_pg=10;s.players[1].pts_pg=15;s.players[2].pts_pg=20;s.players[2].games=30;
+ E.append(s,sale('p0','Max'));const o=E.outlook(E.replay(s),'Max'),c=o.categories.find(c=>c.category==='PTS');
+ assert.equal(c.total,1000);assert.equal(c.rank,1);assert.equal(c.rotoPoints,3);
+ assert.equal(c.average.value,10);assert.equal(c.average.median,15);assert.equal(c.average.status,'Needs attention');close(c.average.relativeDifference,-1/3);
+ assert.deepEqual(o.volume,{games:100,medianGames:50,players:2,medianPlayers:1});
+ assert.equal(o.overall.current.points,o.categories.reduce((n,c)=>n+c.rotoPoints,0));
+});
+
+test('a low-volume roster can have a strong average despite last place in totals',()=>{
+ const s=fixture();s.players[0].pts_pg=30;s.players[0].games=10;s.players[1].pts_pg=15;
+ const c=E.outlook(E.replay(s),'Max').categories.find(c=>c.category==='PTS');
+ assert.equal(c.total,300);assert.equal(c.rank,3);assert.equal(c.priority,true);assert.equal(c.rotoPoints,1);
+ assert.equal(c.average.value,30);assert.equal(c.average.median,20);assert.equal(c.average.status,'Strong');assert.equal(c.average.relativeDifference,.5);
+});
+
+test('average comparisons weight projected games and attempts, even above the games cap',()=>{
+ const s=fixture();s.players[0].games=20;s.players[0].pts_pg=30;s.players[0].fgm_pg=1;s.players[0].fga_pg=2;
+ s.players[3].pts_pg=10;s.players[3].fgm_pg=9;s.players[3].fga_pg=10;s.settings.gamesCap=60;E.append(s,sale('p0','Max'));
+ const o=E.outlook(E.replay(s),'Max'),pts=o.categories.find(c=>c.category==='PTS'),fg=o.categories.find(c=>c.category==='FG%');
+ close(pts.average.value,1100/70);close(pts.total,1100*60/70);close(fg.average.value,470/540);close(fg.average.difference,470/540-.5);
+ assert.equal(o.volume.games,60);assert.equal(o.volume.medianGames,50);
+});
+
+test('tied averages are competitive and missing shooting rates are excluded from the median',()=>{
+ const s=fixture();s.players[0].fgm_pg=s.players[0].fga_pg=0;
+ const o=E.outlook(E.replay(s),'Max'),pts=o.categories.find(c=>c.category==='PTS'),fg=o.categories.find(c=>c.category==='FG%');
+ assert.equal(pts.average.status,'Competitive');assert.equal(pts.average.difference,0);
+ assert.equal(fg.average.value,null);assert.equal(fg.average.median,.5);assert.equal(fg.average.difference,null);assert.equal(fg.average.status,'No average yet');
+});

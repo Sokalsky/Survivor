@@ -9,7 +9,8 @@ READY NOW
   personal bid caps, all-team budgets/interest, watchlist and private practice mode.
 - Player stat arrows show your owned roster's before/after averages. Team outlook
   shows owned-player season totals, current-roster overall/category ranks and roto points,
-  gaps and a with-player comparison;
+  gaps and a with-player comparison. Separate per-game averages and league medians
+  show whether totals are supported by strong rates, more projected games, or both;
   click a category to find players who improve it. Fit and bid caps use those needs.
 - Practice runs a full mock auction: top-to-bottom nominations, 10-second clocks,
   simulated opponents, your own bid controls, pause/resume and automatic results.
