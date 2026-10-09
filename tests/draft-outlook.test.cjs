@@ -33,7 +33,7 @@ test('legacy sessions default to the league’s 1000-game limit and invalid caps
  for(const gamesCap of [0,-1,1.5,3001,NaN])assert.throws(()=>E.replay({...s,settings:{...s.settings,gamesCap}}),/games limit/);
 });
 test('a blocks specialist helps a weak blocks team more than a comfortable leader',()=>{
- const s=fixture();s.players[3].blk_pg=1.6;s.players[3].fair_value=5;const st=E.replay(s),weak=E.fit(st,s.players[3],'Max'),strong=E.fit(st,s.players[3],'B');
+ const s=fixture();s.players[3].blk_pg=1.6;s.players[3].fair_value=5;for(const k of ['pts_pg','reb_pg','ast_pg','stl_pg','fg3m_pg','fgm_pg','fga_pg','ftm_pg','fta_pg'])s.players[3][k]=0;const st=E.replay(s),weak=E.fit(st,s.players[3],'Max'),strong=E.fit(st,s.players[3],'B');
  assert.equal(weak.impact.BLK.priority,true);assert.equal(strong.impact.BLK.priority,false);
  assert.ok(weak.impact.BLK.change>0);assert.ok(weak.fitFactor>strong.fitFactor);
  assert.ok(weak.cap>strong.cap);assert.ok(weak.explanation.includes('BLK'));assert.equal(weak.fitLabel,'Strong fit');
@@ -42,29 +42,32 @@ test('fit can identify a counting-stat need with identical shooting across all p
  const s=fixture();s.players[3].blk_pg=3;const f=E.fit(E.replay(s),s.players[3],'Max');
  assert.ok(f.helps.includes('BLK'));assert.equal(f.impact['FG%'].change,0);assert.equal(f.impact['FT%'].change,0);assert.match(f.explanation,/need in BLK/);
 });
-test('standings compare estimated full rosters and remain provisional during the draft',()=>{
- const s=fixture();E.append(s,sale('p0','Max'));const st=E.replay(s),o=E.outlook(st,'Max');
- close(o.projected.values.PTS,E.outlook(st,'A').projected.values.PTS);assert.equal(o.provisional,true);
- for(const team of ['A','B'])E.append(s,sale(team==='A'?'p1':'p2',team));
- assert.equal(E.outlook(E.replay(s),'Max').provisional,false);
+test('rankings use the players actually owned even when roster sizes differ',()=>{
+ const s=fixture();E.append(s,sale('p0','Max'));const st=E.replay(s),o=E.outlook(st,'Max'),other=E.outlook(st,'A');
+ assert.equal(o.owned.values.PTS,2000);assert.equal(other.owned.values.PTS,1000);
+ assert.equal(o.categories.find(c=>c.category==='PTS').rank,1);assert.equal(other.categories.find(c=>c.category==='PTS').rank,2);
+ assert.equal(o.rosterCount,2);assert.equal(other.rosterCount,1);
+ assert.equal(o.categories.reduce((n,c)=>n+c.rotoPoints,0),o.overall.current.points);
 });
 test('tied ranks and next distinct team gaps do not count a tied team as ahead',()=>{
  const s=fixture();const o=E.outlook(E.replay(s),'Max');const pts=o.categories.find(c=>c.category==='PTS'),blk=o.categories.find(c=>c.category==='BLK');
  assert.equal(pts.rank,1);assert.equal(pts.tied,true);assert.equal(pts.status,'Competitive');assert.equal(pts.gap,0);assert.equal(blk.rank,3);close(blk.gap,55);
 });
-test('with-player projection replaces an estimated slot instead of adding a sixteenth player',()=>{
- const s=fixture();const st=E.replay(s),p=s.players[3],f=E.fit(st,p,'Max');E.append(s,sale(p.player_id,'Max',f.scenarioPrice));
- const o=E.outlook(E.replay(s),'Max');for(const k of E.CATS)close(f.impact[k].after,o.projected.values[k]);assert.equal(o.projected.games,100);
+test('with-player preview adds only that player and matches the next recorded sale',()=>{
+ const s=fixture(),st=E.replay(s),p=s.players[3],f=E.fit(st,p,'Max');E.append(s,sale(p.player_id,'Max',10));
+ const o=E.outlook(E.replay(s),'Max');for(const k of E.CATS)close(f.impact[k].after,o.owned.values[k]);
+ assert.equal(o.owned.games,100);assert.equal(f.impact.PTS.change,1000);
 });
-test('budget-matched fill stays within cash and decreases with a lower budget',()=>{
- const s=fixture();s.settings.rosterSize=4;
- for(let i=3;i<s.players.length;i++){s.players[i].fair_value=s.players[i].expected_auction_price=2*(i-2);s.players[i].pts_pg=2*(i-2);}
- const rich=E.outlook(E.replay(s),'Max');s.keepers[0].amount=188;const poor=E.outlook(E.replay(s),'Max');
- assert.ok(rich.projected.values.PTS>poor.projected.values.PTS);assert.ok(poor.projected.fillCost<=12);assert.equal(poor.projected.unfilled,0);
+test('remaining cash and undrafted player projections never fill empty roster slots',()=>{
+ const s=fixture();s.settings.rosterSize=4;const before=E.outlook(E.replay(s),'Max');
+ const changed=JSON.parse(JSON.stringify(s));changed.keepers[0].amount=188;
+ for(const p of changed.players.slice(3)){p.games=82;p.pts_pg=10000;p.blk_pg=200;p.expected_auction_price=1000;}
+ const after=E.outlook(E.replay(changed),'Max');assert.deepEqual(after,before);
+ assert.equal(after.owned.games,50);assert.equal(after.owned.values.PTS,1000);
 });
-test('missing affordable or position-eligible fill is labeled incomplete',()=>{
+test('unfillable open position slots do not add or remove owned production',()=>{
  const s=fixture();s.settings.rosterSlots=['PG','C'];s.players[0].positions='PG';for(const p of s.players.slice(3))p.positions='PG';
- const o=E.outlook(E.replay(s),'Max');assert.equal(o.unfilled,true);assert.equal(o.projected.unfilled,1);
+ const o=E.outlook(E.replay(s),'Max');assert.equal(o.owned.values.PTS,1000);assert.equal(o.rosterCount,1);
  assert.equal(E.fit(E.replay(s),s.players[3],'Max').cap,0);
 });
 test('sale and undo refresh outlook while observed bids alone do not change it',()=>{
@@ -101,7 +104,7 @@ test('overall ranks use total points, not a single strongest category',()=>{
  assert.deepEqual(result.rows.map(t=>[t.name,t.points]),[['C',23],['B',15],['A',10]]);
 });
 test('with-player overall rank recalculates rival points when a category changes hands',()=>{
- const s=fixture();s.players[3].blk_pg=5;
+ const s=fixture();s.players[3].blk_pg=5;for(const k of ['pts_pg','reb_pg','ast_pg','stl_pg','fg3m_pg','fgm_pg','fga_pg','ftm_pg','fta_pg'])s.players[3][k]=0;
  const o=E.outlook(E.replay(s),'Max',s.players[3]);
  assert.equal(o.overall.current.points,15);assert.equal(o.overall.current.rank,3);
  assert.equal(o.overall.after.points,17);assert.equal(o.overall.after.rank,1);assert.equal(o.overall.after.tied,false);

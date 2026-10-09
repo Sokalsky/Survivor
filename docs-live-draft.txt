@@ -132,59 +132,51 @@ adding that player: green/up, red/down, or neutral. Counting averages use projec
 player-games, and FG/FT use projected makes divided by attempts. A priority badge
 marks a weak category, even when that particular player makes it worse.
 
-Your team outlook sits above Available players. The eight category cards show
-estimated season totals (percentages for FG/FT), ranks, and need/strength labels.
-The wallet and outlook header also show projected overall place and total roto
-points. Overall scoring sums exact category points: 15 for best through 1 for
-last in this league, sharing occupied-place points for ties. Total-point ties
-share an overall rank. These displayed points are distinct from the smoothed
-heuristic used in fit. The nominated-player preview recalculates all teams'
-category points against the changed projection before ranking total points.
-Show comparison includes the full projected league standings and expands
-owned-player totals, estimated finished-roster totals,
-gap to the next distinct team, and the nominated-player scenario. Clicking any
-category sorts available players by its projected improvement; filters still apply.
-The active category and expanded comparison survive bid updates and team changes.
+All standings and scores use only players actually owned by each team: confirmed
+keepers plus completed draft purchases. Open slots contribute no assumed player
+production. Remaining budgets and undrafted-player forecasts do not change those
+totals or ranks. Different roster sizes are compared as they currently stand.
+The displayed figures are season projections for these rosters, not statistics
+already accumulated in NBA games or a forecast of future draft selections.
+
+Your team outlook sits above Available players. Category cards show current-roster
+season totals (percentages for FG/FT), rank and need/strength labels. Show comparison
+includes season total, rank now, exact roto points, gap to the next distinct team
+and the nominated-player preview, followed by the full league standings.
+Clicking a category sorts available players by its projected improvement.
+The wallet and outlook summary show current-roster overall rank and projected
+season roto score. Best receives 15 points per category, last receives one, and
+ties share the points of the occupied places. All eight categories sum to the
+overall score; total-point ties share an overall rank.
 
 Owned totals sum each player's per-game forecast times projected games. Totals are
 proportionally limited to 1,000 player-games by default, without inflating rosters
 that project fewer games. The limit is configurable under Roster & reserve; older
 saved sessions default to 1,000. Shooting percentages retain their attempt weights.
-This is a season-horizon roster estimate, not a starting-lineup optimizer or an
-elimination forecast. Future waiver acquisitions and first-cut outcomes are not
-predicted. Published player projections and neutral values remain frozen.
+The season horizon is shared across teams. Waiver additions, future draft picks,
+lineup optimization and elimination outcomes are not predicted. Published player
+projections and neutral values remain frozen.
 
-Open slots use independent, budget-matched averages from available players, not
-predicted draft picks. Inclusion weights favor neutral value with a price penalty
-calibrated to remaining cash. Each player's weight is at most one within a team's
-estimate, and weights sum to its open slots when affordable players exist.
-Expected fill spend cannot exceed cash. Available-player prices use the same live
-market model as the board. Actual owned-roster position eligibility filters the
-pool; averages are not a jointly assigned legal future lineup. Teams are estimated
-independently, so fractional expectations are not a simulated allocation of every
-remaining player. Insufficient affordable/eligible fill is explicitly flagged.
-Ranks stay provisional while any team has open slots.
+The with-player preview adds exactly that player to your current roster. Other
+rosters remain unchanged. Category points for every team are recomputed against
+the changed totals to show the nominee's effect on overall score and rank.
+Money affects affordability and bid caps, not assumed changes to the remaining
+roster. A completed sale or undo updates every team's standings immediately.
 
-The with-player scenario replaces one estimated slot with the nominee, removes
-him from that team's fill pool and reprices the remaining fill using cash after
-a rounded live-expected-price purchase (limited by legal max). Other teams are
-held at their current estimates for this comparison; a confirmed sale rebuilds
-every team's estimate. This allows a costly purchase to improve one category
-while reducing what the remaining budget can supply elsewhere.
-
-Fit uses smooth expected category-point changes against the other teams, so
-nearly tied ranks do not create abrupt bid jumps. The comparison scale is category
-dispersion, with floors of 6% of mean counting production (at least one), 0.3
-percentage points FG and 0.4 percentage points FT. Smooth point comparisons use
-40% of that scale. Categories in the bottom third receive an additional bounded
-need adjustment; tied teams use their shared middle rank for need labels. A
-comfortable lead receives less marginal reward than an attainable category gain.
-The fit multiplier is 1 + .045 * total category-point change + .07 * summed
+Fit uses smooth category-point changes against the actual owned rosters, so nearly
+tied ranks do not create abrupt bid jumps. The comparison scale is category
+dispersion with floors of 6% of mean counting production (at least one), 0.3
+percentage points FG and 0.4 percentage points FT. Smooth comparisons use 40% of
+that scale. Categories in the bottom third receive an additional bounded need
+adjustment; tied teams use their shared middle rank for need labels. A comfortable
+lead receives less marginal reward than an attainable category gain.
+The fit multiplier is 1 + .045 * total smooth category-point change + .07 * summed
 normalized priority-category change, bounded to 0.75–1.30. Each priority-category
 change is bounded to -2..2. Strong fit, Good fit, Trade-off and Limited fit labels
-describe the scenario, with explicit category benefits and costs. Individual
-stat arrows describe owned averages and can differ from the completed-roster
-scenario after accounting for price and remaining fill.
+describe current-roster improvements and costs. Displayed roto scores use exact
+ranks and shared tie points, separately from this smooth advisory heuristic.
+Player stat arrows show average changes; a player can lower an average while
+adding counting-stat totals and category points.
 
 Personal caps start with the remaining pool's neutral value against current cash
 and apply this fit multiplier. Caps are floored to whole dollars and constrained
@@ -247,3 +239,10 @@ Overall-standings update validation, October 9, 2026:
 All 64 JavaScript tests passed, including exact category/overall ties, total-point
 ordering and recalculating rival points for a nominated-player scenario. The
 focused real-Flask outlook browser suite passed on desktop, split and mobile.
+
+Current-roster correction, October 9, 2026: removed all open-slot fill estimates
+from displayed totals, category ranks, overall roto scores and player-fit needs.
+The comparison now includes each category's exact roto-point contribution.
+Validation for this correction: all 64 JavaScript tests passed, the outlook and
+timed-mock browser suites passed, and a complete 195-sale / 859-bid simulation
+filled every roster with legal budgets while preserving live and forecast data.

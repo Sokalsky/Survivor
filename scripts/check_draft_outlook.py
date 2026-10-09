@@ -21,11 +21,11 @@ def main():
         expect(page.locator('[data-overall-place]')).to_be_visible()
         expect(page.locator('[data-overall-points]')).to_contain_text('/ 120')
         expect(page.locator('.wallet-standing')).to_contain_text('roto pts')
-        expect(page.locator('.outlook-heading')).to_contain_text('Provisional')
+        expect(page.locator('.outlook-heading')).to_contain_text('2 / 15 players drafted')
         live=page.evaluate("JSON.stringify(JSON.parse(localStorage.getItem('survivor.draft.v1')).sessions.live)")
         page.locator('.draft-toolbar [data-draft="mode"]').click()
         expect(page.locator('.stat-impact')).to_have_count(8)
-        expect(page.locator('.stat-priority').first).to_be_visible()
+        expect(page.locator('.stat-priority')).to_have_count(page.locator('.outlook-category.need').count())
         expected=page.evaluate("""() => {
           const r=JSON.parse(localStorage.getItem('survivor.draft.v1')),s=r.sessions.practice;
           const owned=s.keepers.filter(k=>k.team===r.team).map(k=>s.players.find(p=>p.player_id===k.playerId));
@@ -37,7 +37,7 @@ def main():
         expect(blocks).to_contain_text(expected[0]+' → '+expected[1])
         page.locator('[data-draft="outlook-details"]').click()
         expect(page.locator('.outlook-table-scroll .outlook-table tbody tr')).to_have_count(8)
-        expect(page.locator('.outlook-note').first).to_contain_text('replaces one estimated slot')
+        expect(page.locator('.outlook-note').first).to_contain_text('to your current roster')
         expect(page.locator('.overall-preview')).to_be_visible()
         expect(page.locator('.overall-table tbody tr')).to_have_count(15)
         expect(page.locator('.overall-table .your-standing')).to_contain_text('Max · YOU')
@@ -46,7 +46,18 @@ def main():
           return o.overall.current.points;
         }""")
         expect(page.locator('[data-overall-points]')).to_have_text(str(int(total) if float(total).is_integer() else total)+' / 120')
-        expect(page.locator('.outlook-table-scroll .outlook-table')).to_contain_text('Owned players')
+        expect(page.locator('.outlook-table-scroll .outlook-table')).to_contain_text('Season total')
+        expect(page.locator('.outlook-table-scroll .outlook-table')).to_contain_text('Rank now')
+        expect(page.locator('.outlook-table-scroll .outlook-table')).to_contain_text('Roto points')
+        expect(page.locator('#draft-outlook')).not_to_contain_text('Estimated finish')
+        expect(page.locator('#draft-outlook')).not_to_contain_text('estimated fill')
+        owned_pts=page.evaluate("""() => {
+          const r=JSON.parse(localStorage.getItem('survivor.draft.v1')),s=r.sessions.practice;
+          return Math.round(s.keepers.filter(k=>k.team===r.team).reduce((n,k)=>{
+            const p=s.players.find(p=>p.player_id===k.playerId);return n+p.games*p.pts_pg;
+          },0)).toLocaleString('en-US');
+        }""")
+        expect(page.locator('.outlook-table-scroll tbody tr').first.locator('td').first).to_have_text(owned_pts)
         page.locator('.outlook-category[data-outlook-category="BLK"]').focus()
         page.keyboard.press('Enter')
         expect(page.locator('#draft-sort')).to_have_value('need:BLK')
@@ -79,7 +90,7 @@ def main():
         page.locator('[name="gamesCap"]').fill('500')
         page.locator('#draft-settings-form button').click()
         expect(page.locator('.outlook-foot')).to_contain_text('500 limit')
-        assert page.evaluate("""() => {const r=JSON.parse(localStorage.getItem('survivor.draft.v1'));return SurvivorDraft.outlook(SurvivorDraft.replay(r.sessions.practice),r.team).projected.games<=500;}""")
+        assert page.evaluate("""() => {const r=JSON.parse(localStorage.getItem('survivor.draft.v1'));return SurvivorDraft.outlook(SurvivorDraft.replay(r.sessions.practice),r.team).owned.games<=500;}""")
         assert page.evaluate("JSON.stringify(JSON.parse(localStorage.getItem('survivor.draft.v1')).sessions.live)")==live
         assert not errors,errors
         (out/'browser-report.json').write_text(json.dumps({'checks':'all eight impacts, independent average check, standings, comparison, keyboard category sort, team switch, bid refresh, responsive layouts, games cap and live isolation','page_errors':errors},indent=2))
