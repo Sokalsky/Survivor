@@ -1,0 +1,18 @@
+<!doctype html><html><head><title>Mock draft room - illustrative fixture</title></head><body>
+<!-- Representative text/structure from the supplied screenshot, NOT a captured Yahoo DOM. -->
+<header><h1>YAHOO FANTASY BASKETBALL DRAFT</h1><p>Center Circle - H2H</p><span>Draft Starting Soon</span></header>
+<main style="display:flex;gap:20px">
+ <section style="width:320px">
+  <aside id="last-pick"><div>Last Pick will appear here</div></aside>
+  <article id="auction"><section><h2 id="player">YOU NOMINATE 1ST</h2><strong id="price">$0</strong><p id="bidder">--</p><span id="sold"></span></section>
+   <section><button>−</button><span>$1</span><button>+</button><button>Offer $1</button></section>
+   <footer><span>Max Offer <b>$188</b> · Budget <b>$200</b></span><time>00:51</time></footer>
+  </article>
+  <aside><nav><button>Budget</button><button>Max</button><button>Avg</button></nav><div id="teams" style="max-height:220px;overflow:auto"></div></aside>
+ </section>
+ <section><h2>Players</h2><p>N. JOKIĆ C DEN</p><p>V. WEMBANYAMA C SAS</p><p>J. WILLIAMS</p><p>Expected value $60</p></section>
+ <section><nav><button>Queue</button><button>Team</button><button>Picks</button></nav><p>Your queue is empty</p></section>
+</main><script>
+ const names=['You','Emre','Yiğit Uğur','Team 8','Simon','Team 14','Cengiz','Team 13','Clytch','Team 11','Wilkosz','Alex','Team 12','Team 10'];
+ document.getElementById('teams').innerHTML=names.map(name=>'<div><span>'+name+'</span> <b>$200</b> <span>0/13</span></div>').join('');
+</script></body></html>

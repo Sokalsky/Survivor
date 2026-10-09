@@ -1,8 +1,16 @@
 {
   "manifest_version": 3,
   "name": "Survivor Yahoo Draft Watcher",
-  "version": "0.2.0",
-  "description": "Read selected Yahoo draft fields and relay observed bids and results privately to your Survivor tab.",
+  "version": "0.3.0",
+  "description": "Automatically connect Yahoo salary-cap mock rooms to Survivor with teams, budgets, nominations and observed bids.",
+  "host_permissions": [
+    "https://basketball.fantasysports.yahoo.com/*",
+    "https://survivor-production-bdd5.up.railway.app/*"
+  ],
+  "content_scripts": [
+    {"matches":["https://basketball.fantasysports.yahoo.com/*"],"js":["yahoo-reader.js","capture.js"],"run_at":"document_idle"},
+    {"matches":["https://survivor-production-bdd5.up.railway.app/*"],"js":["bridge.js"],"run_at":"document_idle"}
+  ],
   "permissions": [
     "activeTab",
     "scripting",

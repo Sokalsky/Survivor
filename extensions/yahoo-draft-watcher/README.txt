@@ -1,32 +1,42 @@
-Chrome setup
-1. Open the project's Draft page in Chrome.
-2. Download /static/yahoo-draft-watcher.zip using Connect Yahoo. Extract it.
-3. In chrome://extensions enable Developer mode, choose Load unpacked, and
-   select the extracted folder containing manifest.json.
-4. While on Survivor, open the extension and choose Pair Survivor tab. Grant
-   access only to this selected origin. Ordinary production use requires HTTPS;
-   localhost and 127.0.0.1 HTTP are permitted for local previews.
-5. Switch to the Yahoo basketball draft room. Choose Watch Yahoo tab and grant
-   access to that selected Yahoo origin.
-6. Use field pickers to select the exact player name, current bid, leading team
-   and explicit sold-status text. Pick the timer only if useful. Clicking while
-   a picker is active selects a field and consumes the click; Escape cancels.
-7. Prefer selecting completed-result rows and their player, winner and price
-   cells as well. Select the row first, then cells. Optional bid-history rows
-   need their own player name, bidder and amount; the watcher does not guess
-   which player an older bid belongs to.
-8. Map Yahoo team names to the franchise names on the Draft page. Player names
-   use conservative exact normalization. Abbreviated or unfamiliar names require
-   explicit mapping; Jalen/Jaylin Williams are never fuzzy matched.
-9. Check the first nomination, bid changes and completed sale against Yahoo.
-   Configure roster slots in Roster & reserve to match Yahoo, including BN and
-   excluding nondraftable IL slots. The 15-player total defaults to league history;
-   actual lineup constraints and Yahoo-specific eligibility must be confirmed.
+Chrome setup — watcher 0.3.0
+1. Download /static/yahoo-draft-watcher.zip, extract it, and load the folder in
+   chrome://extensions using Load unpacked. For an existing install, replace the
+   contents of its folder and click Reload. Refresh both draft tabs after updating.
+2. The watcher requires access only to basketball.fantasysports.yahoo.com and the
+   Survivor production origin for automatic discovery. Optional manual pairing
+   supports another HTTPS Survivor origin or localhost. Allow in Incognito when
+   applicable; automatic pairing stays within the same regular/incognito context.
+3. Open Survivor /?yahooMock=1#draft and join a Yahoo salary-cap mock before it
+   starts. The room connects automatically: no pairing, team entry, budget entry,
+   roster-size entry, or field picking in the normal mock workflow.
+4. The adapter reads the rendered Budget roster list, Max Offer/Budget auction
+   panel, current price/leader, and explicit completed-pick regions. It never
+   treats the offer button as the current bid or infers a sale from a timer ending.
+5. Check the first real Yahoo nomination/bid/result when testing a new layout.
+   Advanced setup retains explicit pairing, CSS overrides, and field pickers as
+   recovery tools. Actual Yahoo DOM compatibility is not yet verified; browser
+   checks use an illustrative fixture derived from the user's screenshots.
+
+Automatic import is mock-only. Each new Yahoo room creates a fresh test, backs up
+the preceding mock locally, and keeps undelivered old-room events out of the new
+room. It does not change real drafts, keeper evidence, forecasts, or manager
+history. Reopening the same room preserves its session. Concurrent rooms cannot
+steal the active capture. Multiple destinations require an explicit selection.
+
+Join before the first sale. If starting budgets cannot be reconstructed from
+rendered completed picks, the adapter waits instead of inventing missing data.
+Roster size is imported; position-specific slot eligibility remains unconfirmed
+unless explicitly configured. Unique player initials/diacritics are resolved
+against the saved projection names; ambiguous initials are not guessed.
+
+For a real league draft, use Advanced setup to explicitly pair the real Survivor
+workspace and Yahoo draft tab, then enable Save real draft. An identified mock or
+unknown room never automatically chooses a real workspace.
 
 Adapter status and limits
 The current Yahoo draft DOM has NOT been inspected in this workspace. The
-extension is a configurable passive DOM adapter, not a verified universal Yahoo
-integration. No invented Yahoo selectors or undocumented WebSocket formats are
+extension has automatic semantic DOM reading plus optional selector overrides;
+it is not a verified universal Yahoo integration. No invented Yahoo selectors or undocumented WebSocket formats are
 baked in. A real Yahoo draft/mock-draft calibration pass is still required.
 The interface uses an auction-room layout; exact visual parity with the current
 Yahoo room cannot be checked without seeing that room.
@@ -41,9 +51,12 @@ background throttling, virtualized lists and changed layouts can reduce coverage
 The page labels the log as observed bids and stops bid advice when stale.
 
 Data and privacy
-No Yahoo passwords, cookies, OAuth tokens, network response bodies or full page
-DOM are read or sent. The extension has no Yahoo write operations. Host access is
-optional and requested for each tab's exact selected origin. The receiver tab is
+No Yahoo passwords, cookies, OAuth tokens or network response bodies are read or
+sent. Page elements are examined locally; only normalized draft information is
+relayed, never full-page HTML. The extension has no Yahoo write operations.
+Automatic host access is limited
+to Yahoo Fantasy Basketball and the Survivor production origin; other destinations
+use optional access to the selected origin. The receiver tab is
 checked for the Survivor app marker and bound to a random nonce and session ID.
 Updates travel via Chrome messaging and an isolated-world page bridge. Real drafts
 can be saved through Survivor's key-protected recording API. Saved bids, rosters,
@@ -69,7 +82,7 @@ updates. Explicit queue clearing discards those unsent updates. Review gaps usin
 Yahoo's completed results or manual entry. Multiple tabs cannot silently overwrite
 a changed draft: a storage conflict requires reloading before another edit.
 
-Version 0.2.0: pairing Survivor now pauses capture. Explicitly choose Watch Yahoo
+Legacy explicit pairing: pairing Survivor pauses capture. Explicitly choose Watch Yahoo
 tab after pairing, including when switching between real and mock workspaces.
 For Yahoo mock testing use the Open Yahoo mock test link on Survivor's Draft page
 (/?yahooMock=1#draft), configure the test teams and budget, then pair that page.

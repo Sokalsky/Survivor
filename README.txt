@@ -20,7 +20,7 @@ READY NOW
   click a category to find players who improve it. Fit and bid caps use those needs.
 - Practice runs a full mock auction: top-to-bottom nominations, 10-second clocks,
   simulated opponents, your own bid controls, pause/resume and automatic results.
-- Configurable Chrome Yahoo watcher with local queue, replay, identity mapping
+- Automatic Yahoo mock connection with a Chrome watcher with local queue, replay, identity mapping
   and explicit sale confirmation. Real Yahoo calibration remains required.
   Setup, model assumptions and validation limits: docs-live-draft.txt.
 
@@ -73,9 +73,10 @@ without a login. The save-status strip reports progress or pending local events.
 Use Open Yahoo mock test before connecting a Yahoo mock room. It has separate
 browser storage, configurable test teams/budgets, no keepers, and no real-recording
 writes. The server also rejects mock/practice sessions and simulated events.
-Re-pair the updated 0.2.0 Chrome watcher and explicitly choose Watch Yahoo tab when
-switching destinations; pairing pauses capture to avoid routing the old room into
-the newly selected session. Real Yahoo DOM calibration still needs a Yahoo room.
+Watcher 0.3 automatically connects a Yahoo mock room to the mock workspace and
+imports teams, budgets and roster size. Update/reload the unpacked extension and
+refresh both tabs once. Explicit pairing remains under Advanced setup for real
+drafts and recovery. Actual Yahoo DOM and timing validation are still pending.
 
 See docs-live-draft.txt for recovery, snapshots and manager-profile definitions.
 
@@ -507,3 +508,10 @@ Railway configuration as code:
 https://docs.railway.com/config-as-code
 Psycopg transaction behavior:
 https://www.psycopg.org/psycopg3/docs/basic/transactions.html
+
+Yahoo mock automatic setup (watcher 0.3)
+Open /?yahooMock=1#draft and join a Yahoo salary-cap mock before it begins.
+Teams, budgets and roster size are read automatically; field overrides are under
+Advanced setup. Reload the updated extension and both tabs once after installation.
+Mock sessions remain local and isolated from real records. See docs-live-draft.txt
+for validation, limitations, and real-draft setup.
