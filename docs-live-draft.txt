@@ -1,0 +1,143 @@
+LIVE DRAFT WORKSPACE — OCTOBER 2026
+
+Entry point
+The default page is now Draft (#draft). Existing archive views remain available
+at #history, #projections, #valuations, #keepers, #rosters and #notes.
+
+The current-player panel shows observed leading bid, projections in all eight
+categories, saved neutral value, live expected price, your team fit, reserve and
+bid cap. BID / HOLD / PASS is advisory. It never clicks Yahoo's bid controls.
+CHECK SYNC takes precedence when the live feed is stale or an update is pending.
+The right column shows all franchises, remaining cash, legal max, open slots,
+category needs, and a distinction between observed bidding and estimated interest.
+Available players support search, position, price/value/fit sorts and a watchlist.
+My roster, draft results and observed bids are separate board views.
+
+Chrome setup
+1. Open the project's Draft page in Chrome.
+2. Download /static/yahoo-draft-watcher.zip using Connect Yahoo. Extract it.
+3. In chrome://extensions enable Developer mode, choose Load unpacked, and
+   select the extracted folder containing manifest.json.
+4. While on Survivor, open the extension and choose Pair Survivor tab. Grant
+   access only to this selected origin. Ordinary production use requires HTTPS;
+   localhost and 127.0.0.1 HTTP are permitted for local previews.
+5. Switch to the Yahoo basketball draft room. Choose Watch Yahoo tab and grant
+   access to that selected Yahoo origin.
+6. Use field pickers to select the exact player name, current bid, leading team
+   and explicit sold-status text. Pick the timer only if useful. Clicking while
+   a picker is active selects a field and consumes the click; Escape cancels.
+7. Prefer selecting completed-result rows and their player, winner and price
+   cells as well. Select the row first, then cells. Optional bid-history rows
+   need their own player name, bidder and amount; the watcher does not guess
+   which player an older bid belongs to.
+8. Map Yahoo team names to the franchise names on the Draft page. Player names
+   use conservative exact normalization. Abbreviated or unfamiliar names require
+   explicit mapping; Jalen/Jaylin Williams are never fuzzy matched.
+9. Check the first nomination, bid changes and completed sale against Yahoo.
+   Configure roster slots in Roster & reserve to match Yahoo, including BN and
+   excluding nondraftable IL slots. The 15-player total defaults to league history;
+   actual lineup constraints and Yahoo-specific eligibility must be confirmed.
+
+Adapter status and limits
+The current Yahoo draft DOM has NOT been inspected in this workspace. The
+extension is a configurable passive DOM adapter, not a verified universal Yahoo
+integration. No invented Yahoo selectors or undocumented WebSocket formats are
+baked in. A real Yahoo draft/mock-draft calibration pass is still required.
+The interface uses an auction-room layout; exact visual parity with the current
+Yahoo room cannot be checked without seeing that room.
+
+Mutation changes are observed immediately; a 180 ms poll covers missed mutations.
+The initial bid waits for fields to settle. A sold-status signal must remain
+stable for at least 350 ms. Result rows provide an independent confirmation path.
+Only explicitly rendered text is read. Disappearance or a changed nomination is
+never assumed to be a completed sale. A hidden, coalesced or never-rendered bid
+cannot be recovered by this adapter. Start before the first nomination. Chrome
+background throttling, virtualized lists and changed layouts can reduce coverage.
+The page labels the log as observed bids and stops bid advice when stale.
+
+Data and privacy
+No Yahoo passwords, cookies, OAuth tokens, network response bodies or full page
+DOM are read or sent. The extension has no Yahoo write operations. Host access is
+optional and requested for each tab's exact selected origin. The receiver tab is
+checked for the Survivor app marker and bound to a random nonce and session ID.
+Updates travel via Chrome messaging and an isolated-world page bridge, not a
+new public server endpoint. Existing Flask APIs and database requests remain
+read-only. Other website visitors do not see this browser's draft activity.
+
+Draft state is stored under survivor.draft.v1 in this browser's localStorage.
+The first session freezes a compact snapshot of its saved forecast and confirmed
+keepers, identified by the original run ID. Subsequent deployments do not rewrite
+that snapshot. New live session explicitly starts from the latest saved forecast.
+Browser data deletion loses local sessions; Export session creates a JSON backup.
+Import validates and replays that snapshot and events before it can be restored.
+Exports include one draft session's frozen inputs and accepted events; pending
+mapping/ignored updates and extension selectors remain in browser storage.
+Practice uses real projections and simulated activity in an independent session.
+
+The extension persists up to 2,000 undelivered updates and retains stable event IDs
+across worker restarts. It deletes queue entries only after the page durably saves
+and acknowledges them. A full queue pauses capture rather than silently dropping
+the oldest events. Reconnection can replay updates; deduplication prevents double
+spending. A new session cannot silently receive the previous session's queued
+updates. Explicit queue clearing discards those unsent updates. Review gaps using
+Yahoo's completed results or manual entry. Multiple tabs cannot silently overwrite
+a changed draft: a storage conflict requires reloading before another edit.
+
+Model mechanics (draft-engine.js)
+Saved expected price, neutral value, production projections and survivor scores
+remain unchanged. This live layer is separate from the historical v11 model.
+
+Market pressure is remaining discretionary cash divided by the remaining top-N
+players' baseline price weight, relative to that same ratio at draft opening.
+N equals remaining roster slots. Minimum-bid reserves are removed first.
+A completed live sale contributes one bounded log price residual against the
+estimate immediately before that sale. Similarity combines baseline price tier,
+category distance and position overlap. Six comparable sales of prior weight
+shrink early estimates; no individual bid is a separate training sale.
+Thus a cheap early sale can leave more cash for the remaining room even while
+similar-player demand softens. Overpaying for stars can lift their peers' demand
+adjustment while reducing the remaining league's purchasing power.
+Recovered past sale rows update budgets/rosters but contribute no retrospectively
+invented pre-sale forecast or live residual sample. Display confidence labels are
+sample descriptions, not calibrated probabilities or prediction intervals.
+
+Personal caps start with the remaining pool's neutral value against current cash.
+Category weights vary modestly with the team's acquired roster, with a bounded
+fit adjustment. Percentage fit aggregates projected makes/attempts times games;
+it never averages two shooting percentages. Caps are floored to integer dollars
+and limited by legal max, reserved cash and configurable position eligibility.
+Position fitting uses a bipartite assignment so a PG/SG player cannot block a
+PG-only player merely because the greedy assignment chose PG first.
+This is an explainable working heuristic, not an optimized or backtested drafting
+policy. It does not model hidden bids, manager intent, future injuries or all
+possible roster combinations. High room prices do not automatically raise the
+personal cap. Predicted interest has no fabricated percentage probability.
+
+Event lifecycle
+nominate -> observed bid(s) -> explicit sale; withdraw is available for manual
+corrections. Each event has an ID, timestamp and source. Undo references an earlier
+event and replays the journal, including budgets and model evidence. Correct a
+sale by undoing it and recording the corrected result. Undo dependent later events
+first when necessary. Unknown identities and incompatible sales are quarantined
+for review; advice pauses while pending updates exist. Sold/kept players leave the
+available pool, and a keeper is never an auction-model training observation.
+
+Validation
+  node --test tests/draft-engine.test.cjs tests/draft-watcher.test.cjs
+  python scripts/check_draft.py --url http://127.0.0.1:8080 --browser <chrome.exe>
+  python scripts/check_dashboard.py --url http://127.0.0.1:8080 --browser <chrome.exe>
+The existing dashboard check opens #history explicitly now that Draft is default.
+The draft browser check verifies practice isolation, reload persistence, name
+mapping, stale advice, duplicate delivery, responsive layout and the real passive
+content script against controlled synthetic draft markup. It does not log into
+Yahoo or prove compatibility with Yahoo's present DOM.
+
+Release validation on October 9, 2026 covered all 105 Python regression tests:
+104 passed in the full run; the remaining test passed after correcting its old
+calendar-based expected value, with no production-code change. All 34 JavaScript
+tests passed. Both check_draft.py and check_dashboard.py passed against the real
+Flask application using its in-memory preview, the original workbook, 348 ESPN
+projections, 30 confirmed keepers and the computed v11 valuation run. The watcher
+fixture uses a separate blank page; the app's strict CSP remains enabled.
+Artifacts and screenshots are in artifacts/draft-qa. This validation did not use
+the production database and does not replace calibration in a real Yahoo room.

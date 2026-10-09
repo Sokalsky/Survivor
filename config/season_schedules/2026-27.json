@@ -1,0 +1,80 @@
+{
+  "season": "2026-27",
+  "season_basis": "2026-27 league calendar; season starts with the first NBA regular-season games.",
+  "source": "User-supplied league schedule",
+  "status": "confirmed",
+  "draft_date": "2026-10-09",
+  "season_start_date": "2026-10-20",
+  "season_end_date": "2027-04-11",
+  "all_star_break": {
+    "start_date": "2027-02-18",
+    "end_date": "2027-02-24"
+  },
+  "cut_effective_timing": "before_games",
+  "cuts": [
+    {
+      "place": 15,
+      "date": "2026-11-30"
+    },
+    {
+      "place": 14,
+      "date": "2026-12-07"
+    },
+    {
+      "place": 13,
+      "date": "2026-12-14"
+    },
+    {
+      "place": 12,
+      "date": "2026-12-21"
+    },
+    {
+      "place": 11,
+      "date": "2027-01-04"
+    },
+    {
+      "place": 10,
+      "date": "2027-01-18"
+    },
+    {
+      "place": 9,
+      "date": "2027-02-01"
+    },
+    {
+      "place": 8,
+      "date": "2027-02-15"
+    },
+    {
+      "place": 7,
+      "date": "2027-03-01"
+    },
+    {
+      "place": 6,
+      "date": "2027-03-08"
+    },
+    {
+      "place": 5,
+      "date": "2027-03-15"
+    },
+    {
+      "place": 4,
+      "date": "2027-03-22"
+    },
+    {
+      "place": 3,
+      "date": "2027-03-29"
+    }
+  ],
+  "season_start_basis": "First games per the official NBA schedule; user instructed to use opening night.",
+  "season_start_source": "https://pr.nba.com/2026-27-nba-regular-season-schedule/",
+  "original_season_start_text": "Tuesday, Oct 21st",
+  "last_scoring_day": "Sunday immediately before each scheduled Monday cut, unless a bottom tie extends scoring.",
+  "tie_policy": {
+    "trigger": "Tie at the bottom after Sunday scoring.",
+    "eligible_teams": "Only the teams originally in that bottom tie on Sunday.",
+    "extension_days": 1,
+    "resolution": "Continue scoring one day at a time until the bottom tie breaks among the original Sunday tied teams.",
+    "later_lower_teams": "A team outside the original Sunday tie is safe from this elimination even if it later drops below those teams.",
+    "valuation_treatment": "Use scheduled cut dates as the no-tie baseline. No tie probability or duration is invented without daily standings."
+  }
+}

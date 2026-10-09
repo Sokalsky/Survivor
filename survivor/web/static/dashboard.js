@@ -11,8 +11,9 @@ const seasonLabel = value => String(value ?? "").replace("-", "–");
 const dateLabel = value => value ? new Date(value).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric",timeZone:"UTC"}) : "—";
 const initials = name => String(name).split(/\s+/).filter(Boolean).map(s => s[0]).slice(0,2).join("");
 const badge = type => `<span class="tag ${type === 'keeper' ? 'keeper' : type === 'auction' ? 'auction' : 'final'}">${type === 'keeper' ? 'Keeper' : type === 'auction' ? 'Auction' : 'Final roster'}</span>`;
-const state = {view:"history", season:"", team:"", kind:"all", q:"", sort:"price", direction:"desc", position:"", page:1, bootstrap:null, history:null, dataset:"", run:"", dataRows:[], dataSort:"", sequence:0, tableSequence:0, playerSequence:0};
+const state = {view:"draft", season:"", team:"", kind:"all", q:"", sort:"price", direction:"desc", position:"", page:1, bootstrap:null, history:null, dataset:"", run:"", dataRows:[], dataSort:"", sequence:0, tableSequence:0, playerSequence:0};
 const views = {
+  draft:{title:"Draft",eyebrow:"YOUR LIVE DRAFT DESK",description:"Follow the room. Build your team."},
   history:{title:"Price history",eyebrow:"THE LEAGUE ARCHIVE",description:"Know what the room pays. Find where the value lives."},
   projections:{title:"Player projections",eyebrow:"THE SEASON AHEAD",description:"Eight categories. A clearer picture of what comes next."},
   valuations:{title:"Draft valuations",eyebrow:"FIND YOUR EDGE",description:"Survivor value. Your room’s price. A neutral draft’s price."},
@@ -352,10 +353,14 @@ async function loadView() {
   if (!state.bootstrap) return initialize();
   const token = ++state.sequence;
   ++state.tableSequence;
+  window.DraftRoom.unmount();
   setNavigation();
   $('#view-content').innerHTML = loading();
   try {
-    if (state.view==='history' || state.view==='rosters') {
+    if (state.view==='draft') {
+      await window.DraftRoom.mount($('#view-content'),state.bootstrap,()=>token===state.sequence&&state.view==='draft');
+      if (token!==state.sequence) return;
+    } else if (state.view==='history' || state.view==='rosters') {
       let heading = '';
       if (state.view==='history') {
         const overview = await api(`/api/overview?season=${encodeURIComponent(state.season)}`);
@@ -507,7 +512,7 @@ document.addEventListener('change',event=>{
   if(event.target.id==='dataset-select'){if(state.view==='valuations')state.run=value;else state.dataset=value;loadView();}
 });
 window.addEventListener('hashchange',()=>{
-  const view=location.hash.slice(1);state.view=views[view]?view:'history';state.kind='all';state.page=1;state.q='';mobileNav(false);loadView();
+  const view=location.hash.slice(1);state.view=views[view]?view:'draft';state.kind='all';state.page=1;state.q='';mobileNav(false);loadView();
 });
 $('#menu-button').addEventListener('click',()=>mobileNav(!$('#sidebar').classList.contains('open')));
 $('#nav-scrim').addEventListener('click',()=>mobileNav(false));
@@ -523,7 +528,7 @@ async function initialize() {
     $('#season-select').innerHTML=state.bootstrap.seasons.map(row=>`<option value="${esc(row.season)}" ${row.season===state.season?'selected':''}>${esc(seasonLabel(row.season))}</option>`).join('')+`<option value="all" ${state.season==='all'?'selected':''}>All seasons</option>`;
     $('#note-count').textContent=state.bootstrap.issue_count;
     $('#archive-footer').textContent=`${state.bootstrap.seasons.length} seasons · ${number(state.bootstrap.player_count)} player identities`;
-    state.view=views[location.hash.slice(1)]?location.hash.slice(1):'history';
+    state.view=views[location.hash.slice(1)]?location.hash.slice(1):'draft';
     connected();await loadView();
     const player=new URL(location.href).searchParams.get('player');if(player)openPlayer(player);
   } catch(error){setError(error);$('#view-content').innerHTML='<div class="no-results">Your league archive will appear here when the connection is restored.</div>';}

@@ -1,4 +1,4 @@
-SURVIVOR VALUATION v10
+SURVIVOR VALUATION v11
 
 THREE DISTINCT OUTPUTS
 
@@ -25,8 +25,8 @@ cover 2014-15 through 2025-26. The league archive contains 2,173 actual purchase
 Keeper salaries and final-roster recorded costs are not price training examples.
 The confirmed 30 keepers cost $790, leaving $2,210 for 195 available roster slots.
 
-User-supplied survivor rules: 1,000 man-games, 100 roster moves. First elimination
-after a month and a bit, then every one or two weeks until two teams remain.
+User-supplied survivor rules: 1,000 man-games, 100 roster moves. Confirmed Monday
+cut dates run November 30, 2026 through March 29, 2027, leaving two teams.
 Eliminated players enter regular waivers; remaining players enter a sniper draft
 in reverse original order. A team cannot repeat a waiver position in a 15-year
 cycle; year 16 resets it. Actual orders and dated acquisition logs are unavailable.
@@ -51,7 +51,7 @@ shooting impacts, not exact roster-specific changes in percentages or standings.
 For each stage t with T teams remaining:
   rosterable depth = T * 15;
   R_t = per-game score of the next player below that depth;
-  fraction_t = stage weeks / season weeks;
+  fraction_t = active calendar days in stage / active calendar days in season;
   projected team games = sum published games of that top pool / T;
   usage_t = min(1, 1000 / projected team games);
   useful games_it = published GP_i * fraction_t * usage_t, if Q_i > R_t;
@@ -61,7 +61,8 @@ All category scores remain on the original reference scale. A top-30 per-game
 player can contribute throughout the scenario; a fringe player earns value only
 while above the rising replacement level. The uniform game-pacing factor keeps
 each stage's neutral rosters within its share of 1,000 games. This is not a daily
-lineup optimizer. Games are spread uniformly: it cannot distinguish an October
+lineup optimizer. Games are spread uniformly outside the supplied All-Star break;
+the model cannot distinguish an October
 absence from a February absence. Delayed injury returns require particular care.
 
 Neutral expected turnover after a cut from T teams is 15/T acquisitions per
@@ -71,14 +72,38 @@ neutral approximation does not assign waiver winners, recreate sniper picks or
 prove every team gets that access. Additional streaming and injury moves are not
 modeled. Unknown waiver positions are never randomly assigned.
 
-Central scenario: first cut week 5.5, subsequent cuts every 1.5 weeks. Faster:
-week 5 then weekly. Slower: week 6 then every 1.5 weeks. Thirteen cuts leave two
-teams. A two-week interval throughout would exceed this season's available time.
-Season length uses the NBA's October 20, 2026-April 11, 2027 calendar (174 days).
-These are illustrative schedules, not confirmed league dates. The calculation
-assumes cumulative stats and reaching the final; it does not forecast survival
-probability or value winning an early elimination round separately. Exact dates,
-statistics resets, position constraints and dated injuries remain unresolved.
+CONFIRMED CALENDAR (v11)
+
+The central scenario now uses config/season_schedules/2026-27.json. Draft night
+is October 9, 2026. The season starts with the first NBA regular-season games on
+Tuesday, October 20 and ends Sunday, April 11, 2027, inclusive (174 days).
+Official source: https://pr.nba.com/2026-27-nba-regular-season-schedule/
+
+The thirteen cuts take effect before Monday games on November 30; December 7,
+14 and 21; January 4 and 18; February 1 and 15; and March 1, 8, 15, 22 and 29.
+For each scheduled cut the eliminated roster's last scoring day is Sunday.
+The final two-team stage includes March 29 through April 11. Stage boundaries
+are half-open: the old pool includes Sunday, and the new pool begins Monday.
+The user-supplied All-Star break, February 18-24 inclusive, receives no projected
+games. Divide each stage's non-break days by 167 active calendar days; these
+fractions total one. This still approximates game pacing uniformly, without
+loading individual NBA team schedules or predicting game-day availability.
+
+If the bottom is tied after Sunday scoring, extend one day at a time until the
+bottom tie breaks among the teams originally in that Sunday tie. The eligible
+group stays fixed for that elimination; an outside team that later falls below
+is safe from that cut. The calendar stores this rule and each run preserves it.
+Daily standings are unavailable, so the baseline assumes no unresolved tie.
+No tie probability, invented winner or assumed extension length changes values.
+
+Faster (first cut week 5, then weekly) and slower (week 6, then every 1.5 weeks)
+remain hypothetical sensitivities, using the same season and break. They are not
+the league's confirmed calendar or predictions of tie extensions. v11 changes
+survivor scores and neutral dollars, not the v10 market-price machinery or the
+published projections. Older saved runs retain their original calendar settings.
+Statistics resets, position constraints and dated injuries remain unresolved.
+The formula still assumes cumulative statistics and reaching the final; it does
+not forecast survival probability or separately value an early elimination win.
 
 Sort players by survivor score. Reserve $1 for each of the top 225, then allocate
 the other $2,775 linearly by positive value above the first undrafted score.
@@ -290,7 +315,7 @@ Both experiments can be reproduced with scripts/check_profile_adjustments.py,
 adding --initial for the rejected first experiment. Current player examples are
 evaluated after the development-only selection; they are not tuning targets.
 
-Luka example: original bid $65; cash -$1.70; supply -$0.41. The previous $13.46
+v9 historical example (before the v11 calendar): original Luka bid $65; cash -$1.70; supply -$0.41. The previous $13.46
 profile discount comprised category effects -$6.69, squared-score effect -$8.31,
 and age terms +$1.54. Keeping category and age effects gives a $5.15 discount,
 adjusted comp $57.74 and final expected price $58.58 (formerly $52.35). The base

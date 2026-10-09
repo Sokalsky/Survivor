@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 from collections import defaultdict
+from copy import deepcopy
 import hashlib
 import json
 import math
@@ -18,6 +19,7 @@ from survivor.preseason import load_preseason_evidence
 from survivor.historical_projections import sync_historical_projections
 from survivor.auction_context import auction_context, historical_contexts, market_observations
 from survivor.keeper_evidence import attach_contracts,add_claims,keeper_adjustment
+from survivor.schedule import load_calendar, scoring_stages
 
 CATEGORIES = ('PTS','REB','AST','STL','BLK','3PM','FG%','FT%')
 COUNT_FIELDS = ('pts_pg','reb_pg','ast_pg','stl_pg','blk_pg','fg3m_pg')
@@ -96,19 +98,16 @@ def survivor_scores(players, scored, rules, settings, scenario):
     more than their pro-rata 1,000 games during any stage. Replacement improves
     only while the expected neutral turnover fits the move allowance.
     """
-    weeks = settings['survivor']['season_weeks']
     roster = settings['roster_size']
     teams = rules['teams']
-    cuts = [scenario['first_cut_week']+i*scenario['cut_interval_weeks'] for i in range(teams-2)]
-    if not cuts or cuts[0]<=0 or any(a>=b for a,b in zip(cuts,cuts[1:])) or cuts[-1]>=weeks:
-        raise ValueError('Elimination scenario must leave time for a two-team final.')
+    timing, calendar_details = scoring_stages(teams, settings['survivor'], scenario)
     ordered = sorted(players,key=lambda p:(-scored[p['player_id']]['score'],p['player_id']))
     if len(ordered)<=teams*roster or rules['games_or_start_limits']<=0 or rules['roster_move_limit']<0:
         raise ValueError('Invalid survivor pool, game cap or move allowance.')
     result = {p['player_id']:{'score':0.,'useful_games':0.,'useful_season_fraction':0.} for p in players}
     stages, moves, effective_teams = [], 0., teams
-    for index,(start,end) in enumerate(zip([0]+cuts,cuts+[weeks])):
-        remaining = teams-index
+    for index, stage in enumerate(timing):
+        remaining = stage['teams']
         if index:
             required = roster/(remaining+1)
             if moves+required <= rules['roster_move_limit']:
@@ -118,8 +117,8 @@ def survivor_scores(players, scored, rules, settings, scenario):
         replacement = scored[ordered[depth]['player_id']]['score']
         projected_games_per_team = sum(p['games'] for p in ordered[:depth])/effective_teams
         utilization = min(1,rules['games_or_start_limits']/projected_games_per_team) if projected_games_per_team else 1
-        fraction = (end-start)/weeks
-        stages.append({'teams':remaining,'start_week':start,'end_week':end,'fraction':fraction,
+        fraction = stage['fraction']
+        stages.append({**stage,
                        'replacement_depth':depth,'replacement_score':replacement,'game_utilization':utilization,
                        'neutral_games_per_team':projected_games_per_team*fraction*utilization,
                        'expected_moves_used':moves})
@@ -132,7 +131,7 @@ def survivor_scores(players, scored, rules, settings, scenario):
                 result[key]['score'] += advantage*games/82
                 result[key]['useful_games'] += games
                 result[key]['useful_season_fraction'] += fraction
-    return result, {'name':scenario['name'],'stages':stages,'expected_moves_used':moves,
+    return result, {'name':scenario['name'],**calendar_details,'stages':stages,'expected_moves_used':moves,
                     'neutral_games_per_team':sum(s['neutral_games_per_team'] for s in stages),
                     'conditional_on':'Surviving to the final with neutral access to the improving player pool.'}
 
@@ -618,7 +617,11 @@ def evaluate_keeper_layer(observations,baseline,selected,settings,keeper_records
 
 
 def build_valuations(db, season, settings=None):
-    settings = settings or json.loads(CONFIG.read_text(encoding='utf-8'))
+    settings = deepcopy(settings or json.loads(CONFIG.read_text(encoding='utf-8')))
+    if settings['survivor']['calendar_season'] != season:
+        raise ValueError('Valuation settings must select the target season calendar.')
+    # Persist the actual calendar and tie rule with this immutable run.
+    settings['survivor']['calendar'] = load_calendar(season)
     rules = json.loads((ROOT/'config/league.json').read_text(encoding='utf-8'))
     projection,actuals,statistics,auctions,keeper_history,draft = load_inputs(db,season)
     players = statistics[projection['dataset_id']]
@@ -744,7 +747,7 @@ def build_valuations(db, season, settings=None):
             flags.append('Kept: expected price is hypothetical if available; neutral value uses a fresh $3,000 draft with no keepers.')
         elif fair == 0:
             flags.append('Outside the 225-player neutral allocation. Market price is conditional on being drafted.')
-        flags.append('Survivor score assumes reaching the final and neutral access to replacements; no actual waiver winners, positions, dated injuries or category resets are simulated.')
+        flags.append('Survivor score uses confirmed scheduled cuts with no unresolved bottom tie, assumes reaching the final and neutral access to replacements; tie extensions, actual waiver winners, positions, dated injuries and category resets are not simulated.')
         if keeper_detail['supporting_claims']:
             flags.append('Keeper claim prices use claimant-specific contracts. Claim reliability is a working assumption; earlier unsuccessful-claim logs are unavailable.')
         values.append({'player_id':key,'player':p['player'],'fair_value':fair,'expected_auction_price':round(expected,2),

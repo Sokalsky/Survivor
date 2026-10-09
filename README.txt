@@ -5,6 +5,12 @@ There is no local database to maintain. Export-only previews and tests use memor
 
 READY NOW
 
+- Draft is the default page: live auction board, adaptive price estimates,
+  personal bid caps, all-team budgets/interest, watchlist and private practice mode.
+- Configurable Chrome Yahoo watcher with local queue, replay, identity mapping
+  and explicit sale confirmation. Real Yahoo calibration remains required.
+  Setup, model assumptions and validation limits: docs-live-draft.txt.
+
 - All 26 source sheets cataloged, with original player names, cells, notes and costs.
 - 2015-16 through 2025-26 history inferred from the annual tracking sheets.
 - Auction purchases, keeper costs and final rosters stored separately.
@@ -77,6 +83,7 @@ implemented explicitly, without silently replacing existing history. Changes to
 name aliases likewise need explicit reconciliation after the first cloud import.
 Imports use transactions; interrupted history imports roll back together.
 
+GitHub repository: https://github.com/Sokalsky/Survivor
 Updates are pushed to GitHub. Railway deploys the connected repository and runs
 the startup imports using its existing DATABASE_URL. Direct Railway access from
 the development workspace is not part of this workflow.
@@ -241,9 +248,49 @@ neutral keeper surplus subtracts the confirmed charge. Expected prices use the
 actual $2,210/195 auction context but are individual conditional estimates, not
 a simultaneous budget allocation. No personalized bid ceiling is produced.
 
+CONFIRMED 2026-27 LEAGUE CALENDAR
+
+config/season_schedules/2026-27.json is the source for the dated calendar.
+Draft: Friday, October 9, 2026
+Season opens: Tuesday, October 20, 2026 (first NBA regular-season games)
+Season ends: Sunday, April 11, 2027, inclusive
+Opening/closing source: https://pr.nba.com/2026-27-nba-regular-season-schedule/
+
+Place cut    Effective before games    Last scoring day, absent a tie
+15th         Monday, Nov 30, 2026      Sunday, Nov 29, 2026
+14th         Monday, Dec 7, 2026       Sunday, Dec 6, 2026
+13th         Monday, Dec 14, 2026      Sunday, Dec 13, 2026
+12th         Monday, Dec 21, 2026      Sunday, Dec 20, 2026
+11th         Monday, Jan 4, 2027       Sunday, Jan 3, 2027
+10th         Monday, Jan 18, 2027      Sunday, Jan 17, 2027
+9th          Monday, Feb 1, 2027       Sunday, Jan 31, 2027
+8th          Monday, Feb 15, 2027      Sunday, Feb 14, 2027
+All-star break: February 18-24, 2027, inclusive
+7th          Monday, Mar 1, 2027       Sunday, Feb 28, 2027
+6th          Monday, Mar 8, 2027       Sunday, Mar 7, 2027
+5th          Monday, Mar 15, 2027      Sunday, Mar 14, 2027
+4th          Monday, Mar 22, 2027      Sunday, Mar 21, 2027
+3rd          Monday, Mar 29, 2027      Sunday, Mar 28, 2027
+The two-team final runs March 29 through April 11.
+
+If the bottom teams tie after Sunday's scoring, scoring continues one day at a
+time until that bottom tie breaks. Only the teams originally tied on Sunday are
+at risk for that elimination. Another team that subsequently drops below them
+remains safe from that cut.
+
+v11 uses the confirmed cut dates for the central survivor-value calculation.
+Published games are spread across 167 days outside the supplied seven-day
+All-Star break, rather than assigning projected games to the break. Faster and
+slower schedules remain hypothetical sensitivity checks. The scheduled baseline
+assumes no unresolved tie: there are no daily league standings from which to
+predict a tie or its duration. The tie rule and complete calendar are saved with
+each model run. Historical runs remain immutable. The auction-price model and
+published player forecasts are unchanged; survivor scores, neutral dollars and
+value-gap display bands can change with the confirmed schedule.
+
 VALUATION MODEL
 
-Draft targets and row colors are a display layer over the saved v10 prices.
+Draft targets and row colors are a display layer over the saved model values.
 The values board defaults to largest value gap: neutral auction value minus
 expected league price. White means evenly valued; light green solid value;
 light blue elite value; light orange slight overvaluation; light red overvaluation.
@@ -269,7 +316,8 @@ survivor/valuation.py uses all eight per-game categories, volume-weighted shooti
 impact, published availability, rising replacement levels as teams are eliminated,
 and the 1,000-game/100-move limits under explicit neutral scenarios. Waiver and
 reverse sniper rules are recorded; actual order and claim outcomes are unknown.
-Exact elimination dates, stat resets and lineup constraints remain unresolved.
+The central schedule uses the confirmed calendar above; stat resets and lineup
+constraints remain unresolved.
 Neutral values assume reaching the final, with no manager preferences or punts.
 
 The price model fits 1,589 actual auction purchases. It uses dated Razzball
@@ -379,7 +427,7 @@ On deployment, the normal startup computes and saves the run transactionally.
 Identical inputs produce the same run ID; old runs remain available. Public web
 requests cannot write valuations. No manual Railway import is needed. Completion
 is reported in startup logs as:
-  Valuations ready: 2026-27 / 348 players / survivor-8cat-v10
+  Valuations ready: 2026-27 / 348 players / survivor-8cat-v11
 Development checks do not verify that Railway has deployed the update.
 Age context can also be rebuilt offline from verified HTML caches with:
   python -m survivor.market_context

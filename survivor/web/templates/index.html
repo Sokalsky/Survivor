@@ -3,11 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="survivor-app" content="draft-v1">
   <meta name="theme-color" content="#18251f">
   <meta name="description" content="Your Survivor basketball league's price history, player projections and draft valuations.">
   <title>Survivor · League intelligence</title>
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='draft-room.css') }}">
+  <script src="{{ url_for('static', filename='draft-engine.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='draft-room.js') }}" defer></script>
   <script src="{{ url_for('static', filename='dashboard.js') }}" defer></script>
 </head>
 <body>
@@ -28,11 +32,12 @@
 </svg>
 <button class="mobile-scrim" id="nav-scrim" aria-label="Close navigation" hidden></button>
 <aside class="sidebar" id="sidebar">
-  <a class="brand" href="#history" aria-label="Survivor home"><span class="brand-mark"><svg><use href="#i-ball"/></svg></span><span>SURVIVOR<small>BASKETBALL INTELLIGENCE</small></span></a>
+  <a class="brand" href="#draft" aria-label="Survivor home"><span class="brand-mark"><svg><use href="#i-ball"/></svg></span><span>SURVIVOR<small>BASKETBALL INTELLIGENCE</small></span></a>
   <div class="league-label"><span class="live-dot"></span> THE LEAGUE ROOM <span>01</span></div>
   <nav aria-label="Main navigation">
     <div class="nav-caption">YOUR PLAYBOOK</div>
-    <a class="nav-item active" href="#history" data-view="history"><svg><use href="#i-history"/></svg>Price history<span class="nav-arrow">↗</span></a>
+    <a class="nav-item active" href="#draft" data-view="draft"><svg><use href="#i-ball"/></svg>Draft<span class="nav-arrow">↗</span></a>
+    <a class="nav-item" href="#history" data-view="history"><svg><use href="#i-history"/></svg>Price history<span class="nav-arrow">↗</span></a>
     <a class="nav-item" href="#projections" data-view="projections"><svg><use href="#i-chart"/></svg>Projections<span class="small-dot"></span></a>
     <a class="nav-item" href="#valuations" data-view="valuations"><svg><use href="#i-target"/></svg>Valuations<span class="small-dot"></span></a>
     <a class="nav-item" href="#keepers" data-view="keepers"><svg><use href="#i-check"/></svg>Keepers &amp; budgets</a>
@@ -48,16 +53,16 @@
 <div class="app-shell">
   <header class="topbar">
     <button id="menu-button" class="icon-button mobile-only" aria-label="Open navigation" aria-expanded="false"><svg><use href="#i-menu"/></svg></button>
-    <div class="breadcrumb">League room <span>/</span> <strong id="breadcrumb-view">Price history</strong></div>
+    <div class="breadcrumb">League room <span>/</span> <strong id="breadcrumb-view">Draft</strong></div>
     <div class="topbar-right"><span class="connection-state" id="connection-state"><i></i> Connecting</span><span class="topbar-divider"></span><span class="league-pill">8-CAT ROTO</span></div>
   </header>
   <main id="main-content">
     <div class="page-heading">
-      <div><h1 id="page-title">Price history<span>.</span></h1></div>
+      <div><h1 id="page-title">Draft<span>.</span></h1></div>
       <div class="heading-actions"><div class="season-control" id="season-control"><label for="season-select">SEASON</label><select id="season-select" aria-label="Season"><option>Loading…</option></select></div></div>
     </div>
     <div id="app-error" class="error-banner" role="alert" hidden><span id="error-message"></span><button id="retry-button">Try again</button></div>
-    <div id="view-content" aria-live="polite"><div class="initial-loading"><span class="spinner"></span> Opening the league archive…</div></div>
+    <div id="view-content" aria-live="polite"><div class="initial-loading"><span class="spinner"></span> Opening the draft room…</div></div>
     <footer class="page-footer"><span><svg><use href="#i-ball"/></svg> SURVIVOR </span><span id="archive-footer">League history · 2015–2026</span></footer>
   </main>
 </div>

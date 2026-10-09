@@ -18,7 +18,7 @@ def main():
         page=context.new_page()
         errors=[]
         page.on('pageerror',lambda error:errors.append(str(error)))
-        page.goto(args.url,wait_until='networkidle')
+        page.goto(args.url+'/#history',wait_until='networkidle')
         expect(page.locator('#results-count')).to_have_text('225')
         expect(page.locator('.stat-value').nth(1)).not_to_have_text('$0')
         page.screenshot(path=str(output/'dashboard-desktop.png'),full_page=False)
@@ -115,7 +115,7 @@ def main():
         page.screenshot(path=str(output/'draft-targets-mobile.png'),full_page=False,animations='disabled')
         page.locator('#data-table tbody tr').first.locator('.player-button').click()
         expect(page.locator('.draft-value-detail')).to_contain_text('Elite value')
-        expect(page.locator('.draft-value-detail')).to_contain_text('+$14.24')
+        expect(page.locator('.draft-value-detail')).to_contain_text('+$14.13')
         expect(page.locator('.draft-value-detail')).to_contain_text('5/8 positive')
         page.keyboard.press('Escape')
         page.set_viewport_size({'width':1440,'height':1050})

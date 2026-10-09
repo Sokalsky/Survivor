@@ -1,7 +1,16 @@
 {
   "teams": 15,
   "keepers_per_team": 2,
-  "categories": ["PTS", "REB", "AST", "STL", "BLK", "3PM", "FG%", "FT%"],
+  "categories": [
+    "PTS",
+    "REB",
+    "AST",
+    "STL",
+    "BLK",
+    "3PM",
+    "FG%",
+    "FT%"
+  ],
   "category_status": "Standard eight categories inferred from eight-category roto without turnovers; confirm exact categories.",
   "first_season_start": 2015,
   "season_mapping_status": "Inferred from 11 consecutive league years and matching 2015-16 through 2025-26 tracking tabs.",
@@ -14,7 +23,7 @@
   "target_season_status": "2026 keeper summary supplied for the upcoming 2026-27 season.",
   "minimum_bid": null,
   "keeper_escalation_rule": null,
-  "elimination_schedule": "First elimination a month and a bit into the season; then every one or two weeks until two teams remain. Exact dates not supplied.",
+  "elimination_schedule": "Confirmed dated cuts in config/season_schedules/2026-27.json, effective before Monday games using Sunday standings. Bottom ties extend daily among only the original Sunday tied teams; outsiders remain safe from that cut even if they later fall below.",
   "statistics_reset_rule": null,
   "eliminated_player_acquisition_rule": "Eliminated rosters enter regular waivers. Unclaimed players enter a sniper draft in reverse original waiver order.",
   "games_or_start_limits": 1000,

@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Survivor Yahoo Draft Watcher",
+  "version": "0.1.0",
+  "description": "Read selected Yahoo draft fields and relay observed bids and results privately to your Survivor tab.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "alarms"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Survivor draft watcher"
+  }
+}

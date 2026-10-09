@@ -434,7 +434,7 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         self.assertAlmostEqual(precise[0]['auction_estimate_weight'],.855)
         self.assertLess(brunson['keeper_evidence']['adjustment'],1)
         self.assertGreater(brunson['expected_auction_price'],43)
-        self.assertEqual(brunson['fair_value'],25.52)
+        self.assertEqual(brunson['fair_value'],25.55)  # Confirmed v11 calendar.
 
     def test_luka_close_comp_keeps_elite_premium_and_transparent_adjustments(self):
         luka = next(v for v in self.result['values'] if v['player_id']=='lukadoncic')
@@ -454,7 +454,7 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         self.assertEqual(current['Alvin']['kind'],'claim')
         self.assertTrue(current['Alvin']['auction_overlap'])
         self.assertEqual(current['Alvin']['claim_details']['price_status'],'derived')
-        self.assertEqual(luka['fair_value'],59.95)
+        self.assertEqual(luka['fair_value'],59.23)  # Confirmed v11 calendar.
 
     def test_injury_exceptions_removed_from_fit_and_every_comp_but_history_preserved(self):
         from survivor.preseason import load_preseason_evidence
@@ -558,6 +558,9 @@ class PublishedValueIntegrationTests(unittest.TestCase):
         self.assertEqual(self.db.execute('SELECT COUNT(*) FROM valuation_runs').fetchone()[0],1)
         self.assertEqual(self.db.execute('SELECT COUNT(*) FROM projected_values').fetchone()[0],348)
         self.assertEqual(self.db.execute('SELECT COUNT(*) FROM keeper_value_evidence').fetchone()[0],348)
+        stored = json.loads(self.db.execute('SELECT league_settings_json FROM valuation_runs').fetchone()[0])
+        self.assertEqual(stored['survivor']['calendar'],self.result['settings']['survivor']['calendar'])
+        self.assertEqual(stored['survivor']['calendar']['cut_effective_timing'],'before_games')
         broken = copy.deepcopy(self.result)
         broken['run_id']='failed-test-run'
         broken['values'][1]['player_id']='missing-player-for-rollback-test'
@@ -623,7 +626,7 @@ class PublishedValueIntegrationTests(unittest.TestCase):
             self.assertEqual(self.client.get('/api/'+route+'?profile=bogus').status_code,400)
         george=self.client.get('/api/players/paulgeorge').json['valuations'][0]
         self.assertEqual(george['value_tier'],'elite')
-        self.assertEqual(george['value_gap'],14.24)
+        self.assertEqual(george['value_gap'],14.13)  # Confirmed v11 calendar: $23.40 - $9.27.
         self.assertEqual(george['expected_auction_price'],9.27)
         self.assertEqual(george['positive_categories'],5)
         prior=self.client.get('/api/projections?season=2024-25').json['rows']
