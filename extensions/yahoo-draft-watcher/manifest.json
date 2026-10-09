@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Survivor Yahoo Draft Watcher",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Automatically connect Yahoo salary-cap mock rooms to Survivor with teams, budgets, nominations and observed bids.",
   "host_permissions": [
     "https://basketball.fantasysports.yahoo.com/*",

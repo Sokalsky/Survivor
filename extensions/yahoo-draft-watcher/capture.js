@@ -31,7 +31,7 @@
     if(sold){if(saleCandidate!==signature){saleCandidate=signature;saleSince=now;}if(now-saleSince>=350&&lastSale!==signature){events.push({type:'sale',player:name,team,amount:price});lastSale=signature;}}
     else {saleCandidate='';if(lastBid!==signature){events.push({type:'bid',player:name,team,amount:price});lastBid=signature;}}
    }
-   if(automatic)for(const row of autoObservation.results||[]){const sig=JSON.stringify(['sale',row.player,row.team,row.amount]);if(!sentRows.has(sig)){events.push({type:'sale',...row,recovered:!resultsPrimed});sentRows.add(sig);}}
+   if(automatic)for(const row of autoObservation.results||[]){const sig=JSON.stringify(['sale',row.player,row.team,row.amount]);if(!sentRows.has(sig)){events.push({type:'sale',...row,recovered:!!row.recovered||!resultsPrimed});sentRows.add(sig);}}
    for(const kind of ['result','log']){
     if(!selectors[kind+'Row']||!selectors[kind+'Player']||!selectors[kind+'Team']||!selectors[kind+'Amount'])continue;
     const rows=[...document.querySelectorAll(selectors[kind+'Row'])].slice(-400);

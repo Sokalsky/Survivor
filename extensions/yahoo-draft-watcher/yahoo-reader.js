@@ -1,6 +1,6 @@
 /* Read the rendered auction UI by its labels, rather than user-picked CSS paths.
    No page internals, network interception, credentials, or Yahoo write actions. */
-(function(root,factory){if(typeof module!=='object'&&root.SurvivorYahooReader?.version==='0.3.3')return;const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.SurvivorYahooReader=api;})(globalThis,function(){
+(function(root,factory){if(typeof module!=='object'&&root.SurvivorYahooReader?.version==='0.3.4')return;const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.SurvivorYahooReader=api;})(globalThis,function(){
   'use strict';
   const clean=s=>String(s||'').replace(/\s+/g,' ').trim();
   const key=s=>clean(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -56,7 +56,7 @@
       memory={key:roomKey,wallets:new Map(rows.map(t=>[t.name,{cash:t.cash,owned:t.owned}])),bids:new Map(),results:new Map(),settled:new Set()};
       roomStates.set(doc,memory);resultRegions.delete(doc);
     }
-    let auction=elements.filter(e=>txt(e).length<1600&&/\bMax Offer\s*\$/i.test(txt(e))&&/\bBudget\s*\$/i.test(txt(e))&&[...e.querySelectorAll('button,[role="button"]')].some(b=>/^Offer\s+\$/i.test(txt(b)))).sort((a,b)=>txt(a).length-txt(b).length)[0];
+    let auction=elements.filter(e=>txt(e).length<1600&&/\bMax Offer\s*\$/i.test(txt(e))&&/\bBudget\s*\$/i.test(txt(e))&&[...e.querySelectorAll('button,[role="button"]')].some(b=>/^(?:Offer|Nominate)\s+\$/i.test(txt(b)))).sort((a,b)=>txt(a).length-txt(b).length)[0];
     if(!auction||rows.length<2||rows.length>30||unique.size!==rows.length||new Set(rows.map(t=>t.size)).size!==1)return {detected:false,message:'Waiting for Yahoo’s salary-cap draft room.'};
     const rowCount=Math.max(0,...rowNodes.map(n=>{let p=n;for(let i=0;p&&i<5;i++,p=p.parentElement){const count=Number(p.getAttribute('aria-rowcount')||p.getAttribute('aria-setsize'));if(count>0)return count;}return 0;}));
     if(rowCount>rows.length)return {detected:true,complete:false,message:'Waiting for the complete Yahoo team list.'};
@@ -131,6 +131,31 @@
         const signature=JSON.stringify(result);if(!resultNodes.has(signature)){resultNodes.add(signature);results.push(result);}found=true;
       }if(found)break;
     }}
+    // Real leagues publish completed purchases as separate cards in the Updates
+    // feed. Unlike the Last pick strip, each card includes the winning price.
+    // Require separate team, player and dollar fields; ordinary chat containing
+    // a player and a dollar amount is not a confirmed purchase.
+    for(const label of elements.filter(e=>/^Updates$/i.test(txt(e)))){
+      let region=label;
+      for(let i=0;i<7&&region;i++,region=region.parentElement){
+        if(region===doc.body||region.contains(auction)||rowNodes.some(n=>region.contains(n)))break;
+        let found=false;
+        for(const el of region.querySelectorAll('*')){
+          const s=txt(el);if(s.length>450||!usable(el)||el.closest('button,[role="button"]'))continue;
+          const dollars=[...s.matchAll(/\$\s*[\d,]+/g)],p=resolve(s);
+          if(!p||dollars.length!==1)continue;
+          const paid=money(dollars[0][0]);if(!(paid>0&&paid<=10000))continue;
+          const fields=[...el.querySelectorAll('*')].filter(usable);
+          const parts=p.split(' '),short=parts[0][0]+'. '+parts.slice(1).join(' ');
+          if(!fields.some(n=>words(txt(n))===words(p)||words(txt(n))===words(short))||!fields.some(n=>money(txt(n))===paid))continue;
+          const teams=rows.filter(t=>fields.some(n=>words(txt(n))===words(t.name)));
+          if(teams.length!==1)continue;
+          const result={player:p,team:teams[0].name,amount:paid,...(!memory.bids.has(p)?{recovered:true}:{})},signature=JSON.stringify(result);
+          if(!resultNodes.has(signature)){resultNodes.add(signature);results.push(result);}found=true;
+        }
+        if(found)break;
+      }
+    }
     for(const result of results)memory.results.set(result.player,result);
     for(const current of rows){
       const before=memory.wallets.get(current.name);
@@ -144,5 +169,5 @@
     return {detected:true,complete:teams.every(t=>t.budget!==null),teams,rosterSize:rows[0].size,ownTeam:own?.name||null,player,amount,team:leader,sold,timer,results,diagnostics:{auctionText:at.slice(0,1800),playerCandidates:[...names],priceCandidates:prices,leaderCandidates:owners,leaderBasis,bidBadgeCandidates:badges.map(t=>t.name),teamRows:rows.length,cataloguePlayers:players.length},
       waiting:/Draft Starting Soon|YOU NOMINATE|NOMINATES NEXT/i.test(doc.body.innerText||''),message:'Yahoo salary-cap room detected.'};
   }
-  return {version:'0.3.3',clean,key,money,identity,teamRow,catalogue,scan};
+  return {version:'0.3.4',clean,key,money,identity,teamRow,catalogue,scan};
 });

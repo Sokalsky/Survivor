@@ -27,15 +27,18 @@ with sync_playwright() as p:
         dict(id='n1', type='nominate', player='Giannis Antetokounmpo'),
         dict(id='b1', type='bid', player='Giannis Antetokounmpo', team='JYK', amount=23),
         dict(id='b2', type='bid', player='Giannis Antetokounmpo', team='You', amount=24),
-        dict(id='s1', type='sale', player='Giannis Antetokounmpo', team='JYK', amount=25),
         dict(id='n2', type='nominate', player='Anthony Edwards'),
         dict(id='b3', type='bid', player='Anthony Edwards', team='Brunson Burners', amount=1),
     ])
-    page.wait_for_function("JSON.parse(localStorage.getItem('survivor.draft.v1')).pending.length===5")
+    page.wait_for_function("JSON.parse(localStorage.getItem('survivor.draft.v1')).pending.length===4")
     page.locator('[data-draft="review"]').click()
     for alias, owner in [('JYK','Jason'), ('You','Max'), ('Brunson Burners','Isaac')]:
         page.locator('[data-yahoo-team="'+alias+'"]').select_option(owner)
     page.locator('#draft-teams-form button').click()
+    # The next nomination is still blocked until the explicit old sale arrives.
+    expect(page.locator('#draft-dialog-body')).to_contain_text('previous nomination has no confirmed result')
+    page.locator('[data-draft="close-dialog"]').click()
+    send([dict(id='s1', type='sale', player='Giannis Antetokounmpo', team='JYK', amount=25, recovered=True)])
     expect(page.locator('#draft-recording-status')).to_contain_text('Saved 6 events')
     state = page.evaluate("JSON.parse(localStorage.getItem('survivor.draft.v1'))")
     assert state['pending'] == []
