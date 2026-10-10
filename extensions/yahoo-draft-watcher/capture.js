@@ -23,7 +23,10 @@
    }
    if(!watching)return;
    const automatic=!selectors.player&&autoObservation?.detected;
-   const name=automatic?autoObservation.player:read(selectors.player),price=automatic?autoObservation.amount:amount(read(selectors.bid)),team=automatic?autoObservation.team:read(selectors.bidder),state=automatic?(autoObservation.sold?'sold to':''):read(selectors.sold);
+   const price=automatic?autoObservation.amount:amount(read(selectors.bid)),team=automatic?autoObservation.team:read(selectors.bidder),state=automatic?(autoObservation.sold?'sold to':''):read(selectors.sold);
+   // Selecting a player before clicking Nominate is only a private preview.
+   // Require Yahoo's active bidding controls and an observed opening bid.
+   const name=automatic?(autoObservation.auctionActive&&price>0&&team?autoObservation.player:null):read(selectors.player);
    if(name&&name!==previous){previous=name;lastBid='';lastSale='';saleCandidate='';nominationSince=now;events.push({id:crypto.randomUUID(),type:'nominate',player:name});}
    const sold=!!state&&/\b(sold(?: to)?|drafted by|won by)\b/i.test(state)&&!/\b(not|unsold|unsuccessful)\b/i.test(state);
    const signature=JSON.stringify([name,team,price]);
@@ -52,9 +55,9 @@
  new MutationObserver(schedule).observe(document.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['aria-label','data-value','data-state']});
  setInterval(collect,180);
  function heartbeat(){try{
-  const auto=!selectors.player,found=autoObservation?.detected,ready=auto?found&&!!autoObservation.player&&autoObservation.amount!==null&&!!autoObservation.team:complete()&&!!read(selectors.player);
+  const auto=!selectors.player,found=autoObservation?.detected,ready=auto?found&&autoObservation.auctionActive&&!!autoObservation.player&&autoObservation.amount>0&&!!autoObservation.team:complete()&&!!read(selectors.player);
   lastTimerSent=auto?autoObservation?.timer||'':read(selectors.timer);
-  send({type:'heartbeat',connected:watching&&(auto?found:complete()),ready:watching&&ready,message:!watching?'Waiting to connect to Survivor.':auto?(ready?'Reading Yahoo auction automatically.':found?'Yahoo connected; waiting for '+[!autoObservation.player?'player identity':null,autoObservation.amount===null?'current price':null,!autoObservation.team?'leading bidder':null].filter(Boolean).join(', ')+'.':autoObservation?.message||'Looking for the Yahoo auction room.'):'Reading selected Yahoo fields.',timer:auto?autoObservation?.timer||'':read(selectors.timer)});
+  send({type:'heartbeat',connected:watching&&(auto?found:complete()),ready:watching&&ready,message:!watching?'Waiting to connect to Survivor.':auto?(ready?'Reading Yahoo auction automatically.':found&&!autoObservation.auctionActive?'Yahoo connected; waiting for a nomination.':found?'Yahoo connected; waiting for '+[!autoObservation.player?'player identity':null,autoObservation.amount===null?'current price':null,!autoObservation.team?'leading bidder':null].filter(Boolean).join(', ')+'.':autoObservation?.message||'Looking for the Yahoo auction room.'):'Reading selected Yahoo fields.',timer:auto?autoObservation?.timer||'':read(selectors.timer)});
  }catch(err){send({type:'heartbeat',ready:false,message:'Yahoo layout could not be read. Open diagnostics in the watcher.'});}}
  setInterval(heartbeat,1500);
  function path(el,stop){

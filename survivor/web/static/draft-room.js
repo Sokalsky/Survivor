@@ -281,9 +281,15 @@
           const resultIndex=room.pending.findIndex((candidate,index)=>index>0&&candidate.type==='sale'&&normalize(candidate).playerId===st.nomination.playerId);
           if(resultIndex>0){room.pending.unshift(room.pending.splice(resultIndex,1)[0]);continue;}
         }
+        // Older watchers emitted private nomination previews as $0 auctions.
+        // A later observed auction can replace that unconfirmed preview; never
+        // infer a winner or clear an auction which already has an observed bid.
+        if(['nominate','bid'].includes(ev.type)&&st.nomination&&ev.playerId!==st.nomination.playerId&&ev.playerId&&!st.taken[ev.playerId]&&st.nomination.amount===0&&!st.nomination.leader){
+          E.append(s,{id:ev.id+':replace-preview',type:'withdraw',playerId:st.nomination.playerId,at:ev.at,source:'yahoo-preview-replaced'});
+        }
         if(ev.type==='nominate'&&st.taken[ev.playerId]){room.pending.shift();continue;}
         if(ev.type==='sale'&&st.taken[ev.playerId]&&st.taken[ev.playerId].team===ev.team&&st.taken[ev.playerId].amount===ev.amount) {room.pending.shift();continue;}
-        if(ev.type==='bid'&&!ev.history&&!st.nomination&&!st.taken[ev.playerId]&&ev.playerId) E.append(s,{...ev,id:ev.id+':nomination',type:'nominate'});
+        if(ev.type==='bid'&&!ev.history&&!E.replay(s).nomination&&!st.taken[ev.playerId]&&ev.playerId) E.append(s,{...ev,id:ev.id+':nomination',type:'nominate'});
         E.append(s,ev);room.pending.shift();
       } catch(err) {raw.problem=err.message;break;}
     }
@@ -311,6 +317,7 @@
     if(!YAHOO_MOCK&&window.SurvivorYahooRoom.identify(E,room.sessions.live)){
       room.team=E.namedSession(room.sessions.live).yahooOwnTeam;room.teamMap={};processPending();persist();
     }
+    if(room.pending.length){processPending();persist();}
     if(YAHOO_MOCK&&room.mode==='practice')room.mode='live';
     if(!recorder)recorder=new window.SurvivorRecorder.Recorder({getSession:()=>room.sessions.live,getPending:()=>room.pending.length,isTest:YAHOO_MOCK,onChange:renderRecording});
     if(!isCurrent())return;
