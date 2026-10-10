@@ -7,6 +7,28 @@ function fixture(){
  const s=E.create(rows,keepers,{id:'test',mode:'live',runId:'frozen-run'});s.settings.rosterSize=5;return s;
 }
 let next=0;const ev=(type,props={})=>({id:'e'+(++next),type,...props,at:'2026-10-09T12:00:00Z',source:'test'});
+test('team corrections reassign all matching history without rewriting it and can be undone',()=>{
+ const s=fixture();
+ E.append(s,ev('nominate',{playerId:'p0'}));
+ E.append(s,ev('bid',{playerId:'p0',team:'A',amount:30,sourceTeam:'Ozzy'}));
+ E.append(s,ev('sale',{playerId:'p0',team:'A',amount:30,sourceTeam:'ozzy'}));
+ const original=JSON.stringify(s.events),correction=ev('team-map',{assignments:[{sourceTeam:'Ozzy',team:'B'}]});
+ let state=E.append(s,correction);
+ assert.equal(state.teams.A.remaining,190);assert.equal(state.teams.B.remaining,160);
+ assert.equal(state.sales[0].team,'B');assert.equal(state.bids[0].team,'B');
+ assert.equal(JSON.stringify(s.events.slice(0,3)),original);
+ assert.equal(E.replay(JSON.parse(JSON.stringify(s))).sales[0].team,'B');
+ state=E.append(s,ev('undo',{targetId:correction.id}));assert.equal(state.sales[0].team,'A');
+ assert.throws(()=>E.append(s,ev('team-map',{assignments:[{sourceTeam:'Ozzy',team:'Missing'}]})),/mapping/);
+ assert.equal(s.events.length,5);
+});
+test('team corrections reject overspending atomically',()=>{
+ const s=fixture();
+ E.append(s,ev('sale',{playerId:'p0',team:'A',amount:150,sourceTeam:'Ozzy'}));
+ E.append(s,ev('sale',{playerId:'p1',team:'B',amount:150,sourceTeam:'Shut Down'}));
+ assert.throws(()=>E.append(s,ev('team-map',{assignments:[{sourceTeam:'Ozzy',team:'B'}]})),/budget/);
+ assert.equal(s.events.length,2);assert.equal(E.replay(s).teams.A.remaining,40);
+});
 test('keeper budgets and minimum reserves determine legal maximum',()=>{const s=fixture(),st=E.replay(s);assert.equal(E.legalMax(st,'Max'),187);assert.equal(E.board(st,'Max').market.remaining,570);assert.equal(E.board(st,'Max').rows.length,57);});
 test('opening live prices preserve saved expected prices',()=>{const s=fixture(),b=E.board(E.replay(s),'Max');assert.equal(b.rows[0].market.expected,b.rows[0].expected_auction_price);});
 test('duplicate delivery is idempotent and conflicting reuse is rejected',()=>{const s=fixture(),e=ev('nominate',{playerId:'p0'});E.append(s,e);E.append(s,e);assert.equal(s.events.length,1);assert.throws(()=>E.append(s,{...e,playerId:'p1'}),/reused/);});

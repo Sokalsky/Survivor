@@ -65,6 +65,24 @@ with sync_playwright() as p:
     page.wait_for_function('readyMessages.length>0')
     aliases=page.evaluate('readyMessages.at(-1).teamAliases')
     assert {'name':'You','team':'Max'} in aliases and {'name':'Cookin n Jokic','team':'Max'} in aliases,aliases
+    # Both aliases stay visible; correcting one owner replays and saves all history.
+    page.locator('[data-draft="teams"]').click()
+    expect(page.locator('[data-yahoo-team="You"]')).to_have_value('Max')
+    expect(page.locator('[data-yahoo-team="Cookin n Jokic"]')).to_have_value('Max')
+    page.locator('[data-yahoo-team="JYK"]').select_option('Arthur')
+    page.locator('#draft-teams-form button').click()
+    expect(page.locator('#draft-recording-status')).to_contain_text('Saved 8 events')
+    saved=page.request.get(BASE+'/api/drafts/'+initial['id']).json()
+    assert saved['session']['events'][3]['team']=='Jason'  # immutable original evidence
+    assert saved['session']['events'][-1]['type']=='team-map'
+    assert next(t for t in saved['teams'] if t['name']=='Arthur')['remaining']==110
+    assert next(t for t in saved['teams'] if t['name']=='Jason')['remaining']==132
+    page.reload(wait_until='networkidle')
+    send([dict(id='b5',type='bid',player='Anthony Edwards',team='jyk',amount=3)])
+    expect(page.locator('#draft-recording-status')).to_contain_text('Saved 9 events')
+    state=page.evaluate("JSON.parse(localStorage.getItem('survivor.draft.v1'))")
+    assert state['pending']==[]
+    assert state['sessions']['live']['events'][-1]['team']=='Arthur'
     assert not errors, errors
     browser.close()
 print('Yahoo team mapping: queued bids/sale/next nomination recovered, recorded, baseline preserved, aliases survive reload.')

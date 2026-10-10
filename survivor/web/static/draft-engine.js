@@ -112,7 +112,11 @@
   }
   function budgetRatioCached(s) { if (s.marketRatio===undefined) s.marketRatio=budgetRatio(s,'expected_auction_price'); return s.marketRatio; }
   function eventShape(event,s) {
-    if (!event || typeof event!=='object' || typeof event.id!=='string' || !event.id || event.id.length>200 || !['nominate','bid','sale','withdraw','undo'].includes(event.type)) throw Error('Invalid draft event.');
+    if (!event || typeof event!=='object' || typeof event.id!=='string' || !event.id || event.id.length>200 || !['nominate','bid','sale','withdraw','undo','team-map'].includes(event.type)) throw Error('Invalid draft event.');
+    if(event.type==='team-map'){
+      if(!Array.isArray(event.assignments)||!event.assignments.length||event.assignments.length>200||event.assignments.some(a=>!a||typeof a.sourceTeam!=='string'||!key(a.sourceTeam)||a.sourceTeam.length>160||!s.teams[a.team]))throw Error('Invalid team mapping correction.');
+      return;
+    }
     if (event.type==='undo') { if (typeof event.targetId!=='string') throw Error('An undo must identify its event.');return; }
     if (!s.byId[event.playerId]) throw Error('Match this Yahoo player to a player in the projection list.');
     if (['bid','sale'].includes(event.type)) {
@@ -158,13 +162,19 @@
       }
       ids.add(event.id);
     }
-    for (const event of session.events) if (event.type!=='undo' && !undone.has(event.id)) fold(s,event);
+    const assignments=new Map();
+    for(const event of session.events)if(event.type==='team-map'&&!undone.has(event.id))for(const a of event.assignments)assignments.set(key(a.sourceTeam),a.team);
+    for (const event of session.events) if (event.type!=='undo' && event.type!=='team-map' && !undone.has(event.id)){
+      const team=['bid','sale'].includes(event.type)&&event.sourceTeam?assignments.get(key(event.sourceTeam)):null;
+      fold(s,team?{...event,team}:event);
+    }
     s.undone=[...undone];return s;
   }
   function append(session,event) {
     const duplicate=session.events.find(e=>e.id===event.id);
     if (duplicate) {
       for (const k of ['type','playerId','team','amount','targetId','history','recovered']) if (duplicate[k]!==event[k]) throw Error('An event ID was reused with different details.');
+      if(JSON.stringify(duplicate.assignments)!==JSON.stringify(event.assignments))throw Error('An event ID was reused with different team assignments.');
       return replay(session);
     }
     const trial={...session,events:[...session.events,event]};

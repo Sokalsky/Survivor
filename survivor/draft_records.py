@@ -9,6 +9,7 @@ import json
 import math
 import os
 import re
+import unicodedata
 
 from flask import jsonify, request
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable
@@ -16,7 +17,11 @@ from werkzeug.exceptions import BadRequest, Conflict, Forbidden, NotFound, Servi
 CATS = ['PTS','REB','AST','STL','BLK','3PM','FG%','FT%']
 COUNTS = ['pts_pg','reb_pg','ast_pg','stl_pg','blk_pg','fg3m_pg']
 STATS = ['games','minutes_pg',*COUNTS,'fgm_pg','fga_pg','ftm_pg','fta_pg']
-EVENT_FIELDS = ['id','type','playerId','team','amount','at','source','history','recovered','targetId','sourcePlayer','sourceTeam']
+EVENT_FIELDS = ['id','type','playerId','team','amount','at','source','history','recovered','targetId','sourcePlayer','sourceTeam','assignments']
+
+
+def team_key(value):
+    return re.sub(r'[^a-z0-9]','',unicodedata.normalize('NFD',str(value or '')).lower())
 
 
 def now():
@@ -70,7 +75,7 @@ def validate_baseline(session):
 
 
 def event_value(raw):
-    if not isinstance(raw,dict) or not text(raw.get('id'),200) or raw.get('type') not in ['nominate','bid','sale','withdraw','undo']:
+    if not isinstance(raw,dict) or not text(raw.get('id'),200) or raw.get('type') not in ['nominate','bid','sale','withdraw','undo','team-map']:
         raise BadRequest('Invalid draft event.')
     if raw.get('source') in ('practice','mock','simulated'):
         raise BadRequest('Simulated events cannot enter real draft history.')
@@ -81,7 +86,12 @@ def event_value(raw):
     for k in ['history','recovered']:
         if k in e and type(e[k]) is not bool:
             raise BadRequest('Invalid event coverage flag.')
-    if e['type']=='undo':
+    if e['type']=='team-map':
+        assignments=e.get('assignments')
+        if not isinstance(assignments,list) or not 1<=len(assignments)<=200 or any(not isinstance(a,dict) or not text(a.get('sourceTeam')) or not team_key(a['sourceTeam']) or not text(a.get('team')) for a in assignments):
+            raise BadRequest('Invalid team mapping correction.')
+        e['assignments']=[{'sourceTeam':a['sourceTeam'],'team':a['team']} for a in assignments]
+    elif e['type']=='undo':
         if not text(e.get('targetId'),200):
             raise BadRequest('Undo must identify an earlier event.')
     elif not text(e.get('playerId')):
@@ -120,6 +130,9 @@ def replay(baseline, events):
             if e['targetId'] not in seen or seen[e['targetId']]['type']=='undo':
                 raise BadRequest('Undo must reference an earlier non-undo event.')
             undone.add(e['targetId'])
+        elif e['type']=='team-map':
+            if any(a['team'] not in teams for a in e['assignments']):
+                raise BadRequest('Unknown team in mapping correction.')
         elif e['playerId'] not in players or e['type'] in ('bid','sale') and (e['team'] not in teams or e['amount']<settings['minimumBid']):
             raise BadRequest('Unknown player, team or invalid minimum bid.')
         seen[e['id']]=e
@@ -134,9 +147,15 @@ def replay(baseline, events):
         if len(t['roster'])>settings['rosterSize'] or t['remaining']<(settings['rosterSize']-len(t['roster']))*settings['minimumBid'] or not fits([players[k['playerId']] for k in t['roster']],settings['rosterSlots']):
             raise BadRequest('Keeper roster conflicts with budget or slots.')
     nomination=None;bids=[];sales=[];auctions=[];current={}
+    assignments={}
     for e in seen.values():
-        if e['type']=='undo' or e['id'] in undone:
+        if e['type']=='team-map' and e['id'] not in undone:
+            assignments.update({team_key(a['sourceTeam']):a['team'] for a in e['assignments']})
+    for e in seen.values():
+        if e['type'] in ('undo','team-map') or e['id'] in undone:
             continue
+        if e['type'] in ('bid','sale') and team_key(e.get('sourceTeam')) in assignments:
+            e={**e,'team':assignments[team_key(e['sourceTeam'])]}
         pid=e['playerId'];kind=e['type']
         if kind=='nominate':
             if pid in taken or nomination and nomination['playerId']!=pid:
@@ -258,7 +277,7 @@ def append_events(db, draft_id, body):
     combined=old+fresh;replay(baseline,combined)
     for i,e in enumerate(fresh,len(old)+1):
         db.execute('INSERT INTO recorded_draft_events(draft_id,sequence,event_id,event_type,payload_json,received_at) VALUES (?,?,?,?,?,?)',(draft_id,i,e['id'],e['type'],encoded(e),now()))
-        if e['type'] in ('sale','undo'):
+        if e['type'] in ('sale','undo','team-map'):
             save_snapshot(db,draft_id,i,baseline,combined[:i])
     db.execute('UPDATE recorded_drafts SET revision=?,updated_at=? WHERE draft_id=?',(len(combined),now(),draft_id))
     return {'revision':len(combined),'status':'recording'}

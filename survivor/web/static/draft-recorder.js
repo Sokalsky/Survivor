@@ -1,7 +1,7 @@
 /* Durable real-draft uploads. Local capture never waits for the network. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.SurvivorRecorder=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
-  const FIELDS=['id','type','playerId','team','amount','at','source','history','recovered','targetId','sourcePlayer','sourceTeam'];
+  const FIELDS=['id','type','playerId','team','amount','at','source','history','recovered','targetId','sourcePlayer','sourceTeam','assignments'];
   const clean=e=>Object.fromEntries(FIELDS.filter(k=>e[k]!=null).map(k=>[k,e[k]]));
   class Recorder {
     constructor({getSession,getPending=()=>0,onChange=()=>{},isTest=false,storage=globalThis.localStorage,keyStorage=globalThis.sessionStorage,fetcher=globalThis.fetch.bind(globalThis)}) {

@@ -37,6 +37,28 @@ class DraftRecordsTests(unittest.TestCase):
             self.assertEqual(self.post('/api/drafts',{'session':baseline()}).status_code,503)
         self.create();self.assertEqual(len(self.client.get('/api/drafts').json['drafts']),1)
         self.assertEqual(self.client.get('/api/drafts/real-test').status_code,200)
+    def test_team_correction_preserves_original_events_and_snapshots(self):
+        self.create()
+        batch=[event('n','nominate'),event('b','bid',team='A',amount=30,sourceTeam='Ozzy'),event('s','sale',team='A',amount=30,sourceTeam='ozzy')]
+        self.assertEqual(self.append(batch).status_code,200)
+        original=self.client.get('/api/drafts/real-test').json['session']['events']
+        correction=dict(id='map',type='team-map',source='manual-confirmed',assignments=[dict(sourceTeam='Ozzy',team='B')])
+        response=self.append([correction],3);self.assertEqual(response.status_code,200,response.json)
+        saved=self.client.get('/api/drafts/real-test').json
+        self.assertEqual(saved['session']['events'][:3],original)
+        self.assertEqual(next(t for t in saved['teams'] if t['name']=='B')['remaining'],160)
+        self.assertEqual(replay(saved['session'],saved['session']['events'])['bids'][0]['team'],'B')
+        old=self.client.get('/api/drafts/real-test?at=3').json
+        self.assertEqual(next(t for t in old['teams'] if t['name']=='A')['remaining'],160)
+        self.assertEqual(self.append([dict(id='undo-map',type='undo',targetId='map')],4).status_code,200)
+        undone=self.client.get('/api/drafts/real-test').json
+        self.assertEqual(next(t for t in undone['teams'] if t['name']=='A')['remaining'],160)
+    def test_team_correction_rejects_overspending_without_partial_write(self):
+        self.create()
+        self.assertEqual(self.append([event('a','sale',team='A',amount=150,sourceTeam='Ozzy'),event('b','sale',player='p4',team='B',amount=150,sourceTeam='Shut Down')]).status_code,200)
+        correction=dict(id='map',type='team-map',assignments=[dict(sourceTeam='Ozzy',team='B')])
+        self.assertEqual(self.append([correction],2).status_code,400)
+        self.assertEqual(self.client.get('/api/drafts/real-test').json['record']['revision'],2)
     def test_mock_simulator_and_simulated_events_cannot_enter_real_archive(self):
         for changes in [dict(mode='practice'),dict(purpose='mock'),dict(purpose=None)]:
             s=baseline();s.update(changes);self.assertEqual(self.post('/api/drafts',{'session':s}).status_code,400)

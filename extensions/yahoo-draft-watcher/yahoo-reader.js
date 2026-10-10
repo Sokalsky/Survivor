@@ -1,6 +1,6 @@
 /* Read the rendered auction UI by its labels, rather than user-picked CSS paths.
    No page internals, network interception, credentials, or Yahoo write actions. */
-(function(root,factory){if(typeof module!=='object'&&root.SurvivorYahooReader?.version==='0.3.5')return;const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.SurvivorYahooReader=api;})(globalThis,function(){
+(function(root,factory){if(typeof module!=='object'&&root.SurvivorYahooReader?.version==='0.3.6')return;const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.SurvivorYahooReader=api;})(globalThis,function(){
   'use strict';
   const clean=s=>String(s||'').replace(/\s+/g,' ').trim();
   const key=s=>clean(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -148,11 +148,12 @@
           const fields=[...el.querySelectorAll('*')].filter(usable);
           const parts=p.split(' '),short=parts[0][0]+'. '+parts.slice(1).join(' ');
           if(!fields.some(n=>words(txt(n))===words(p)||words(txt(n))===words(short))||!fields.some(n=>money(txt(n))===paid))continue;
-          const teams=rows.filter(t=>{
-            const franchise=teamAliases.find(a=>key(a.name)===key(t.name))?.team;
-            return fields.some(n=>words(txt(n))===words(t.name)||franchise&&teamAliases.some(a=>a.team===franchise&&key(a.name)===key(txt(n))));
-          });
+          // Keep Yahoo's exact identity. Shared owner mappings must never turn
+          // one visible Yahoo team into another team or an ambiguous purchase.
+          const teams=rows.filter(t=>fields.some(n=>words(txt(n))===words(t.name)));
           let winner=teams.length===1?teams[0].name:null;
+          const ownFranchise=own&&teamAliases.find(a=>key(a.name)===key(own.name))?.team;
+          if(!teams.length&&ownFranchise&&fields.some(n=>teamAliases.some(a=>a.team===ownFranchise&&key(a.name)===key(txt(n)))))winner=own.name;
           // The Updates card uses our actual team name while the wallet says
           // "You". A captured winning bid plus its exact wallet/slot change
           // confirms this purchase without treating all unknown names as us.
@@ -180,5 +181,5 @@
     return {detected:true,complete:teams.every(t=>t.budget!==null),teams,rosterSize:rows[0].size,ownTeam:own?.name||null,player,amount,team:leader,sold,timer,results,diagnostics:{auctionText:at.slice(0,1800),playerCandidates:[...names],priceCandidates:prices,leaderCandidates:owners,leaderBasis,bidBadgeCandidates:badges.map(t=>t.name),teamRows:rows.length,cataloguePlayers:players.length},
       waiting:/Draft Starting Soon|YOU NOMINATE|NOMINATES NEXT/i.test(doc.body.innerText||''),message:'Yahoo salary-cap room detected.'};
   }
-  return {version:'0.3.5',clean,key,money,identity,teamRow,catalogue,scan};
+  return {version:'0.3.6',clean,key,money,identity,teamRow,catalogue,scan};
 });

@@ -32,6 +32,10 @@ with sync_playwright() as p:
         ('Donovan Mitchell','Fantasy Sports Czar',57),('Kevin Durant','Pretty Savage',51),
         ('Trae Young','Morant and Gang',40)}
     assert all(r['recovered'] for r in state['results'])
+    # An incorrect shared app-owner mapping cannot corrupt Yahoo's actual name.
+    aliases=[{'name':'Ozzy','team':'Joe'},{'name':'JYK','team':'Joe'}]
+    repeated=page.evaluate('aliases=>SurvivorYahooReader.scan(document,players,aliases)',aliases)
+    assert {(r['player'],r['team'],r['amount']) for r in repeated['results']} == {(r['player'],r['team'],r['amount']) for r in state['results']}
     # A later scan retains observed results even if Yahoo hides the Updates panel.
     page.evaluate("document.querySelector('#updates').hidden=true")
     assert len(page.evaluate('SurvivorYahooReader.scan(document,players)')['results']) == 7
