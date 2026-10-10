@@ -17,7 +17,7 @@ from werkzeug.exceptions import BadRequest, Conflict, Forbidden, NotFound, Servi
 CATS = ['PTS','REB','AST','STL','BLK','3PM','FG%','FT%']
 COUNTS = ['pts_pg','reb_pg','ast_pg','stl_pg','blk_pg','fg3m_pg']
 STATS = ['games','minutes_pg',*COUNTS,'fgm_pg','fga_pg','ftm_pg','fta_pg']
-EVENT_FIELDS = ['id','type','playerId','team','amount','at','source','history','recovered','targetId','sourcePlayer','sourceTeam','assignments']
+EVENT_FIELDS = ['id','type','playerId','team','amount','at','source','history','recovered','targetId','sourcePlayer','sourceTeam','assignments','teamNames','ownTeam']
 
 
 def team_key(value):
@@ -75,7 +75,7 @@ def validate_baseline(session):
 
 
 def event_value(raw):
-    if not isinstance(raw,dict) or not text(raw.get('id'),200) or raw.get('type') not in ['nominate','bid','sale','withdraw','undo','team-map']:
+    if not isinstance(raw,dict) or not text(raw.get('id'),200) or raw.get('type') not in ['nominate','bid','sale','withdraw','undo','team-map','yahoo-teams']:
         raise BadRequest('Invalid draft event.')
     if raw.get('source') in ('practice','mock','simulated'):
         raise BadRequest('Simulated events cannot enter real draft history.')
@@ -86,7 +86,11 @@ def event_value(raw):
     for k in ['history','recovered']:
         if k in e and type(e[k]) is not bool:
             raise BadRequest('Invalid event coverage flag.')
-    if e['type']=='team-map':
+    if e['type']=='yahoo-teams':
+        names=e.get('teamNames')
+        if not isinstance(names,dict) or not 2<=len(names)<=30 or any(not text(k) or not text(v,100) or not team_key(v) for k,v in names.items()) or len({team_key(v) for v in names.values()})!=len(names) or e.get('ownTeam') not in names.values():
+            raise BadRequest('Invalid Yahoo team identities.')
+    elif e['type']=='team-map':
         assignments=e.get('assignments')
         if not isinstance(assignments,list) or not 1<=len(assignments)<=200 or any(not isinstance(a,dict) or not text(a.get('sourceTeam')) or not team_key(a['sourceTeam']) or not text(a.get('team')) for a in assignments):
             raise BadRequest('Invalid team mapping correction.')
@@ -118,7 +122,30 @@ def fits(players, slots):
     return all(assign(i,set()) for i in range(len(players)))
 
 
+def team_name_inputs(baseline, events):
+    identities=[event_value(e) for e in events if e.get('type')=='yahoo-teams']
+    for e in identities:
+        if set(e['teamNames'])!={t['name'] for t in baseline['teams']}:
+            raise BadRequest('Yahoo team identities must cover the saved teams exactly.')
+    undone={e.get('targetId') for e in events if e.get('type')=='undo'}
+    identity=next((e for e in reversed(identities) if e['id'] not in undone),None)
+    if not identity:return baseline,events
+    names=identity['teamNames'];own=identity['ownTeam']
+    direct={team_key(n):n for n in names.values()}
+    direct.update({team_key(n):own for n in ['You',next(n for n,v in names.items() if v==own)]})
+    mapped=[]
+    for e in events:
+        if e['type']=='team-map':
+            e={**e,'assignments':[{**a,'team':names.get(a['team'],a['team'])} for a in e['assignments']]}
+        elif e['type'] in ('bid','sale'):
+            team=direct.get(team_key(e['sourceTeam']),e['sourceTeam']) if e.get('sourceTeam') else names.get(e['team'],e['team'])
+            e={**e,'team':team}
+        mapped.append(e)
+    return {**baseline,'yahooTeamNames':True,'teams':[{**t,'name':names[t['name']]} for t in baseline['teams']],'keepers':[{**k,'team':names[k['team']]} for k in baseline['keepers']]},mapped
+
+
 def replay(baseline, events):
+    baseline,events=team_name_inputs(baseline,events)
     players={p['player_id']:p for p in baseline['players']};settings=baseline['settings']
     teams={t['name']:{'name':t['name'],'budget':t['budget'],'remaining':t['budget'],'roster':[]} for t in baseline['teams']}
     taken={};seen={};undone=set()
@@ -130,6 +157,8 @@ def replay(baseline, events):
             if e['targetId'] not in seen or seen[e['targetId']]['type']=='undo':
                 raise BadRequest('Undo must reference an earlier non-undo event.')
             undone.add(e['targetId'])
+        elif e['type']=='yahoo-teams':
+            pass
         elif e['type']=='team-map':
             if any(a['team'] not in teams for a in e['assignments']):
                 raise BadRequest('Unknown team in mapping correction.')
@@ -149,10 +178,10 @@ def replay(baseline, events):
     nomination=None;bids=[];sales=[];auctions=[];current={}
     assignments={}
     for e in seen.values():
-        if e['type']=='team-map' and e['id'] not in undone:
+        if not baseline.get('yahooTeamNames') and e['type']=='team-map' and e['id'] not in undone:
             assignments.update({team_key(a['sourceTeam']):a['team'] for a in e['assignments']})
     for e in seen.values():
-        if e['type'] in ('undo','team-map') or e['id'] in undone:
+        if e['type'] in ('undo','team-map','yahoo-teams') or e['id'] in undone:
             continue
         if e['type'] in ('bid','sale') and team_key(e.get('sourceTeam')) in assignments:
             e={**e,'team':assignments[team_key(e['sourceTeam'])]}
@@ -277,7 +306,7 @@ def append_events(db, draft_id, body):
     combined=old+fresh;replay(baseline,combined)
     for i,e in enumerate(fresh,len(old)+1):
         db.execute('INSERT INTO recorded_draft_events(draft_id,sequence,event_id,event_type,payload_json,received_at) VALUES (?,?,?,?,?,?)',(draft_id,i,e['id'],e['type'],encoded(e),now()))
-        if e['type'] in ('sale','undo','team-map'):
+        if e['type'] in ('sale','undo','team-map','yahoo-teams'):
             save_snapshot(db,draft_id,i,baseline,combined[:i])
     db.execute('UPDATE recorded_drafts SET revision=?,updated_at=? WHERE draft_id=?',(len(combined),now(),draft_id))
     return {'revision':len(combined),'status':'recording'}

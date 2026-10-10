@@ -7,6 +7,22 @@ function fixture(){
  const s=E.create(rows,keepers,{id:'test',mode:'live',runId:'frozen-run'});s.settings.rosterSize=5;return s;
 }
 let next=0;const ev=(type,props={})=>({id:'e'+(++next),type,...props,at:'2026-10-09T12:00:00Z',source:'test'});
+test('Yahoo names override bad person mappings for old and new events; own identity stays known',()=>{
+ const s=fixture();
+ E.append(s,ev('sale',{playerId:'p0',team:'A',sourceTeam:'Ozzy',amount:30}));
+ E.append(s,ev('sale',{playerId:'p1',team:'Max',sourceTeam:'You',amount:20}));
+ E.append(s,ev('team-map',{assignments:[{sourceTeam:'Ozzy',team:'Max'}]}));
+ const prefix=JSON.stringify(s.events),names={Max:'Cookin in Jokicin',A:'Shut Down',B:'Ozzy'};
+ let state=E.append(s,ev('yahoo-teams',{teamNames:names,ownTeam:names.Max}));
+ assert.equal(state.sales[0].team,'Ozzy');assert.equal(state.teams.Ozzy.remaining,160);
+ assert.equal(state.teams[names.Max].remaining,170);assert.equal(state.teams[names.Max].roster[0].team,names.Max);
+ assert.equal(JSON.stringify(s.events.slice(0,3)),prefix);assert.equal(s.teams[0].name,'Max');
+ state=E.append(s,ev('sale',{playerId:'p2',team:'A',sourceTeam:'Ozzy',amount:10}));
+ assert.equal(state.sales.at(-1).team,'Ozzy');assert.equal(state.teams.Ozzy.remaining,150);
+ assert.throws(()=>E.append(s,ev('sale',{playerId:'p3',team:'B',sourceTeam:'A',amount:10})),/Yahoo team/);
+ assert.equal(E.replay(JSON.parse(JSON.stringify(s))).teams[names.Max].remaining,170);
+ assert.equal(E.board(state,names.Max).selectedTeam,names.Max);
+});
 test('team corrections reassign all matching history without rewriting it and can be undone',()=>{
  const s=fixture();
  E.append(s,ev('nominate',{playerId:'p0'}));

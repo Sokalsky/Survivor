@@ -112,7 +112,8 @@
   }
   function budgetRatioCached(s) { if (s.marketRatio===undefined) s.marketRatio=budgetRatio(s,'expected_auction_price'); return s.marketRatio; }
   function eventShape(event,s) {
-    if (!event || typeof event!=='object' || typeof event.id!=='string' || !event.id || event.id.length>200 || !['nominate','bid','sale','withdraw','undo','team-map'].includes(event.type)) throw Error('Invalid draft event.');
+    if (!event || typeof event!=='object' || typeof event.id!=='string' || !event.id || event.id.length>200 || !['nominate','bid','sale','withdraw','undo','team-map','yahoo-teams'].includes(event.type)) throw Error('Invalid draft event.');
+    if(event.type==='yahoo-teams')return;
     if(event.type==='team-map'){
       if(!Array.isArray(event.assignments)||!event.assignments.length||event.assignments.length>200||event.assignments.some(a=>!a||typeof a.sourceTeam!=='string'||!key(a.sourceTeam)||a.sourceTeam.length>160||!s.teams[a.team]))throw Error('Invalid team mapping correction.');
       return;
@@ -149,8 +150,26 @@
     } else if (type==='withdraw' && s.nomination?.playerId===playerId) s.nomination=null;
     s.events.push(event);s.revision++;
   }
+  function namedSession(session) {
+    const events=session.events||[],undone=new Set(events.filter(e=>e.type==='undo').map(e=>e.targetId));
+    for(const ev of events.filter(e=>e.type==='yahoo-teams')){
+      const names=ev.teamNames;
+      if(!names||typeof names!=='object'||Array.isArray(names)||Object.keys(names).length!==session.teams.length||session.teams.some(t=>!Object.hasOwn(names,t.name))||Object.values(names).some(n=>typeof n!=='string'||!key(n)||n.length>100)||new Set(Object.values(names).map(key)).size!==session.teams.length||!Object.values(names).includes(ev.ownTeam))throw Error('Invalid Yahoo team identities.');
+    }
+    const identity=events.findLast(e=>e.type==='yahoo-teams'&&!undone.has(e.id));
+    if(!identity)return session;
+    const names=identity.teamNames,own=identity.ownTeam,ownOwner=Object.keys(names).find(n=>names[n]===own),direct=new Map(Object.values(names).map(n=>[key(n),n]));
+    for(const alias of ['You',ownOwner])direct.set(key(alias),own);
+    return {...session,yahooTeamNames:true,yahooOwnTeam:own,teams:session.teams.map(t=>({...t,name:names[t.name]})),keepers:session.keepers.map(k=>({...k,team:names[k.team]})),events:events.map(e=>{
+      if(e.type==='team-map')return {...e,assignments:e.assignments.map(a=>({...a,team:names[a.team]||a.team}))};
+      if(!['bid','sale'].includes(e.type))return e;
+      // The captured Yahoo name is authoritative. Old owner mappings cannot overwrite it.
+      return {...e,team:e.sourceTeam?(direct.get(key(e.sourceTeam))||e.sourceTeam):(names[e.team]||e.team)};
+    })};
+  }
   function replay(session) {
     if (session?.version!==1 || !Array.isArray(session.events) || session.events.length>25000 || !['live','practice'].includes(session.mode)) throw Error('Unsupported draft file.');
+    session=namedSession(session);
     const s=initial(session),ids=new Set(),undone=new Set();
     for (const event of session.events) {
       eventShape(event,s);
@@ -163,8 +182,8 @@
       ids.add(event.id);
     }
     const assignments=new Map();
-    for(const event of session.events)if(event.type==='team-map'&&!undone.has(event.id))for(const a of event.assignments)assignments.set(key(a.sourceTeam),a.team);
-    for (const event of session.events) if (event.type!=='undo' && event.type!=='team-map' && !undone.has(event.id)){
+    for(const event of session.events)if(!session.yahooTeamNames&&event.type==='team-map'&&!undone.has(event.id))for(const a of event.assignments)assignments.set(key(a.sourceTeam),a.team);
+    for (const event of session.events) if (!['undo','team-map','yahoo-teams'].includes(event.type) && !undone.has(event.id)){
       const team=['bid','sale'].includes(event.type)&&event.sourceTeam?assignments.get(key(event.sourceTeam)):null;
       fold(s,team?{...event,team}:event);
     }
@@ -175,10 +194,11 @@
     if (duplicate) {
       for (const k of ['type','playerId','team','amount','targetId','history','recovered']) if (duplicate[k]!==event[k]) throw Error('An event ID was reused with different details.');
       if(JSON.stringify(duplicate.assignments)!==JSON.stringify(event.assignments))throw Error('An event ID was reused with different team assignments.');
+      if(JSON.stringify(duplicate.teamNames)!==JSON.stringify(event.teamNames)||duplicate.ownTeam!==event.ownTeam)throw Error('An event ID was reused with different Yahoo teams.');
       return replay(session);
     }
     const trial={...session,events:[...session.events,event]};
-    const result=replay(trial);session.events.push(event);result.session=session;return result;
+    const result=replay(trial);session.events.push(event);result.session=namedSession(session);return result;
   }
   function teamProfile(s,name) {
     const team=s.teams[name],roster=team.roster.map(r=>s.byId[r.playerId]);
@@ -344,5 +364,5 @@
     const matches=session.players.filter(p=>key(p.player)===key(name) || p.player_id===name);
     return matches.length===1?matches[0].player_id:null;
   }
-  return {CATS,STATS,key,create,replay,append,board,market,fit,outlook,rotoStandings,projection,rawTotals,legalMax,canFit,resolvePlayer,validateSettings};
+  return {CATS,STATS,key,create,replay,append,board,market,fit,outlook,rotoStandings,projection,rawTotals,legalMax,canFit,resolvePlayer,validateSettings,namedSession};
 });

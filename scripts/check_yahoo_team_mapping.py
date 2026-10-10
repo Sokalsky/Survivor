@@ -9,6 +9,12 @@ with sync_playwright() as p:
     errors = []
     page.on('pageerror', lambda e: errors.append(str(e)))
     assert page.request.post(BASE+'/__qa/reset').json() == {'isolated': True}
+    # Legacy owner-mapping recovery remains available for older league seasons.
+    def older_bootstrap(route):
+        response=route.fetch(); data=response.json()
+        data['draft']['season']='2025-26'
+        route.fulfill(response=response,json=data)
+    page.route('**/api/bootstrap',older_bootstrap)
     page.goto(BASE+'/#draft', wait_until='networkidle')
     page.locator('[data-draft="recording"]').click()
     page.locator('#draft-recording-form input').fill('local-qa-only-recording-key-0123456789')

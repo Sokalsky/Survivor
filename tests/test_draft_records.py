@@ -53,6 +53,23 @@ class DraftRecordsTests(unittest.TestCase):
         self.assertEqual(self.append([dict(id='undo-map',type='undo',targetId='map')],4).status_code,200)
         undone=self.client.get('/api/drafts/real-test').json
         self.assertEqual(next(t for t in undone['teams'] if t['name']=='A')['remaining'],160)
+    def test_yahoo_team_names_preserve_baseline_and_ignore_wrong_owner_maps(self):
+        self.create()
+        old=[event('s','sale',team='A',amount=30,sourceTeam='Ozzy'),event('mine','sale',player='p4',team='Max',amount=20,sourceTeam='You')]
+        self.assertEqual(self.append(old).status_code,200)
+        identity=dict(id='names',type='yahoo-teams',teamNames={'Max':'Cookin in Jokicin','A':'Shut Down','B':'Ozzy'},ownTeam='Cookin in Jokicin')
+        response=self.append([identity],2);self.assertEqual(response.status_code,200,response.json)
+        saved=self.client.get('/api/drafts/real-test').json
+        self.assertEqual(saved['session']['teams'],baseline()['teams'])
+        self.assertEqual(saved['session']['events'][:2],old)
+        self.assertEqual(next(t for t in saved['teams'] if t['name']=='Ozzy')['remaining'],160)
+        self.assertEqual(next(t for t in saved['teams'] if t['name']=='Cookin in Jokicin')['remaining'],170)
+        # Even a retained incorrect owner alias cannot redirect an observed Yahoo name.
+        correction=dict(id='bad-old-map',type='team-map',assignments=[dict(sourceTeam='Ozzy',team='A')])
+        self.assertEqual(self.append([correction,event('next','sale',player='p5',team='A',amount=10,sourceTeam='Ozzy')],3).status_code,200)
+        saved=self.client.get('/api/drafts/real-test').json
+        self.assertEqual(next(t for t in saved['teams'] if t['name']=='Ozzy')['remaining'],150)
+        self.assertEqual(self.create().status_code,200)  # same frozen baseline still resumes
     def test_team_correction_rejects_overspending_without_partial_write(self):
         self.create()
         self.assertEqual(self.append([event('a','sale',team='A',amount=150,sourceTeam='Ozzy'),event('b','sale',player='p4',team='B',amount=150,sourceTeam='Shut Down')]).status_code,200)
