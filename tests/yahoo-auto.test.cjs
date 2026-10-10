@@ -2,6 +2,15 @@
 const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path'),{webcrypto}=require('node:crypto');
 const Reader=require('../extensions/yahoo-draft-watcher/yahoo-reader.js'),E=require('../survivor/web/static/draft-engine.js'),Importer=require('../survivor/web/static/yahoo-room.js');
 const appOrigin='https://survivor-production-bdd5.up.railway.app';
+test('specific suffix names beat contained aliases without guessing between separate players',()=>{
+ const resolve=Reader.catalogue(['Jabari Smith Jr.','Jalen Smith','Jalen Williams','Jaylin Williams'].map(player=>({player})));
+ assert.equal(resolve('J. SMITH JR. PF,C HOU'),'Jabari Smith Jr.');
+ assert.equal(resolve('J. SMITH'),'Jalen Smith');
+ assert.equal(resolve('Jabari Smith Jr.'),'Jabari Smith Jr.');
+ assert.equal(resolve('J. WILLIAMS'),null);
+ assert.equal(resolve('J. SMITH JR. and Jalen Smith'),null);
+ assert.equal(resolve('J. SMITH JR. and J. WILLIAMS'),null);
+});
 const sample={key:'https://basketball.fantasysports.yahoo.com/draft?mockId=42',purpose:'mock',complete:true,rosterSize:13,ownTeam:'You',teams:[{name:'You',budget:200,cash:200,owned:0},{name:'Emre',budget:200,cash:200,owned:0}]};
 const source=fs.readFileSync(path.join(__dirname,'../extensions/yahoo-draft-watcher/background.js'),'utf8');
 function worker(){

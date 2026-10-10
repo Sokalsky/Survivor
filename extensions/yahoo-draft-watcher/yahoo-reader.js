@@ -1,6 +1,6 @@
 /* Read the rendered auction UI by its labels, rather than user-picked CSS paths.
    No page internals, network interception, credentials, or Yahoo write actions. */
-(function(root,factory){if(typeof module!=='object'&&root.SurvivorYahooReader?.version==='0.3.6')return;const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.SurvivorYahooReader=api;})(globalThis,function(){
+(function(root,factory){if(typeof module!=='object'&&root.SurvivorYahooReader?.version==='0.3.7')return;const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.SurvivorYahooReader=api;})(globalThis,function(){
   'use strict';
   const clean=s=>String(s||'').replace(/\s+/g,' ').trim();
   const key=s=>clean(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -33,8 +33,19 @@
     function put(alias,name){const k=words(alias);if(!k)return;const values=aliases.get(k)||new Set();values.add(name);aliases.set(k,values);}
     for(const p of players||[]){const name=clean(p.player);if(!name)continue;put(name,name);const parts=name.split(' ');if(parts.length>1)put(parts[0][0]+'. '+parts.slice(1).join(' '),name);}
     return value=>{
-      const s=' '+words(value)+' ',found=new Set();
-      for(const [alias,names] of aliases)if(s.includes(' '+alias+' ')){if(names.size!==1)return null;for(const name of names)found.add(name);}
+      const s=' '+words(value)+' ',found=new Set(),hits=[];
+      for(const [alias,names] of aliases){
+        const needle=' '+alias+' ';let start=s.indexOf(needle);
+        while(start!==-1){hits.push({start,end:start+needle.length,names});start=s.indexOf(needle,start+1);}
+      }
+      // A suffix is identity evidence: "J. Smith Jr." must beat its contained
+      // "J. Smith" match. Separate player names and genuinely shared aliases
+      // remain ambiguous; never choose a player just because their name is longer.
+      for(const hit of hits){
+        if(hits.some(other=>other.start<=hit.start&&other.end>=hit.end&&(other.start<hit.start||other.end>hit.end)))continue;
+        if(hit.names.size!==1)return null;
+        for(const name of hit.names)found.add(name);
+      }
       return found.size===1?[...found][0]:null;
     };
   }
@@ -181,5 +192,5 @@
     return {detected:true,complete:teams.every(t=>t.budget!==null),teams,rosterSize:rows[0].size,ownTeam:own?.name||null,player,amount,team:leader,sold,timer,results,diagnostics:{auctionText:at.slice(0,1800),playerCandidates:[...names],priceCandidates:prices,leaderCandidates:owners,leaderBasis,bidBadgeCandidates:badges.map(t=>t.name),teamRows:rows.length,cataloguePlayers:players.length},
       waiting:/Draft Starting Soon|YOU NOMINATE|NOMINATES NEXT/i.test(doc.body.innerText||''),message:'Yahoo salary-cap room detected.'};
   }
-  return {version:'0.3.6',clean,key,money,identity,teamRow,catalogue,scan};
+  return {version:'0.3.7',clean,key,money,identity,teamRow,catalogue,scan};
 });
